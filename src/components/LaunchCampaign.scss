@@ -1,0 +1,139 @@
+@use '../global.scss' as *;
+
+.launch-root {
+  position: relative;
+  width: 100%;
+
+  &--loading {
+    overflow: hidden;
+  }
+}
+
+.launch-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.launch-overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+}
+
+.launch-overlay-text {
+  margin-top: 1.5rem;
+  color: $titleColor;
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: $font-family;
+}
+
+.launch-overlay-subtext {
+  margin-top: 0.5rem;
+  color: $text2ndColor;
+  font-size: 0.9375rem;
+  font-family: $font-family;
+}
+
+.launch-card-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.75rem 2rem;
+  margin-top: 1rem;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid $sidebar-borderColor;
+  box-shadow: $box-shadow-value;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+}
+
+.launch-message-box {
+  flex: 1;
+}
+
+.launch-main-text {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: $titleColor;
+  margin: 0;
+  font-family: $font-family;
+  letter-spacing: -0.01em;
+}
+
+.launch-sub-text {
+  margin-top: 0.5rem;
+  font-size: 0.9375rem;
+  color: $text2ndColor;
+  line-height: 1.6;
+  margin-bottom: 0;
+  font-family: $font-family;
+  max-width: 550px;
+}
+
+.launch-action-button {
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  background: $button-Bgcolor;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba($primary-main, 0.25);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: $font-family;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    opacity: 0.95;
+    box-shadow: 0 10px 30px rgba($primary-main, 0.35);
+    transform: scale(1.02);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(1);
+  }
+
+  &:disabled {
+    background-color: #e5e7eb !important;
+    color: #9ca3af !important;
+    box-shadow: none !important;
+    cursor: not-allowed;
+  }
+}

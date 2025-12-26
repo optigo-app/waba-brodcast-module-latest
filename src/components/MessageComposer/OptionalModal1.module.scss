@@ -1,0 +1,189 @@
+@use '../../global.scss' as *;
+
+.modalBox {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    background-color: #fff;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    outline: none;
+    font-family: $font-family;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: rgba($secondaryColor, 0.1);
+        border-radius: 10px;
+    }
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+
+    .title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: $secondaryColor;
+        font-family: $font-family;
+    }
+
+    .closeBtn {
+        color: rgba($secondaryColor, 0.4);
+        padding: 8px;
+        transition: all 0.2s ease;
+
+        &:hover {
+            color: $secondaryColor;
+            background-color: rgba($secondaryColor, 0.04);
+            border-radius: 50%;
+        }
+    }
+}
+
+.optionsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+}
+
+.optionCard {
+    display: flex;
+    align-items: flex-start;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid $sidebar-borderColor;
+    background-color: #fcfcfd;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+
+    &:hover {
+        border-color: rgba($primary-main, 0.3);
+        background-color: rgba($primary-main, 0.02);
+        transform: translateY(-2px);
+    }
+
+    &.selected {
+        border-color: $primary-main;
+        background-color: rgba($primary-main, 0.08);
+
+        .iconWrapper {
+            background-color: $primary-main;
+            color: #fff;
+        }
+    }
+
+    &.disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        pointer-events: none;
+        background-color: #f9fafb;
+    }
+
+    .iconWrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        padding: 12px;
+        background-color: rgba($secondaryColor, 0.05);
+        color: $secondaryColor;
+        border-radius: 10px;
+        margin-right: 1.25rem;
+        transition: all 0.2s ease;
+    }
+
+    .cardContent {
+        flex: 1;
+
+        .cardHeader {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+
+            .cardTitle {
+                font-weight: 600;
+                color: $secondaryColor;
+                font-size: 1rem;
+            }
+        }
+
+        .cardSubtitle {
+            font-size: 0.875rem;
+            color: $text2ndColor;
+            line-height: 1.4;
+        }
+    }
+}
+
+.badge {
+    padding: 2px 8px;
+    background-color: #f3f4f6;
+    color: #6b7280;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+
+    .cancelBtn {
+        text-transform: none;
+        font-weight: 600;
+        border-radius: 10px;
+        padding: 0.6rem 1.5rem;
+        border-color: $primary-main;
+        color: $primary-main;
+
+        &:hover {
+            background-color: rgba($primary-main, 0.04);
+            border-color: rgba($primary-main, 0.2);
+        }
+    }
+
+    .continueBtn {
+        text-transform: none;
+        font-weight: 600;
+        border-radius: 10px;
+        padding: 0.6rem 2rem;
+        background-color: $primary-main;
+        color: #fff;
+        box-shadow: 0 4px 12px rgba($primary-main, 0.2);
+
+        &:hover {
+            background-color: $primary-main;
+            opacity: 0.9;
+            box-shadow: 0 6px 16px rgba($primary-main, 0.3);
+        }
+
+        &:disabled {
+            background-color: #e5e7eb;
+            color: #9ca3af;
+            box-shadow: none;
+        }
+    }
+}

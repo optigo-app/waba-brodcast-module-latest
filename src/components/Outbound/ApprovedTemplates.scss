@@ -1,0 +1,183 @@
+@use "../../global.scss" as *;
+
+/* Approved Templates Styles */
+.templates-container {
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: $box-shadow-value;
+    margin-top: 1.5rem;
+    border: 1px solid $sidebar-borderColor;
+
+    .templates-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+
+        h2 {
+            margin: 0;
+            color: $titleColor;
+            font-size: 1.25rem;
+            font-weight: 600;
+            font-family: $font-family;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+
+            .MuiTextField-root {
+                min-width: 250px;
+                background: white;
+                border-radius: 4px;
+            }
+
+            .category-filter {
+                padding: 10px 16px;
+                border: 1px solid $sidebar-borderColor;
+                border-radius: 10px;
+                background: #fcfcfd;
+                color: $secondaryColor;
+                font-size: 0.875rem;
+                cursor: pointer;
+                font-family: $font-family;
+                transition: all 0.2s ease;
+
+                &:focus {
+                    outline: none;
+                    border-color: $primary-main;
+                    box-shadow: 0 0 0 3px rgba($primary-main, 0.1);
+                }
+            }
+        }
+    }
+}
+
+.templates-table {
+    margin-top: 1rem;
+    border-radius: 8px;
+    overflow: hidden;
+
+    .MuiTable-root {
+        min-width: 100%;
+    }
+
+    .MuiTableHead-root {
+        background-color: #fcfcfd;
+
+        .MuiTableCell-head {
+            font-weight: 600;
+            color: $secondaryColor;
+            background-color: #fcfcfd;
+            border-bottom: 1px solid $sidebar-borderColor;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+    }
+
+    .MuiTableRow-root {
+        transition: background-color 0.2s;
+
+        &:hover {
+            background-color: rgba(115, 103, 240, 0.04);
+        }
+
+        .MuiTableCell-root {
+            border-bottom: 1px solid $sidebar-borderColor;
+            font-family: $font-family;
+            color: $titleColor;
+        }
+
+        &:last-child .MuiTableCell-root {
+            border-bottom: none;
+        }
+    }
+
+    .template-name {
+        strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .text-muted {
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+    }
+
+    .read-rate {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .progress-bar {
+            flex-grow: 1;
+            height: 6px;
+            background-color: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+
+            .progress {
+                height: 100%;
+                background-color: #007bff;
+                border-radius: 3px;
+            }
+        }
+    }
+
+    .unread-count {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #dc3545;
+        font-weight: 500;
+
+        .icon {
+            opacity: 0.8;
+        }
+    }
+
+    .MuiChip-root {
+        font-size: 0.75rem;
+        height: 24px;
+
+        .MuiChip-label {
+            padding: 0 8px;
+        }
+    }
+
+    .MuiButton-root {
+        text-transform: none;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+
+        &:disabled {
+            opacity: 0.6;
+        }
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 960px) {
+    .templates-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+
+        .filters {
+            width: 100%;
+            flex-direction: column;
+            align-items: stretch;
+
+            .MuiTextField-root {
+                width: 100%;
+                min-width: auto !important;
+            }
+        }
+    }
+}

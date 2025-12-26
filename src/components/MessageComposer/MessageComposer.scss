@@ -1,0 +1,233 @@
+@use '../../global.scss' as *;
+
+.message-templates {
+    background: #fff;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+
+    .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.25rem 0;
+
+        .title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: $secondaryColor;
+            font-family: $font-family;
+        }
+
+        .toggle-btn {
+            background: $button-Bgcolor;
+            color: $button-color;
+            padding: 0.6rem 1.2rem;
+            border-radius: 12px;
+            font-family: $font-family;
+            font-weight: 600;
+            text-transform: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(115, 103, 240, 0.2);
+
+            &:hover {
+                background: $button-Bgcolor;
+                opacity: 0.9;
+                transform: translateY(-1px);
+                box-shadow: 0 6px 16px rgba(115, 103, 240, 0.3);
+            }
+
+            &:active {
+                transform: translateY(0);
+            }
+        }
+    }
+
+    .search-bar-container {
+        .MuiTextField-root {
+            background: #fcfcfd;
+            border-radius: 12px;
+
+            .MuiOutlinedInput-root {
+                border-radius: 12px;
+                font-family: $font-family;
+
+                &.Mui-focused {
+                    .MuiOutlinedInput-notchedOutline {
+                        border-color: $primary-main;
+                        border-width: 2px;
+                    }
+                }
+
+                .MuiOutlinedInput-notchedOutline {
+                    border-color: $sidebar-borderColor;
+                    transition: border-color 0.2s ease;
+                }
+
+                &:hover .MuiOutlinedInput-notchedOutline {
+                    border-color: $sidebar-borderColor;
+                }
+            }
+
+            .MuiInputAdornment-root svg {
+                color: rgba($placeholderColor, 0.6);
+                width: 20px;
+                height: 20px;
+            }
+        }
+    }
+
+    .MuiTableContainer-root {
+        border-radius: 16px;
+        border: 1px solid $sidebar-borderColor;
+        box-shadow: none !important;
+        overflow: hidden;
+    }
+
+    .MuiTable-root {
+        border-collapse: separate;
+
+        .MuiTableHead-root {
+            background-color: #fcfcfd;
+            border-bottom: 1px solid $sidebar-borderColor;
+
+            .MuiTableCell-root {
+                color: $secondaryColor;
+                font-weight: 600;
+                font-family: $font-family;
+                font-size: 0.8125rem;
+                padding: 0.75rem 1.25rem;
+                background-color: transparent;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+        }
+
+        .MuiTableCell-root {
+            font-family: $font-family;
+            color: $titleColor;
+            border-bottom: 1px solid $sidebar-borderColor;
+        }
+
+        .campaign-row {
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+
+            &:hover {
+                background-color: rgba($secondaryColor, 0.04);
+            }
+
+            &.open {
+                background-color: rgba($secondaryColor, 0.02);
+
+                .MuiTableCell-root {
+                    border-bottom: none;
+                }
+            }
+        }
+    }
+
+    .expand-cell {
+        padding: 0 0 0 1rem;
+        width: 48px;
+
+        .expand-button {
+            color: $secondaryColor;
+            transition: transform 0.2s ease;
+            padding: 8px;
+            opacity: 0.45;
+
+            .expand-icon {
+                transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+                &.expanded {
+                    transform: rotate(90deg);
+                }
+            }
+        }
+    }
+
+    .campaign-name-cell {
+        font-weight: 500;
+        font-size: 0.9rem;
+
+    }
+
+    .templates-count-cell {
+        color: $text2ndColor;
+        font-size: 0.875rem;
+        text-align: right;
+    }
+
+    .campaign-details-cell {
+        background-color: #fcfcfd;
+    }
+
+    .campaign-collapse-box {
+        padding: 0 1.25rem 1.25rem 1.25rem;
+    }
+
+    .template-table {
+        background: #fff;
+        border: 1px solid $sidebar-borderColor;
+        border-radius: 12px;
+        overflow: hidden;
+
+        .template-row {
+            transition: all 0.2s ease;
+            position: relative;
+
+            &:hover {
+                background-color: rgba($secondaryColor, 0.04);
+            }
+
+            &.selected {
+                background-color: rgba($secondaryColor, 0.08);
+
+                &::before {
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 3px;
+                    background-color: $secondaryColor;
+                }
+            }
+
+            .template-name {
+                font-weight: 500;
+                font-family: $font-family;
+                font-size: 0.875rem;
+            }
+        }
+
+        .MuiTableCell-root {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid $sidebar-borderColor;
+
+            &:last-child {
+                border-bottom: none;
+            }
+        }
+    }
+
+    .template-checkbox-cell {
+        padding-left: 0.5rem;
+
+        .MuiCheckbox-root {
+            color: rgba($secondaryColor, 0.4);
+
+            &.Mui-checked {
+                color: $secondaryColor;
+            }
+        }
+    }
+
+    .MuiTablePagination-root {
+        font-family: $font-family;
+        border-top: 1px solid $sidebar-borderColor;
+        color: $text2ndColor;
+    }
+}

@@ -1,0 +1,66 @@
+@use '../../global.scss' as *;
+
+.composed_container {
+    padding: 0.5rem 0.5rem;
+    width: 100%;
+}
+
+.form_group {
+    margin-bottom: 1.75rem;
+
+    .fieldLabel {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: $secondaryColor;
+        margin-bottom: 0.75rem;
+        text-transform: capitalize;
+        letter-spacing: 0.5px;
+        font-family: $font-family;
+    }
+}
+
+.group_header {
+    background-color: rgba($primary-main, 0.04);
+    color: $primary-main;
+    font-weight: 600;
+    font-size: 0.75rem;
+    padding: 8px 16px;
+    text-transform: capitalize;
+    letter-spacing: 0.5px;
+}
+
+
+.form_footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+
+    .save_btn {
+
+        text-transform: none;
+        font-weight: 600;
+        border-radius: 10px;
+        padding: 0.6rem 2rem;
+        color: #fff;
+        box-shadow: 0 4px 12px rgba($primary-main, 0.2);
+
+        &:hover {
+            background-color: $primary-main;
+            opacity: 0.9;
+            box-shadow: 0 6px 16px rgba($primary-main, 0.3);
+        }
+
+        &:active {
+            background-color: $primary-main;
+            transform: translateY(0);
+        }
+
+        &:disabled {
+            background-color: #e5e7eb;
+            color: #9ca3af;
+            box-shadow: none;
+        }
+    }
+}

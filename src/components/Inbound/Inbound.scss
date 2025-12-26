@@ -1,0 +1,28 @@
+@use '../../global.scss' as *;
+
+.inbound-dashboard-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.inboundmain-content {
+  flex-grow: 1;
+  width: 100%;
+  padding: 0 1rem;
+}
+
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  .inbound-title {
+    font-weight: 600;
+    color: $titleColor;
+    margin-bottom: 0.15rem;
+  }
+
+  .inbound-subtitle {
+    color: $text2ndColor;
+  }
+}

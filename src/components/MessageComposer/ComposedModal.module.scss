@@ -1,0 +1,58 @@
+@use '../../global.scss' as *;
+
+.modalBox {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px; // Standardized width
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    background-color: #fff;
+    border-radius: 16px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+    padding: 2rem;
+    outline: none;
+    font-family: $font-family;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: rgba($primary-main, 0.1);
+        border-radius: 10px;
+    }
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem; // Tightened since ComposedMessage1 has its own margin
+
+    .title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: $primary-main; // Highlight title with primary color
+        font-family: $font-family;
+    }
+
+    .closeBtn {
+        color: rgba($secondaryColor, 0.4);
+        padding: 8px;
+        margin-right: -8px; // Offset padding for alignment
+        transition: all 0.2s ease;
+
+        &:hover {
+            color: $secondaryColor;
+            background-color: rgba($secondaryColor, 0.04);
+            border-radius: 50%;
+        }
+    }
+}
