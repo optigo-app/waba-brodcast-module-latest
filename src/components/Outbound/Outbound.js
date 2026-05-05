@@ -26,6 +26,7 @@ import { fetchOutboundList } from '../../API/getOutbound/GetOutbound';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthToken } from '../../hooks/useAuthToken';
 import CampaignTreeTable from './CampaignTreeTable';
+import CampaignDetailDialog from './CampaignDetailDialog';
 
 const style = {
     position: 'absolute',
@@ -63,6 +64,20 @@ const Outbound = () => {
     const { userToken } = useAuthToken();
     const navigate = useNavigate();
     const { pathname } = useLocation();
+
+    // Dialog state
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [selectedRow, setSelectedRow] = useState(null);
+
+    const handleRowClick = (row) => {
+        setSelectedRow(row);
+        setDialogOpen(true);
+    };
+
+    const handleDialogClose = () => {
+        setDialogOpen(false);
+        setSelectedRow(null);
+    };
 
     const handleMenuClick = (e, item, isSubItem = false) => {
         e.preventDefault();
@@ -142,6 +157,14 @@ const Outbound = () => {
                         totalRows={pagination.total}
                         onPageChange={handlePageChange}
                         onPageSizeChange={handlePageSizeChange}
+                        onRowClick={handleRowClick}
+                    />
+
+                    {/* Campaign Detail Dialog */}
+                    <CampaignDetailDialog
+                        open={dialogOpen}
+                        onClose={handleDialogClose}
+                        rowData={selectedRow}
                     />
                 </Box>
             </Box>

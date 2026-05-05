@@ -1,8 +1,9 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Button, Box, Typography, CircularProgress, Paper, IconButton } from '@mui/material';
+import { Box, Typography, Paper, IconButton, Chip } from '@mui/material';
 import * as XLSX from 'xlsx';
 import { FileText, Upload, X } from 'lucide-react';
+import CloseIcon from '@mui/icons-material/Close';
 import StepperNavigation from "../NavigationStepper/StepperNavigation";
 import AudienceSourceSelector from './AudienceSourceSelector';
 import GroupDropdown from './GroupDropdown';
@@ -15,6 +16,7 @@ import { ExcelImport } from '../../API/InitialApi/UploadMedia';
 import toast from 'react-hot-toast';
 import { fetchExcelList } from '../../API/ExcelLists/ExcelLists';
 import { useAuthToken } from '../../hooks/useAuthToken';
+import { getChipStyles } from '../../utils/chipStyles';
 
 // Utility to parse Excel/CSV file
 const parseFile = (file) => {
@@ -65,7 +67,7 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
     // State for source selection (CRM or Excel)
     const [source, setSource] = useState('crm');
     const [selectedGroup, setSelectedGroup] = useState(null);
-    console.log("TCL: AudienceSection -> selectedGroup", selectedGroup)
+    const [selectedBranches, setSelectedBranches] = useState([]);
     const [GroupData, setGroupData] = useState([]);
     const [file, setFile] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -84,7 +86,6 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
         city: null,
         country: null,
     });
-    console.log("TCL: AudienceSection -> filters", filters)
 
     // Check if any filter is active
     const isAnyFilterActive = useMemo(() => {
@@ -93,7 +94,8 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
     const [searchTerm, setSearchTerm] = useState('');
     const [searchInput, setSearchInput] = useState('');
     const [groupSearchTerm, setGroupSearchTerm] = useState('');
-    const [rowSelectionModel, setRowSelectionModel] = useState([]);
+    const [rowSelectionModel, setRowSelectionModel] = useState({ type: 'include', ids: new Set() });
+    const [selectedRowMap, setSelectedRowMap] = useState({});
 
     // Create a ref to store the timeout ID
     const searchTimeoutRef = useRef(null);
@@ -112,7 +114,7 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
             if (!selectedGroup?.id) {
                 setPaginationModel(prev => ({ ...prev, page: 0 }));
             }
-        }, 500); // 500ms delay
+        }, 200); // 200ms delay
     };
 
     // Debounce search function
@@ -129,10 +131,9 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
             if (!selectedGroup?.id) {
                 setPaginationModel(prev => ({ ...prev, page: 0 }));
             }
-        }, 20);
+        }, 200);
     };
 
-    const [rowSelectionData, setRowSelectionData] = useState([]);
     const [tableData, setTableData] = useState({
         rows: [],
         loading: true
@@ -143,6 +144,8 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
     });
 
     const fetchCampignId = JSON.parse(sessionStorage.getItem("campaignStepperState"))?.selectedTemplates[0]?.campaignId;
+
+    const getAudienceRowId = useCallback((row) => row?.CustomerId || row?.id, []);
 
     // Filter rows based on search term
     const filteredRows = useMemo(() => {
@@ -165,6 +168,19 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
             );
         });
     }, [searchTerm, tableData.rows, selectedGroup]);
+
+    const selectedIds = useMemo(() => {
+        if (rowSelectionModel?.ids instanceof Set) {
+            return Array.from(rowSelectionModel.ids);
+        }
+        return Array.isArray(rowSelectionModel) ? rowSelectionModel : [];
+    }, [rowSelectionModel]);
+
+    const rowSelectionData = useMemo(() => {
+        return selectedIds
+            .map((id) => selectedRowMap[id])
+            .filter(Boolean);
+    }, [selectedIds, selectedRowMap]);
 
     // Fetch data from server with pagination
     const fetchData = useCallback(async () => {
@@ -266,7 +282,8 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
             } else {
                 toast.error(fileUpload?.message || 'Failed to upload file');
             }
-            setRowSelectionModel([]);
+            setRowSelectionModel({ type: 'include', ids: new Set() });
+            setSelectedRowMap({});
         } catch (error) {
             console.error('Error parsing file:', error);
             toast.error('Error processing file');
@@ -326,11 +343,6 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
 
     // Handle next button click
     const handleNext = () => {
-        // Get the selected audience data
-        const selectedAudience = source === 'crm'
-            ? tableData.rows.filter(item => rowSelectionModel.includes(item.id))
-            : excelData.rows.filter(item => rowSelectionModel.includes(item.id));
-
         const audience = rowSelectionData.map(item => {
             let phone = (item.CustomerPhone || item.PhoneNo || item.phone || '').replace(/\D/g, '');
 
@@ -360,12 +372,41 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
     // Handle row selection change
     const handleRowSelectionModelChange = (newRowSelectionModel) => {
         setRowSelectionModel(newRowSelectionModel);
+
+        const currentRows = source === 'crm'
+            ? (filteredRows !== null ? filteredRows : tableData.rows)
+            : excelData.rows;
+
+        setSelectedRowMap((prev) => {
+            const next = { ...prev };
+            const selectedIdSet = new Set(
+                newRowSelectionModel?.ids instanceof Set
+                    ? Array.from(newRowSelectionModel.ids)
+                    : Array.isArray(newRowSelectionModel)
+                        ? newRowSelectionModel
+                        : []
+            );
+
+            currentRows.forEach((row) => {
+                const rowId = getAudienceRowId(row);
+                if (!rowId) return;
+
+                if (selectedIdSet.has(rowId)) {
+                    next[rowId] = row;
+                } else {
+                    delete next[rowId];
+                }
+            });
+
+            return next;
+        });
     };
 
     // Handle source change
     const handleSourceChange = (newSource) => {
         setSource(newSource);
-        setRowSelectionModel([]);
+        setRowSelectionModel({ type: 'include', ids: new Set() });
+        setSelectedRowMap({});
     };
 
     // Handle file input change
@@ -381,21 +422,19 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
             loading: false
         });
         setRowCount(0);
-        setRowSelectionModel([]);
+        setRowSelectionModel({ type: 'include', ids: new Set() });
+        setSelectedRowMap({});
+    };
+
+    // Handle branch removal
+    const handleRemoveBranch = (branchToRemove) => {
+        const newSelection = selectedBranches.filter(branch => branch.id !== branchToRemove.id);
+        setSelectedBranches(newSelection);
     };
 
     return (
         <>
             <div className="home_main_section">
-                <div className="step-card">
-                    <div className="step-header">
-                        <div className="step-icon">
-                            <span>{currentStep}</span>
-                        </div>
-                        <h2 className="title">Select Audience</h2>
-                    </div>
-                </div>
-
                 <Paper elevation={0} className={styles.content}>
                     {/* Source Selection */}
                     <AudienceSourceSelector
@@ -418,6 +457,7 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
                                 setSelectedGroup(group);
                                 handleGroupChange(group);
                             }}
+                            groupSearchTerm={groupSearchTerm}
                             source={source}
                             setFilterDrawerOpen={setFilterDrawerOpen}
                             currentStep={currentStep}
@@ -429,6 +469,9 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
                             }}
                             isDisabled={isAnyFilterActive}
                             onCreateNewGroup={() => console.log("Create group modal open")}
+                            showBranchDropdown={true}
+                            selectedBranches={selectedBranches}
+                            onBranchChange={(event, newValue) => setSelectedBranches(newValue)}
                         />
                     </Box>
                     {/* )} */}
@@ -511,16 +554,32 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
                     {/* Data Grid */}
                     <Box className={styles.gridBox}>
                         <Box className={styles.gridHeader}>
-                            <Typography className={styles.gridTitle}>
-                                {source === 'crm' ? 'CRM Contacts' : 'Imported Contacts'}
-                            </Typography>
+                            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1 }}>
+                                <Typography className={styles.gridTitle}>
+                                    {source === 'crm' ? 'CRM Contacts' : 'Imported Contacts'}
+                                </Typography>
+                                <Typography sx={{ color: 'var(--secondary-color)', fontSize: '0.875rem' }}>
+                                    Selected: {selectedIds.length}
+                                </Typography>
+                                {/* Selected Branches Chips */}
+                                {source === 'crm' && selectedBranches?.length > 0 && (
+                                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                                        {selectedBranches.map((branch) => (
+                                            <Chip
+                                                key={branch.id}
+                                                label={branch.name}
+                                                onDelete={() => handleRemoveBranch(branch)}
+                                                deleteIcon={<CloseIcon />}
+                                                size="small"
+                                                sx={getChipStyles()}
+                                            />
+                                        ))}
+                                    </Box>
+                                )}
+                            </Box>
                         </Box>
 
-                        {tableData.loading ? (
-                            <Box display="flex" justifyContent="center" my={8}>
-                                <CircularProgress />
-                            </Box>
-                        ) : (
+                        <Box sx={{ minHeight: 420 }}>
                             <AudienceGrid
                                 rows={
                                     filteredRows !== null
@@ -533,7 +592,6 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
                                 rowSelectionModel={rowSelectionModel}
                                 onFilterClick={toggleFilterDrawer}
                                 source={source}
-                                setRowSelectionData={setRowSelectionData}
                                 loading={source === 'crm' ? tableData.loading : excelData.loading}
                                 rowCount={filteredRows !== null ? filteredRows.length : rowCount}
                                 paginationModel={paginationModel}
@@ -544,7 +602,7 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
                                     debounceSearch(value);
                                 }}
                             />
-                        )}
+                        </Box>
                     </Box>
                 </Paper>
 

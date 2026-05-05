@@ -10,10 +10,9 @@ import { TextField, InputAdornment, Box, IconButton, Tooltip, LinearProgress } f
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import styles from './AudienceSection.module.scss';
-import { useGridApiRef } from '@mui/x-data-grid';
 
 // Custom toolbar with search and filter buttons
-const CustomToolbar = ({ onFilterClick, onSearchChange, searchText }) => {
+const CustomToolbar = ({ onFilterClick, onSearchChange, searchText, selectedCount = 0 }) => {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -63,7 +62,10 @@ const CustomToolbar = ({ onFilterClick, onSearchChange, searchText }) => {
           </IconButton>
         </Tooltip>
       </Box>
-      <Box sx={{ display: 'flex', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ fontSize: '0.875rem', color: 'var(--secondary-color)', mr: 1 }}>
+          Selected: {selectedCount}
+        </Box>
         <GridToolbarColumnsButton size="small" />
         <GridToolbarFilterButton size="small" />
         <GridToolbarDensitySelector size="small" />
@@ -83,15 +85,22 @@ const AudienceGrid = ({
   rowCount = 0,
   paginationModel,
   onPaginationModelChange,
-  setRowSelectionData,
-  rowSelectionData,
   pageSizeOptions = [10]
 }) => {
   const [searchText, setSearchText] = useState('');
-  const apiRef = useGridApiRef(); // ✅ real DataGrid API ref
 
-  // Ensure rowSelectionModel is always an array
-  const safeRowSelectionModel = Array.isArray(rowSelectionModel) ? rowSelectionModel : [];
+  // Ensure rowSelectionModel shape is compatible with current MUI DataGrid
+  const safeRowSelectionModel = React.useMemo(() => {
+    if (rowSelectionModel && typeof rowSelectionModel === 'object' && rowSelectionModel.ids instanceof Set) {
+      return rowSelectionModel;
+    }
+    if (Array.isArray(rowSelectionModel)) {
+      return { type: 'include', ids: new Set(rowSelectionModel) };
+    }
+    return { type: 'include', ids: new Set() };
+  }, [rowSelectionModel]);
+
+  const selectedCount = safeRowSelectionModel?.ids?.size || 0;
 
   // Define columns for the DataGrid
   const columns = [
@@ -238,19 +247,18 @@ const AudienceGrid = ({
     setSearchText(newSearchText);
   }, []);
 
-  const handleSelectionChange = () => {
-    const selected = apiRef.current.getSelectedRows();
-    setRowSelectionData([...selected.values()]);
-  };
+  const handleSelectionChange = useCallback((newRowSelectionModel) => {
+    onRowSelectionModelChange && onRowSelectionModelChange(newRowSelectionModel);
+  }, [onRowSelectionModelChange]);
 
   return (
     <Box className={styles.dataGridContainer}>
       <DataGrid
-        apiRef={apiRef} // ✅ connect apiRef
         rows={filteredRows}
         columns={source === "crm" ? columns : columns1}
         checkboxSelection
         disableSelectionOnClick
+        keepNonExistentRowsSelected
         hideFooterPagination={true}
         pagination
         pageSizeOptions={pageSizeOptions}
@@ -260,8 +268,7 @@ const AudienceGrid = ({
         onPaginationModelChange={onPaginationModelChange}
         virtualizeColumnsWithAutoRowHeight={true}
         onRowSelectionModelChange={handleSelectionChange}
-        // onRowSelectionModelChange={onRowSelectionModelChange}
-        // rowSelectionModel={rowSelectionModel}
+        rowSelectionModel={safeRowSelectionModel}
         loading={loading}
         getRowId={(row) => row.CustomerId || row.id || Math.random().toString(36).substr(2, 9)}
         components={{
@@ -273,7 +280,7 @@ const AudienceGrid = ({
             onFilterClick: onFilterClick,
             onSearchChange: handleSearchChange,
             searchText: searchText,
-            selectedCount: rowSelectionModel.length,
+            selectedCount: selectedCount,
           },
         }}
         sx={{

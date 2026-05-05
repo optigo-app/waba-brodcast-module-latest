@@ -13,6 +13,20 @@ import { fetchFilterMasterList } from '../../API/FilterMaster/FIlterMaster';
 import { useAuthToken } from '../../hooks/useAuthToken';
 import VirtualizedAutocomplete from './VirtualizedAutoComplete';
 
+// Static branch data (will be replaced with API data later)
+const STATIC_BRANCH_DATA = [
+  { id: 1, name: 'New York' },
+  { id: 2, name: 'Los Angeles' },
+  { id: 3, name: 'Chicago' },
+  { id: 4, name: 'Houston' },
+  { id: 5, name: 'Phoenix' },
+  { id: 6, name: 'Philadelphia' },
+  { id: 7, name: 'San Antonio' },
+  { id: 8, name: 'San Diego' },
+  { id: 9, name: 'Dallas' },
+  { id: 10, name: 'San Jose' },
+];
+
 // ✅ Main Filter Drawer Component
 const FilterDrawer = ({ open, onClose, onApplyFilters, filters = {} }) => {
   const [localFilters, setLocalFilters] = useState({
@@ -21,6 +35,7 @@ const FilterDrawer = ({ open, onClose, onApplyFilters, filters = {} }) => {
     companyType: null,
     city: null,
     state: null,
+    branch: null,
     ...filters,
   });
 
@@ -29,6 +44,7 @@ const FilterDrawer = ({ open, onClose, onApplyFilters, filters = {} }) => {
   const [state, setState] = useState([]);
   const [country, setCountry] = useState([]);
   const [city, setCity] = useState([]);
+  const [branch, setBranch] = useState(STATIC_BRANCH_DATA);
   const { userToken } = useAuthToken();
 
   const fetchFilterData = async () => {
@@ -67,6 +83,7 @@ const FilterDrawer = ({ open, onClose, onApplyFilters, filters = {} }) => {
       companyType: null,
       city: null,
       state: null,
+      branch: null,
     };
     setLocalFilters(resetFilters);
     onApplyFilters(resetFilters);
@@ -132,6 +149,13 @@ const FilterDrawer = ({ open, onClose, onApplyFilters, filters = {} }) => {
           valueKey="City"
           value={localFilters.city}
           onChange={handleFilterChange('city')}
+        />
+        <VirtualizedAutocomplete
+          data={branch}
+          label="Select Branch"
+          valueKey="name"
+          value={localFilters.branch}
+          onChange={handleFilterChange('branch')}
         />
       </Box>
 

@@ -1,0 +1,99 @@
+{
+    "Status": "200",
+    "Message": "Request processed successfully.",
+    "Data": {
+        "rd": [
+            {
+                "CampaignId": 25,
+                "CampaignTitle": "sample",
+                "LastSentDate": "27 Apr 2026 16:08:18",
+                "TotalMessages": 3,
+                "Pending": 0,
+                "Sent": 0,
+                "Delivered": 0,
+                "Seen": 0,
+                "Failed": 3,
+                "ReplyTo": 0,
+                "TemplateList": "[{\"TemplateId\":1,\"TemplateName\":\"album\",\"DataSource\":\"optigo\",\"TotalMessages\":3,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":0,\"Failed\":3,\"DateWiseList\":[{\"SendDateTime\":\"2026-04-25\",\"TotalMessages\":1,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":0,\"Failed\":1,\"ReplyTo\":0},{\"SendDateTime\":\"2026-04-27\",\"TotalMessages\":2,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":0,\"Failed\":2,\"ReplyTo\":0}]}]"
+            },
+            {
+                "CampaignId": 22,
+                "CampaignTitle": "Demo",
+                "LastSentDate": "19 Mar 2026 13:11:55",
+                "TotalMessages": 3,
+                "Pending": 1,
+                "Sent": 0,
+                "Delivered": 0,
+                "Seen": 0,
+                "Failed": 2,
+                "ReplyTo": 0,
+                "TemplateList": "[{\"TemplateId\":18,\"TemplateName\":\"quotation\",\"DataSource\":\"optigo\",\"TotalMessages\":3,\"Pending\":1,\"Sent\":0,\"Delivered\":0,\"Seen\":0,\"Failed\":2,\"DateWiseList\":[{\"SendDateTime\":\"2026-02-06\",\"TotalMessages\":1,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":0,\"Failed\":1,\"ReplyTo\":0},{\"SendDateTime\":\"2026-02-10\",\"TotalMessages\":1,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":0,\"Failed\":1,\"ReplyTo\":0},{\"SendDateTime\":\"2026-03-19\",\"TotalMessages\":1,\"Pending\":1,\"Sent\":0,\"Delivered\":0,\"Seen\":0,\"Failed\":0,\"ReplyTo\":0}]}]"
+            },
+            {
+                "CampaignId": 20,
+                "CampaignTitle": "iijs invitatiopn",
+                "LastSentDate": "16 Dec 2025 18:34:23",
+                "TotalMessages": 4,
+                "Pending": 0,
+                "Sent": 0,
+                "Delivered": 0,
+                "Seen": 4,
+                "Failed": 0,
+                "ReplyTo": 2,
+                "TemplateList": "[{\"TemplateId\":32,\"TemplateName\":\"album_clone\",\"DataSource\":\"optigo\",\"TotalMessages\":4,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":4,\"Failed\":0,\"DateWiseList\":[{\"SendDateTime\":\"2025-12-03\",\"TotalMessages\":2,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":2,\"Failed\":0,\"ReplyTo\":2},{\"SendDateTime\":\"2025-12-15\",\"TotalMessages\":1,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":1,\"Failed\":0,\"ReplyTo\":0},{\"SendDateTime\":\"2025-12-16\",\"TotalMessages\":1,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":1,\"Failed\":0,\"ReplyTo\":0}]}]"
+            },
+            {
+                "CampaignId": 16,
+                "CampaignTitle": "Broadcast Welcome",
+                "LastSentDate": "02 Dec 2025 13:48:16",
+                "TotalMessages": 24,
+                "Pending": 1,
+                "Sent": 0,
+                "Delivered": 0,
+                "Seen": 0,
+                "Failed": 23,
+                "ReplyTo": 1,
+                "TemplateList": "[{\"TemplateId\":34,\"TemplateName\":\"design\",\"DataSource\":\"excel\",\"TotalMessages\":18,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":0,\"Failed\":18,\"DateWiseList\":[{\"SendDateTime\":\"2025-11-01\",\"TotalMessages\":18,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":0,\"Failed\":18,\"ReplyTo\":1}]},{\"TemplateId\":34,\"TemplateName\":\"design\",\"DataSource\":\"optigo\",\"TotalMessages\":6,\"Pending\":1,\"Sent\":0,\"Delivered\":0,\"Seen\":0,\"Failed\":5,\"DateWiseList\":[{\"SendDateTime\":\"2025-11-05\",\"TotalMessages\":3,\"Pending\":1,\"Sent\":0,\"Delivered\":0,\"Seen\":0,\"Failed\":2,\"ReplyTo\":0},{\"SendDateTime\":\"2025-12-01\",\"TotalMessages\":2,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":0,\"Failed\":2,\"ReplyTo\":0},{\"SendDateTime\":\"2025-12-02\",\"TotalMessages\":1,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":0,\"Failed\":1,\"ReplyTo\":0}]}]"
+            },
+            {
+                "CampaignId": 18,
+                "CampaignTitle": "Broadcast test",
+                "LastSentDate": "06 Nov 2025 16:57:57",
+                "TotalMessages": 17,
+                "Pending": 0,
+                "Sent": 0,
+                "Delivered": 1,
+                "Seen": 13,
+                "Failed": 3,
+                "ReplyTo": 1,
+                "TemplateList": "[{\"TemplateId\":33,\"TemplateName\":\"training\",\"DataSource\":\"optigo\",\"TotalMessages\":17,\"Pending\":0,\"Sent\":0,\"Delivered\":1,\"Seen\":13,\"Failed\":3,\"DateWiseList\":[{\"SendDateTime\":\"2025-11-03\",\"TotalMessages\":15,\"Pending\":0,\"Sent\":0,\"Delivered\":1,\"Seen\":11,\"Failed\":3,\"ReplyTo\":0},{\"SendDateTime\":\"2025-11-05\",\"TotalMessages\":1,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":1,\"Failed\":0,\"ReplyTo\":0},{\"SendDateTime\":\"2025-11-06\",\"TotalMessages\":1,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":1,\"Failed\":0,\"ReplyTo\":1}]}]"
+            },
+            {
+                "CampaignId": 17,
+                "CampaignTitle": "Broadcast Onboard",
+                "LastSentDate": "01 Nov 2025 15:54:22",
+                "TotalMessages": 9,
+                "Pending": 2,
+                "Sent": 0,
+                "Delivered": 0,
+                "Seen": 1,
+                "Failed": 6,
+                "ReplyTo": 0,
+                "TemplateList": "[{\"TemplateId\":33,\"TemplateName\":\"training\",\"DataSource\":\"optigo\",\"TotalMessages\":9,\"Pending\":2,\"Sent\":0,\"Delivered\":0,\"Seen\":1,\"Failed\":6,\"DateWiseList\":[{\"SendDateTime\":\"2025-11-01\",\"TotalMessages\":9,\"Pending\":2,\"Sent\":0,\"Delivered\":0,\"Seen\":1,\"Failed\":6,\"ReplyTo\":0}]}]"
+            },
+            {
+                "CampaignId": 10,
+                "CampaignTitle": "Diwali Dhamaka",
+                "LastSentDate": "01 Nov 2025 11:00:25",
+                "TotalMessages": 13,
+                "Pending": 0,
+                "Sent": 3,
+                "Delivered": 4,
+                "Seen": 6,
+                "Failed": 0,
+                "ReplyTo": 2,
+                "TemplateList": "[{\"TemplateId\":32,\"TemplateName\":\"album_clone\",\"DataSource\":\"excel\",\"TotalMessages\":12,\"Pending\":0,\"Sent\":3,\"Delivered\":4,\"Seen\":5,\"Failed\":0,\"DateWiseList\":[{\"SendDateTime\":\"2025-11-01\",\"TotalMessages\":12,\"Pending\":0,\"Sent\":3,\"Delivered\":4,\"Seen\":5,\"Failed\":0,\"ReplyTo\":1}]},{\"TemplateId\":32,\"TemplateName\":\"album_clone\",\"DataSource\":\"optigo\",\"TotalMessages\":1,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":1,\"Failed\":0,\"DateWiseList\":[{\"SendDateTime\":\"2025-11-01\",\"TotalMessages\":1,\"Pending\":0,\"Sent\":0,\"Delivered\":0,\"Seen\":1,\"Failed\":0,\"ReplyTo\":1}]}]"
+            }
+        ]
+    }
+}

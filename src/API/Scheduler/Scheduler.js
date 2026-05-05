@@ -17,15 +17,14 @@ export const SetScheduler = async (userId, CampaignId, templates, dataSource, cu
         }
 
         const response = await CommonAPI(body);
+
         if (response?.Data) {
+            const resultData = response?.Data?.rd[0] || [];
             return {
-                data: response?.Data?.rd,
-            };
-        } else {
-            return {
-                data: [],
+                data: resultData,
             };
         }
+
     } catch (error) {
         console.error('Error:', error);
         return {

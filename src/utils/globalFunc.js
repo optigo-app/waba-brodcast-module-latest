@@ -78,3 +78,20 @@ export const getWhatsAppAvatarConfig = (name, size = 40) => {
         children: getInitials(cleaned),
     };
 };
+
+
+export const formatDate = (dateString) => {
+  if (!dateString) return '';
+
+  const date = new Date(dateString);
+
+  return date.toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'UTC', // remove if you want IST
+  });
+};

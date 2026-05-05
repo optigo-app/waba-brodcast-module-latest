@@ -1,0 +1,36 @@
+{
+  "Status": "200",
+  "Message": "Request processed successfully.",
+  "Data": [
+    {
+      "campaign_name": "iij_promo",
+      "template_name": "Album1",
+      "type": "schedule",
+      "status": "completed",
+      "receiver": 180,
+      "created_on": "24th Apr, 2026 4:40 pm",
+      "scheduled_for": "24th Apr, 2026 4:41 pm",
+      "completed_on": "24th Apr, 2026 4:43 pm"
+    },
+    {
+      "campaign_name": "iij_promo",
+      "template_name": "Album2",
+      "type": "immediate",
+      "status": "pending",
+      "receiver": 200,
+      "created_on": "24th Apr, 2026 4:41 pm",
+      "scheduled_for": "24th Apr, 2026 4:42 pm",
+      "completed_on": "24th Apr, 2026 4:44 pm"
+    },
+    {
+      "campaign_name": "iij_promo",
+      "template_name": "Album3",
+      "type": "reaccuring",
+      "status": "completed",
+      "receiver": 300,
+      "created_on": "24th Apr, 2026 4:42 pm",
+      "scheduled_for": "24th Apr, 2026 4:43 pm",
+      "completed_on": "24th Apr, 2026 4:45 pm"
+    }
+  ]
+}

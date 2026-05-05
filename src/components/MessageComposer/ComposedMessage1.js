@@ -12,12 +12,13 @@ const ComposedMessage1 = ({ onSave, onMessageChange, templateData = {} }) => {
                 type: option.Type,
                 id: option.Id
             }))
+            .sort((a, b) => a.type.localeCompare(b.type))
         , [templateOptions]);
 
     const [formData, setFormData] = useState({
         campaignName: templateData.campaignName || "",
         templateName: templateData.templateName || "",
-        templateType: templateData.templateType || "Marketing" // Default to Marketing
+        templateType: templateData.templateType || ""
     });
 
     const [tempCampaignName, setTempCampaignName] = useState(formData.campaignName);
@@ -50,6 +51,9 @@ const ComposedMessage1 = ({ onSave, onMessageChange, templateData = {} }) => {
     };
 
     const handleSave = () => {
+        if (!formData.campaignName?.trim() || !formData.templateName?.trim()) {
+            return;
+        }
         if (onSave) onSave(formData);
     };
 
@@ -62,9 +66,20 @@ const ComposedMessage1 = ({ onSave, onMessageChange, templateData = {} }) => {
                     variant="outlined"
                     size="medium"
                     value={tempCampaignName}
-                    onChange={(e) => setTempCampaignName(e.target.value)}
-                    onBlur={() => handleBlurUpdate("campaignName", tempCampaignName)}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        setTempCampaignName(value);
+                        const updatedFormData = { ...formData, campaignName: value };
+                        setFormData(updatedFormData);
+                        if (onMessageChange) onMessageChange(updatedFormData);
+                    }}
                     placeholder="Enter campaign name..."
+                    error={!formData.campaignName?.trim()}
+                    helperText={
+                        !formData.campaignName?.trim()
+                            ? "Campaign name is required"
+                            : ""
+                    }
                     sx={{
                         '& .MuiOutlinedInput-root': {
                             borderRadius: 2,
@@ -163,7 +178,10 @@ const ComposedMessage1 = ({ onSave, onMessageChange, templateData = {} }) => {
                 <Button
                     onClick={handleSave}
                     className={styles.save_btn}
-                    disabled={!formData.campaignName || !formData.templateName}
+                    disabled={
+                        !formData.campaignName?.trim() ||
+                        !formData.templateName?.trim()
+                    }
                     disableElevation
                 >
                     Save Template

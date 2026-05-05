@@ -29,15 +29,11 @@ export const sendBulk = async ({
 
         const response = await SendBulkCampaign(body);
 
-        if (response?.data) {
-            const resultData = response || [];
-
-            return {
-                data: resultData,
-            };
+        if (response?.success) {
+            return response;
         }
 
-        return { data: [] };
+        return { success: false, data: [] };
     } catch (error) {
         console.error("Error in sendBulk:", error);
         return { data: [] };

@@ -44,6 +44,7 @@
         border-radius: 10px;
         padding: 0.6rem 2rem;
         color: #fff;
+        background-color: $primary-main;
         box-shadow: 0 4px 12px rgba($primary-main, 0.2);
 
         &:hover {
@@ -53,12 +54,12 @@
         }
 
         &:active {
-            background-color: $primary-main;
+            background-color: $primary-main !important;
             transform: translateY(0);
         }
 
         &:disabled {
-            background-color: #e5e7eb;
+            background-color: #e5e7eb !important;
             color: #9ca3af;
             box-shadow: none;
         }

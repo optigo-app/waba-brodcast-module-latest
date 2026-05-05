@@ -1,219 +1,113 @@
 @use '../global.scss' as *;
 
-.schedule-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
 .schedule-settings {
   background: #fff;
   border-radius: 16px;
   padding: 1.5rem;
-  margin-top: 1.5rem;
-  box-shadow: $box-shadow-value;
+  border: 1px solid $sidebar-borderColor;
 }
 
 .schedule-option {
-  border-radius: 12px;
   border: 1px solid $sidebar-borderColor;
+  border-radius: 12px;
   padding: 1.25rem;
+  margin-bottom: 12px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-bottom: 0.75rem;
-  background-color: #fcfcfd;
+  transition: all 0.2s;
 
   &:hover {
     border-color: rgba($primary-main, 0.3);
-    background-color: rgba($primary-main, 0.02);
-    transform: translateY(-2px);
   }
 
   &.active {
     border-color: $primary-main;
-    background: rgba($primary-main, 0.15);
-    position: relative;
+    background: rgba($primary-main, 0.08);
   }
-
-  &.coming-soon {
-    opacity: 0.6;
-    cursor: not-allowed;
-    background-color: #f9fafb;
-    pointer-events: none;
-
-    .schedule-option-icon {
-      opacity: 0.5;
-    }
-  }
-}
-
-.coming-soon-badge {
-  padding: 2px 8px;
-  background-color: #f3f4f6;
-  color: #6b7280;
-  font-size: 0.7rem;
-  font-weight: 600;
-  border-radius: 99px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .schedule-option-content {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  align-items: center;
 }
 
 .schedule-option-main {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 1;
 }
 
 .schedule-radio {
   width: 22px;
   height: 22px;
-  border-radius: 50%;
   border: 2px solid rgba($primary-main, 0.4);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
 
   &.active {
-    border-color: $primary-main;
     background: $primary-main;
+    border-color: $primary-main;
   }
 }
 
 .schedule-radio-check {
-  width: 16px;
-  height: 16px;
-  color: $text-white;
-}
-
-.schedule-option-icon {
-  width: 20px;
-  height: 20px;
-
-  &.send {
-    color: $primary-main;
-  }
-
-  &.calendar {
-    color: $secondaryColor;
-  }
-}
-
-.schedule-option-title {
-  font-weight: 600;
-  color: $titleColor;
-}
-
-.schedule-option-subtitle {
-  font-size: 0.875rem;
-  color: $text2ndColor;
-}
-
-.schedule-option-status-icon {
-  width: 20px;
-  height: 20px;
-  color: $secondaryColor;
+  color: #fff;
+  width: 14px;
 }
 
 .schedule-details {
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
   border-top: 1px solid $sidebar-borderColor;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
-.schedule-details-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
+.schedule-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.schedule-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 120px;
 }
 
 .schedule-label {
-  display: block;
-  font-size: 0.8125rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: $secondaryColor;
-  margin-bottom: 0.5rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .schedule-input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  border-radius: 10px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 8px;
   border: 1px solid $sidebar-borderColor;
   background: #fcfcfd;
-  color: $titleColor;
-  font-family: $font-family;
-  transition: all 0.2s ease;
 
   &:focus {
+    border-color: $primary-main;
     outline: none;
-    border-color: $secondaryColor;
-    box-shadow: 0 0 0 3px rgba($secondaryColor, 0.1);
-  }
-
-  &--date {
-    cursor: pointer;
-  }
-
-  &--select {
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237d7f85' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 1rem center;
-    padding-right: 2.5rem;
   }
 }
 
-.schedule-option-disabled {
-  color: $placeholderColor;
-}
-
-.schedule-distribution-row {
+.distribute-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.schedule-checkbox {
-  width: 16px;
-  height: 16px;
-  accent-color: $primary-main;
-}
-
-.schedule-distribution-label {
-  font-size: 0.875rem;
-  color: $titleColor;
-}
-
-.schedule-distribution-select {
-  font-size: 0.875rem;
+.distribute-row select {
+  height: 32px;
   border-radius: 6px;
-  border: 1px solid $sidebar-borderColor;
-  padding: 4px 8px;
-  background: $sidebar-Bgcolor;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: $primary-main;
-    box-shadow: 0 0 0 2px rgba($primary-main, 0.2);
-  }
-
-  &.disabled {
-    background: lighten($bg-light, 6%);
-    color: $placeholderColor;
-  }
+  padding: 0 10px;
 }

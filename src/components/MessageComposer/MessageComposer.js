@@ -6,7 +6,7 @@ import {
   InputAdornment, Typography,
   Checkbox, Button
 } from '@mui/material';
-import { Search, Play } from 'lucide-react';
+import { Search, Play, ChevronUp, ChevronDown } from 'lucide-react';
 import { useStepper } from '../../context/StepperContext';
 import { fetchCampaignLists } from '../../API/CampaignList/CampaignList';
 import OptionModal1 from './OptionalModal1';
@@ -23,7 +23,6 @@ const MessageComposer = ({
   onSaveTemplate
 }) => {
   const [openCampaigns, setOpenCampaigns] = useState({});
-  const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -147,12 +146,9 @@ const MessageComposer = ({
 
   const handleTemplateSelect = async (templateId, campaignId) => {
     try {
-      // Is this template currently selected?
       const isSelected = selectedTemplates.some(
         t => t.Id === templateId && t.campaignId === campaignId
       );
-
-      // If there's already a different template selected anywhere, block new selection
       const hasAnyOtherSelected = selectedTemplates.length > 0 && !isSelected;
 
       if (!isSelected && hasAnyOtherSelected) {
@@ -162,12 +158,10 @@ const MessageComposer = ({
 
       let newSelectedTemplates;
       if (isSelected) {
-        // If clicking the already-selected template -> unselect it (becomes empty)
         newSelectedTemplates = selectedTemplates.filter(
           t => !(t.Id === templateId && t.campaignId === campaignId)
         );
       } else {
-        // No template selected anywhere -> find and add this one
         const campaign = allCampaigns.find(c => c.Id === campaignId);
         const found = campaign?.Templates?.find(t => t.Id === templateId);
 
@@ -185,11 +179,9 @@ const MessageComposer = ({
         newSelectedTemplates = [templateToAdd];
       }
 
-      // Update local state and context
       setSelectedTemplates(newSelectedTemplates);
       setContextTemplates(newSelectedTemplates);
 
-      // If new selection made, update the template data + notify parent
       if (newSelectedTemplates.length === 1) {
         const selectedTemplate = newSelectedTemplates[0];
         const newTemplateData = {
@@ -269,13 +261,11 @@ const MessageComposer = ({
                     onClick={() => handleCampaignClick(campaign.Id)}
                   >
                     <TableCell className="expand-cell">
-                      <IconButton size="small" className="expand-button">
-                        <Play
-                          size={14}
-                          fill="currentColor"
-                          className={`expand-icon ${openCampaigns[campaign.Id] ? 'expanded' : ''}`}
-                        />
-                      </IconButton>
+                      {campaign.Templates.length > 0 && (
+                        <IconButton size="small" className="expand-button">
+                          {openCampaigns[campaign.Id] ? <ChevronUp size={20} color="#7D7f85" /> : <ChevronDown size={20} color="#7D7f85" />}
+                        </IconButton>
+                      )}
                     </TableCell>
                     <TableCell className="campaign-name-cell">
                       {campaign.Name}
@@ -302,6 +292,7 @@ const MessageComposer = ({
                                     key={template.Id}
                                     hover
                                     className={`template-row${isSelected ? ' selected' : ''}`}
+                                    onClick={() => handleTemplateSelect(template.Id, campaign.Id)}
                                   >
                                     <TableCell className="template-checkbox-cell" width="5%">
                                       <Checkbox
@@ -324,16 +315,12 @@ const MessageComposer = ({
                                         onChange={() => handleTemplateSelect(template.Id, campaign.Id)}
                                         onClick={(e) => e.stopPropagation()}
                                       />
-
                                     </TableCell>
-
                                     <TableCell>
                                       <Typography variant="body2" className="template-name">{template.Name}</Typography>
                                     </TableCell>
-
                                     <TableCell>
                                     </TableCell>
-
                                     <TableCell>
                                       <Box className="template-actions" />
                                     </TableCell>

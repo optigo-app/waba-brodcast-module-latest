@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
-import { Box, IconButton, CircularProgress } from '@mui/material';
+import { Box, IconButton, CircularProgress, Chip } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowRight } from '@mui/icons-material';
 
-const CampaignTreeTable = ({ data, loading = false, totalRows = 0, onPageChange, onPageSizeChange }) => {
+const CampaignTreeTable = ({ data, loading = false, totalRows = 0, onPageChange, onPageSizeChange, onRowClick }) => {
     const [paginationModel, setPaginationModel] = useState({
         page: 0,
         pageSize: 15,
@@ -114,13 +114,125 @@ const CampaignTreeTable = ({ data, loading = false, totalRows = 0, onPageChange,
                 );
             },
         },
-        { field: 'total', headerName: 'Total', width: 100 },
-        { field: 'pending', headerName: 'Pending', width: 100 },
-        { field: 'sent', headerName: 'Sent', width: 100 },
-        { field: 'delivered', headerName: 'Delivered', width: 100 },
-        { field: 'seen', headerName: 'Seen', width: 100 },
-        { field: 'failed', headerName: 'Failed', width: 100 },
-        { field: 'replyTo', headerName: 'Replied', width: 100 },
+        {
+            field: 'total',
+            headerName: 'Total',
+            width: 100,
+            renderCell: (params) => (
+                <Chip
+                    label={params.value || 0}
+                    size="small"
+                    sx={{
+                        backgroundColor: 'rgba(115, 103, 240, 0.12)',
+                        color: '#7367f0',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                    }}
+                />
+            ),
+        },
+        {
+            field: 'pending',
+            headerName: 'Pending',
+            width: 100,
+            renderCell: (params) => (
+                <Chip
+                    label={params.value || 0}
+                    size="small"
+                    sx={{
+                        backgroundColor: 'rgba(245, 124, 0, 0.12)',
+                        color: '#f57c00',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                    }}
+                />
+            ),
+        },
+        {
+            field: 'sent',
+            headerName: 'Sent',
+            width: 100,
+            renderCell: (params) => (
+                <Chip
+                    label={params.value || 0}
+                    size="small"
+                    sx={{
+                        backgroundColor: 'rgba(0, 207, 232, 0.12)',
+                        color: '#00CFE8',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                    }}
+                />
+            ),
+        },
+        {
+            field: 'delivered',
+            headerName: 'Delivered',
+            width: 100,
+            renderCell: (params) => (
+                <Chip
+                    label={params.value || 0}
+                    size="small"
+                    sx={{
+                        backgroundColor: 'rgba(29, 144, 81, 0.12)',
+                        color: '#1d9051',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                    }}
+                />
+            ),
+        },
+        {
+            field: 'seen',
+            headerName: 'Seen',
+            width: 100,
+            renderCell: (params) => (
+                <Chip
+                    label={params.value || 0}
+                    size="small"
+                    sx={{
+                        backgroundColor: 'rgba(115, 103, 240, 0.12)',
+                        color: '#7367f0',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                    }}
+                />
+            ),
+        },
+        {
+            field: 'failed',
+            headerName: 'Failed',
+            width: 100,
+            renderCell: (params) => (
+                <Chip
+                    label={params.value || 0}
+                    size="small"
+                    sx={{
+                        backgroundColor: 'rgba(211, 47, 47, 0.12)',
+                        color: '#d32f2f',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                    }}
+                />
+            ),
+        },
+        {
+            field: 'replyTo',
+            headerName: 'Replied',
+            width: 100,
+            renderCell: (params) => (
+                <Chip
+                    label={params.value || 0}
+                    size="small"
+                    sx={{
+                        backgroundColor: 'rgba(115, 103, 240, 0.12)',
+                        color: '#7367f0',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                    }}
+                />
+            ),
+        },
     ];
 
     // Track expanded rows
@@ -180,6 +292,7 @@ const CampaignTreeTable = ({ data, loading = false, totalRows = 0, onPageChange,
                 onPageSizeChange={handlePageSizeChange}
                 loading={loading}
                 disableColumnMenu
+                onRowClick={(params) => onRowClick?.(params.row)}
                 sx={{
                     border: '1px solid var(--sidebar-borderColor)',
                     borderRadius: '12px',
@@ -203,6 +316,7 @@ const CampaignTreeTable = ({ data, loading = false, totalRows = 0, onPageChange,
                     '& .MuiDataGrid-row': {
                         '&:hover': {
                             backgroundColor: 'rgba(115, 103, 240, 0.04)',
+                            cursor: 'pointer',
                         },
                     },
                     '& .MuiDataGrid-row:last-child .MuiDataGrid-cell': {

@@ -18,9 +18,11 @@ const Home = ({ userToken }) => {
         selectedTemplate,
         sendDate,
         sendTime,
+        sendOption,
         distributeDays,
         audience,
         setSendTime,
+        setSendOption,
         setDistributeDays,
         marketingSettings,
         utmParameters,
@@ -58,19 +60,6 @@ const Home = ({ userToken }) => {
                 return (
                     <>
                         <div className="home_main_section">
-                            <div className="step-card">
-                                <div className="step-header">
-                                    <div className="step-icon">
-                                        <span>1</span>
-                                    </div>
-                                    <h2>Select a channel</h2>
-                                </div>
-
-                                <ChannelSelector
-                                    selectedChannel={selectedChannel}
-                                    onChannelSelect={setSelectedChannel}
-                                />
-                            </div>
                         </div>
 
                         <StepperNavigation
@@ -87,14 +76,6 @@ const Home = ({ userToken }) => {
                 return (
                     <>
                         <div className="home_main_section">
-                            <div className="step-card">
-                                <div className="step-header">
-                                    <div className="step-icon">
-                                        <span>2</span>
-                                    </div>
-                                    <h2>Choose your templates</h2>
-                                </div>
-                            </div>
                             <MessageComposer
                                 message={message}
                                 onMessageChange={setMessage}
@@ -130,9 +111,11 @@ const Home = ({ userToken }) => {
                     <ScheduleDate
                         sendDate={sendDate}
                         sendTime={sendTime}
+                        sendOption={sendOption}
                         distributeDays={distributeDays}
                         onSendDateChange={setSendDate}
                         onSendTimeChange={setSendTime}
+                        onSendOptionChange={setSendOption}
                         onDistributeDaysChange={setDistributeDays}
                         onNext={handleNext}
                         onPrevious={handleBack}
