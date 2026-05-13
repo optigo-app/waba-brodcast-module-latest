@@ -9,49 +9,6 @@
     padding: 16px;
     animation: fadeIn 0.3s ease-in-out;
 
-    .step-header {
-        display: flex;
-        align-items: center;
-        margin-bottom: 16px;
-
-        .audience-stpper {
-            width: 2rem;
-            height: 2rem;
-            background-color: #dbeafe;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-right: 10px;
-
-            span {
-                font-size: 14px;
-                font-weight: 600;
-                color: #2563eb;
-            }
-        }
-
-        .step-number {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: #007bff;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-right: 10px;
-        }
-
-        h3 {
-            font-size: 18px;
-            font-weight: 600;
-            margin: 0;
-        }
-    }
-
     /* Top flex: audience + rules */
     .audience-top {
         display: flex;

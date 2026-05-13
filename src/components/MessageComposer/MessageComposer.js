@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './MessageComposer.scss';
 import {
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, Collapse, IconButton, Box, TextField, TablePagination,
+  Paper, Box, TextField,
   InputAdornment, Typography,
   Checkbox, Button
 } from '@mui/material';
@@ -91,8 +90,8 @@ const MessageComposer = ({
     return allCampaigns.filter(campaign => {
       const matchesCampaign = campaign.Name?.toLowerCase().includes(searchLower);
       const matchesTemplate = campaign.Templates?.some(template =>
-        template.Name?.toLowerCase().includes(searchLower) ||
-        template.Type?.toLowerCase().includes(searchLower)
+        (template.TemplateName || template.Name)?.toLowerCase().includes(searchLower) ||
+        (template.TemplateType || template.Type)?.toLowerCase().includes(searchLower)
       );
       return matchesCampaign || matchesTemplate;
     });
@@ -185,9 +184,9 @@ const MessageComposer = ({
       if (newSelectedTemplates.length === 1) {
         const selectedTemplate = newSelectedTemplates[0];
         const newTemplateData = {
-          templateName: selectedTemplate.templateName || selectedTemplate.Name || "Dummy template",
+          templateName: selectedTemplate.TemplateName || selectedTemplate.templateName || selectedTemplate.Name || "Dummy template",
           templateLanguage: selectedTemplate.templateLanguage || "en_US",
-          templateCategory: selectedTemplate.templateCategory || "UTILITY",
+          templateCategory: selectedTemplate.TemplateType || selectedTemplate.templateCategory || "UTILITY",
           campaignName: selectedTemplate.campaignName || selectedTemplate.campaign?.Name || "Campaign",
           headerFormat: selectedTemplate.headerFormat || "text",
           media: selectedTemplate.defaultImage
@@ -242,112 +241,70 @@ const MessageComposer = ({
           />
         </Box>
 
-        <TableContainer component={Paper} className="campaign-table-container">
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell width="40px"></TableCell>
-                <TableCell>Campaign Name</TableCell>
-                <TableCell>Templates</TableCell>
-              </TableRow>
-            </TableHead>
+        <Paper className="campaign-table-container">
+          <Box className="campaign-list-scroll">
+            {filteredCampaigns.map((campaign) => (
+              <Box key={campaign.Id} className="campaign-card">
+                <Box className="campaign-card-header">
+                  <Typography className="campaign-name-cell">{campaign.Name}</Typography>
+                  <Typography className="templates-count-cell">{campaign.Templates.length} templates</Typography>
+                </Box>
 
-            <TableBody>
-              {filteredCampaigns.map((campaign, index) => (
-                <React.Fragment key={index}>
-                  <TableRow
-                    hover
-                    className={`campaign-row${openCampaigns[campaign.Id] ? ' open' : ''}`}
-                    onClick={() => handleCampaignClick(campaign.Id)}
-                  >
-                    <TableCell className="expand-cell">
-                      {campaign.Templates.length > 0 && (
-                        <IconButton size="small" className="expand-button">
-                          {openCampaigns[campaign.Id] ? <ChevronUp size={20} color="#7D7f85" /> : <ChevronDown size={20} color="#7D7f85" />}
-                        </IconButton>
-                      )}
-                    </TableCell>
-                    <TableCell className="campaign-name-cell">
-                      {campaign.Name}
-                    </TableCell>
-                    <TableCell className="templates-count-cell">{campaign.Templates.length} templates</TableCell>
-                  </TableRow>
+                <Box className="template-list">
+                  {campaign.Templates.length === 0 && (
+                    <Typography className="empty-template-text">No templates in this campaign</Typography>
+                  )}
 
-                  <TableRow
-                    className="campaign-details-row"
-                    sx={{ display: openCampaigns[campaign.Id] ? 'table-row' : 'none' }}
-                  >
-                    <TableCell className="campaign-details-cell" colSpan={3}>
-                      <Collapse className="campaign-collapse" in={openCampaigns[campaign.Id]} timeout="auto" unmountOnExit>
-                        <Box className="campaign-collapse-box">
-                          <Table size="small" className="template-table">
-                            <TableBody>
-                              {campaign.Templates.map((template) => {
-                                const isSelected = selectedTemplates.some(
-                                  t => t.Id === template.Id && t.campaignId === campaign.Id
-                                );
+                  {campaign.Templates.map((template) => {
+                    const isSelected = selectedTemplates.some(
+                      t => t.Id === template.Id && t.campaignId === campaign.Id
+                    );
 
-                                return (
-                                  <TableRow
-                                    key={template.Id}
-                                    hover
-                                    className={`template-row${isSelected ? ' selected' : ''}`}
-                                    onClick={() => handleTemplateSelect(template.Id, campaign.Id)}
-                                  >
-                                    <TableCell className="template-checkbox-cell" width="5%">
-                                      <Checkbox
-                                        color="primary"
-                                        checked={selectedTemplates.some(
-                                          t => t.Id === template.Id && t.campaignId === campaign.Id
-                                        )}
-                                        disabled={
-                                          selectedTemplates.length > 0 &&
-                                          !selectedTemplates.some(
-                                            t => t.Id === template.Id && t.campaignId === campaign.Id
-                                          )
-                                        }
-                                        sx={{
-                                          '.MuiCheckbox-root.Mui-disabled': {
-                                            opacity: 0.5,
-                                            cursor: 'not-allowed',
-                                          }
-                                        }}
-                                        onChange={() => handleTemplateSelect(template.Id, campaign.Id)}
-                                        onClick={(e) => e.stopPropagation()}
-                                      />
-                                    </TableCell>
-                                    <TableCell>
-                                      <Typography variant="body2" className="template-name">{template.Name}</Typography>
-                                    </TableCell>
-                                    <TableCell>
-                                    </TableCell>
-                                    <TableCell>
-                                      <Box className="template-actions" />
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
+                    const isDisabled =
+                      selectedTemplates.length > 0 &&
+                      !selectedTemplates.some(
+                        t => t.Id === template.Id && t.campaignId === campaign.Id
+                      );
+
+                    return (
+                      <Box
+                        key={`${campaign.Id}_${template.Id}`}
+                        className={`template-row${isSelected ? ' selected' : ''}${isDisabled ? ' disabled' : ''}`}
+                        onClick={() => {
+                          if (!isDisabled) {
+                            handleTemplateSelect(template.Id, campaign.Id);
+                          }
+                        }}
+                      >
+                        <Box className="template-checkbox-cell">
+                          <Checkbox
+                            color="primary"
+                            checked={isSelected}
+                            disabled={isDisabled}
+                            onChange={() => handleTemplateSelect(template.Id, campaign.Id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
                         </Box>
-                      </Collapse>
-                    </TableCell>
-                  </TableRow>
-                </React.Fragment>
-              ))}
-            </TableBody>
-          </Table>
 
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50, 100]}
-            component="div"
-            count={allCampaigns.length}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-          />
-        </TableContainer>
+                        <Box className="template-meta">
+                          <Typography variant="body2" className="template-name">
+                            {template.TemplateName || template.Name}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+            ))}
+
+            {!loading && filteredCampaigns.length === 0 && (
+              <Box className="empty-campaign-state">
+                <Typography>No campaigns found</Typography>
+              </Box>
+            )}
+          </Box>
+        </Paper>
       </Box>
 
       <OptionModal1

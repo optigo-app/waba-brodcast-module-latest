@@ -7,11 +7,11 @@ const ScheduleDate = ({
   sendDate,
   sendTime,
   sendOption,
-  distributeDays,
+  recurrenceCount,
   onSendDateChange,
   onSendTimeChange,
   onSendOptionChange,
-  onDistributeDaysChange,
+  onRecurrenceCountChange,
   onNext,
   onPrevious,
   prevDisabled,
@@ -27,8 +27,7 @@ const ScheduleDate = ({
     period: "AM",
   });
 
-  const [distributeAudience, setDistributeAudience] = useState(false);
-  const [distributionDays, setDistributionDays] = useState(distributeDays || 1);
+  const [localRecurrenceCount, setRecurrenceCount] = useState(recurrenceCount || 1);
 
   /* ---------------- Convert 24h → 12h ---------------- */
   const convertTo12Hour = (hour24) => {
@@ -68,8 +67,7 @@ const ScheduleDate = ({
         hour12: "",
         period: "AM",
       }));
-      setDistributeAudience(false);
-      setDistributionDays(1);
+      setRecurrenceCount(1);
     } else {
       if (!scheduleTime.hour12) {
         const now = new Date();
@@ -86,12 +84,12 @@ const ScheduleDate = ({
     if (localSendOption === "schedule" && scheduleTime.hour12) {
       const hour24 = convertTo24Hour(scheduleTime.hour12, scheduleTime.period);
       onSendTimeChange(`${hour24}:00`);
-      onDistributeDaysChange(distributeAudience ? distributionDays : "");
+      onRecurrenceCountChange(String(localRecurrenceCount));
     } else {
       onSendTimeChange("");
-      onDistributeDaysChange("");
+      onRecurrenceCountChange("");
     }
-  }, [scheduleTime, distributeAudience, distributionDays, localSendOption]);
+  }, [scheduleTime, localRecurrenceCount, localSendOption]);
 
   const handleChange = (field, value) => {
     setScheduleTime((prev) => ({ ...prev, [field]: value }));
@@ -102,6 +100,10 @@ const ScheduleDate = ({
     const val = String(i + 1).padStart(2, "0");
     return val;
   });
+
+  const recurrenceHelperMessage = localRecurrenceCount === 1
+    ? "The message will be sent once."
+    : `The message will be sent ${localRecurrenceCount} times, once every 24 hours.`;
 
   return (
     <>
@@ -193,6 +195,26 @@ const ScheduleDate = ({
                     </select>
                   </div>
 
+                  {/* Recurrence */}
+                  <div className="schedule-field">
+                    <label className="schedule-label">Recurrence</label>
+                    <select
+                      className="schedule-input"
+                      value={localRecurrenceCount}
+                      onChange={(e) => setRecurrenceCount(Number(e.target.value))}
+                    >
+                      {[1, 2, 3, 4, 5].map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                </div>
+
+                <div className="schedule-helper-message">
+                  {recurrenceHelperMessage}
                 </div>
               </div>
             )}

@@ -50,6 +50,120 @@
   }
 }
 
+.sourceSelectionDialogPaper {
+  border-radius: 20px !important;
+  overflow: hidden;
+  padding: 20px;
+}
+
+.sourceSelectionDialogBody {
+  padding: 1.85rem;
+}
+
+.sourceSelectionTitle {
+  font-family: $font-family;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: $titleColor;
+  margin-bottom: 0.5rem;
+}
+
+.sourceSelectionSubtitle {
+  font-family: $font-family;
+  font-size: 0.88rem;
+  color: $secondaryColor;
+  margin-bottom: 1.5rem;
+}
+
+.sourceCardGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.1rem;
+  margin-top: 20px;
+}
+
+.sourceCard {
+  border: 1px solid $sidebar-borderColor;
+  border-radius: 16px;
+  padding: 1.2rem;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-height: 176px;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(17, 24, 39, 0.08);
+  }
+}
+
+.crmSourceCard {
+  background: rgba($success-main, 0.06);
+
+  &:hover {
+    border-color: rgba($success-main, 0.45);
+    box-shadow: 0 10px 20px rgba(29, 170, 97, 0.14);
+  }
+
+  .sourceIconWrap {
+    background: $primary-adv;
+  }
+}
+
+.excelSourceCard {
+  background: rgba($primary-main, 0.06);
+
+  &:hover {
+    border-color: rgba($primary-main, 0.45);
+    box-shadow: 0 10px 20px rgba(115, 103, 240, 0.14);
+  }
+
+  .sourceIconWrap {
+    background: $primary-main;
+  }
+}
+
+.sourceIconWrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sourceCardTitle {
+  font-family: $font-family;
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: $titleColor;
+}
+
+.sourceCardDesc {
+  font-family: $font-family;
+  font-size: 0.81rem;
+  line-height: 1.45;
+  color: $secondaryColor;
+}
+
+@media (max-width: 720px) {
+  .sourceSelectionDialogBody {
+    padding: 1.2rem;
+  }
+
+  .sourceCardGrid {
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+
+  .sourceCard {
+    min-height: 148px;
+  }
+}
+
 
 .uploadArea {
   border: 2px dashed rgba($secondaryColor, 0.2);
@@ -279,7 +393,6 @@
   border-radius: 16px;
   border: 1px solid $sidebar-borderColor;
   padding: 1.5rem;
-  margin-top: 1.5rem;
 }
 
 .gridHeader {

@@ -5,12 +5,10 @@ import {
   Box,
   Button,
   InputAdornment,
-  Tooltip,
   IconButton,
   useTheme,
   Typography,
 } from '@mui/material';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import SearchIcon from '@mui/icons-material/Search';
 import styles from './AudienceSection.module.scss';
 import { fetchGroupList } from '../../API/GroupLists/GroupLists';
@@ -36,7 +34,6 @@ const GroupDropdown = ({
   selectedGroup,
   onGroupChange,
   source,
-  setFilterDrawerOpen,
   currentStep,
   onSearchChange,
   onCreateNewGroup,
@@ -118,38 +115,6 @@ const GroupDropdown = ({
             Select Group
           </Typography>
         </Box>
-
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip
-            title={
-              isGroupSelected
-                ? `Group "${selectedGroup.SerchFilterName || selectedGroup.Category}" is selected. Clear it to use filters.`
-                : ''
-            }
-            placement="top"
-            arrow
-            disableHoverListener={!isGroupSelected}
-          >
-            <span>
-              <Button
-                variant="outlined"
-                startIcon={<FilterListIcon />}
-                disabled={isGroupSelected}
-                onClick={() => setFilterDrawerOpen(true)}
-                className={styles.filterButton}
-                sx={{
-                  textTransform: 'none',
-                  borderRadius: '10px',
-                  fontWeight: 600,
-                  px: 2,
-                  py: 1
-                }}
-              >
-                More Filters
-              </Button>
-            </span>
-          </Tooltip>
-        </Box>
       </Box>
 
       {/* Dropdown + Search */}
@@ -167,7 +132,7 @@ const GroupDropdown = ({
             value={selectedBranches || []}
             onChange={onBranchChange}
             options={STATIC_BRANCH_DATA}
-            label="Select Branches"
+            label="Select Branches" 
             placeholder="Select branches"
             multiple={true}
             limitTags={2}

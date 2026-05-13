@@ -15,7 +15,7 @@ const defaultState = {
 	datasource: '',
 	// marketingSettings: false,
 	// steps: ['Select a channel', 'Choose your audience', 'Choose your templates', 'Set a send date', 'Setup retires for marketing', 'Set live'],
-	steps: ['Select a channel', 'Choose your templates', 'Choose your audience', 'Set a send date', 'Set live'],
+	steps: ['Select a channel', 'Choose your templates', 'Choose your audience', 'Set a send date', 'Review & Launch'],
 	utmParameters: '',
 	conversionGoal: '',
 };

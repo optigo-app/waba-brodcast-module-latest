@@ -1,0 +1,1022 @@
+@use '../../global.scss' as *;
+
+// ── Modal shell ───────────────────────────────────────────────────────────────
+.modalBox {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    background-color: #fff;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    outline: none;
+    font-family: $font-family;
+
+    &::-webkit-scrollbar { width: 6px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb {
+        background: rgba($secondaryColor, 0.1);
+        border-radius: 10px;
+    }
+}
+
+.modalMedium { width: min(720px, 95vw); }
+.modalWide   { width: min(1380px, 96vw); }
+
+// ── Modal header ─────────────────────────────────────────────────────────────
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+
+    .title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: $titleColor;
+        font-family: $font-family;
+    }
+
+    .closeBtn {
+        color: rgba($secondaryColor, 0.4);
+        padding: 8px;
+        transition: all 0.2s ease;
+
+        &:hover {
+            color: $secondaryColor;
+            background-color: rgba($secondaryColor, 0.04);
+            border-radius: 50%;
+        }
+    }
+}
+
+// ── Step 1: Template details panel ───────────────────────────────────────────
+.stepPanel {
+    background: rgba(244, 245, 247, 0.34);
+    border: 1px solid rgba(221, 226, 232, 0.2);
+    border-radius: 14px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.inputSection {
+    .fieldLabel {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: $secondaryColor;
+        margin-bottom: 0.6rem;
+    }
+
+    :global(.MuiOutlinedInput-root) {
+        background: #fff;
+        border-radius: 10px;
+
+        :global(fieldset) { border-color: #dde2e8; }
+        &:hover :global(fieldset) { border-color: #cfd6de; }
+        &:global(.Mui-focused) :global(fieldset) {
+            border-color: $primary-main;
+        }
+    }
+}
+
+// Category cards
+.categoryGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+// ── Preview Carousel ─────────────────────────────────────────────────────────
+.previewCarouselWrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.previewCarouselContainer {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    padding: 2px 0 10px 0;
+}
+
+.previewCardSlider {
+    display: flex;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+}
+
+.previewCardUnit {
+    flex: 0 0 100%; // Each card takes full width of container
+    display: flex;
+    justify-content: center;
+    padding: 0 4px;
+}
+
+.previewCard {
+    width: 100%;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.carouselNavBtnLeft, .carouselNavBtnRight {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.9);
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    color: #4b5563;
+    transition: all 0.2s;
+
+    &:hover {
+        background: #fff;
+        color: #1f2937;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+}
+
+.carouselNavBtnLeft { left: -6px; }
+.carouselNavBtnRight { right: -6px; }
+
+.carouselDotRow {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: -4px;
+    margin-bottom: 8px;
+}
+
+.carouselDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    transition: all 0.3s;
+}
+
+.carouselDotActive {
+    background: #00a884;
+    transform: scale(1.2);
+}
+
+.previewCardMedia {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.previewCardContent {
+    padding: 12px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.previewCardBody {
+    font-size: 0.82rem;
+    color: #1f2937;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.previewCardButtons {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid #f1f5f9;
+}
+
+.previewCardBtn {
+    background: transparent;
+    color: #00a884;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 10px;
+    text-align: center;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: default;
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    &:hover {
+        background: #f8fafc;
+    }
+}
+
+.categoryCard {
+    border: 1px solid #dde2e8;
+    background: #fff;
+    border-radius: 12px;
+    padding: 0.95rem;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        border-color: rgba($primary-main, 0.35);
+        box-shadow: 0 6px 18px rgba(30, 41, 59, 0.08);
+    }
+}
+
+.selectedCategory {
+    border-color: $primary-main;
+    background: rgba($primary-main, 0.06);
+    box-shadow: 0 8px 20px rgba($primary-main, 0.16);
+}
+
+.categoryTitle {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: $titleColor;
+}
+
+.categoryDesc {
+    font-size: 0.76rem;
+    color: $text2ndColor;
+    line-height: 1.4;
+}
+
+.stepFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding-top: 0.25rem;
+}
+
+.cancelBtn {
+    text-transform: none !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    padding: 0.55rem 1.5rem !important;
+    border-color: $primary-main !important;
+    color: $primary-main !important;
+
+    &:hover {
+        background-color: rgba($primary-main, 0.04) !important;
+    }
+}
+
+// ── Step 2: Builder ───────────────────────────────────────────────────────────
+.builderRoot {
+    background: rgba(244, 245, 247, 0.34);
+    border: 1px solid rgba(221, 226, 232, 0.2);
+    border-radius: 14px;
+    padding: 1rem;
+}
+
+.builderTopActions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #fff;
+    border-bottom: 1px solid #e4e8ee;
+    padding: 0.75rem 1rem;
+    margin: -1rem -1rem 1rem -1rem;
+    border-radius: 14px 14px 0 0;
+}
+
+.ghostBtn {
+    text-transform: none !important;
+    font-weight: 600 !important;
+    color: $secondaryColor !important;
+    border-radius: 10px !important;
+}
+
+.saveErrorText {
+    font-size: 0.75rem;
+    color: $error-main;
+}
+
+.builderLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 2.8fr) minmax(220px, 1fr);
+    gap: 1rem;
+}
+
+.builderFormColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    overflow-y: auto;
+}
+
+// ── Builder sections ──────────────────────────────────────────────────────────
+.builderSection {
+    background: #fff;
+    border: 1px solid #e4e8ee;
+    border-radius: 12px;
+    padding: 0.9rem;
+    box-shadow: 0 5px 14px rgba(15, 23, 42, 0.04);
+}
+
+.sectionTitle {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: $titleColor;
+    margin-bottom: 0;
+}
+
+.sectionHeaderRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.55rem;
+}
+
+.charCounter {
+    font-size: 0.72rem;
+    color: #6b7280;
+}
+
+// Chips
+.chipRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.7rem;
+}
+
+.choiceChip {
+    border: 1px solid #d8dee6;
+    border-radius: 999px;
+    padding: 0.38rem 0.82rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #fff;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover {
+        border-color: rgba($primary-main, 0.4);
+        color: $primary-main;
+    }
+}
+
+.activeChip {
+    border-color: $primary-main;
+    color: $primary-main;
+    background: rgba($primary-main, 0.1);
+}
+
+// Header text sub-section
+.headerTextLabel {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+// Variables
+.variableSection {
+    margin-top: 0.75rem;
+    border: 1px dashed #d7deea;
+    border-radius: 10px;
+    padding: 0.7rem;
+    background: #f8fafc;
+}
+
+.variableHeaderRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.variableTitle {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.variableAddBtn {
+    text-transform: none !important;
+    font-weight: 600 !important;
+    font-size: 0.72rem !important;
+    border-radius: 8px !important;
+    color: #374151 !important;
+    border: 1px solid #d3dae6 !important;
+    background: #fff !important;
+}
+
+.variableHint {
+    margin-top: 0.55rem;
+    font-size: 0.72rem;
+    color: #6b7280;
+}
+
+.variableInputList {
+    margin-top: 0.6rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+// Buttons section
+.buttonList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.buttonItem {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.55rem;
+    align-items: center;
+}
+
+.removeBtn {
+    text-transform: none !important;
+    font-weight: 600 !important;
+    color: $error-main !important;
+    font-size: 0.78rem !important;
+}
+
+.addBtn {
+    text-transform: none !important;
+    font-weight: 600 !important;
+    margin-top: 0.6rem !important;
+    border: 1px dashed #cfd5de !important;
+    border-radius: 10px !important;
+    background: #fff !important;
+    color: #374151 !important;
+}
+
+// ── Preview column ────────────────────────────────────────────────────────────
+.previewColumn {
+    position: sticky;
+    top: 56px;
+    align-self: flex-start;
+    height: fit-content;
+    display: flex;
+}
+
+.previewShell { width: 100%; }
+
+.previewPhone {
+    margin: 0 auto;
+    width: 100%;
+    max-width: 320px;
+    height: 100%;
+    max-height: 640px;
+    border: 1px solid #d7dde6;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+    overflow: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar { display: none; }
+}
+
+.previewChatHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.42rem 0.5rem;
+    background: #128c7e;
+    color: #fff;
+}
+
+.headerIcon {
+    color: #fff;
+    opacity: 0.95;
+}
+
+.headerActions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.chatAvatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.63rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.chatMeta {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.chatName  { font-size: 0.7rem; font-weight: 700; }
+.chatStatus { font-size: 0.6rem; opacity: 0.9; }
+
+.previewChatBg {
+    border-radius: 0 0 20px 20px;
+    min-height: 580px;
+    padding: 0.85rem;
+    display: flex;
+    align-items: flex-end;
+    background-color: #e8e2d6;
+    background-size: cover;
+    background-position: center;
+}
+
+.previewBubbleWrap {
+    width: 100%;
+    max-width: 86%;
+    display: flex;
+}
+
+
+.previewBubble {
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 0 12px 12px 12px;
+    padding: 0.8rem;
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.previewHeaderText {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.4rem;
+    line-height: 1.3;
+}
+
+.previewHeaderImage {
+    display: block;
+    width: 100%;
+    max-height: 150px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 0.55rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.previewHeaderVideo {
+    display: block;
+    width: 100%;
+    max-height: 170px;
+    border-radius: 10px;
+    margin-bottom: 0.55rem;
+    background: #0f172a;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.previewHeaderDocument {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.55rem 0.6rem;
+    border-radius: 10px;
+    margin-bottom: 0.55rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(248, 250, 252, 0.95);
+}
+
+.previewDocIconWrap {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(37, 99, 235, 0.12);
+}
+
+.previewDocIcon  { color: #2563eb; }
+
+.previewDocMeta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.previewDocTitle {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.previewDocSub {
+    font-size: 0.65rem;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.previewBodyText {
+    font-size: 0.78rem;
+    color: #1f2937;
+    white-space: pre-wrap;
+    line-height: 1.5;
+}
+
+.previewFooterText {
+    margin-top: 0.5rem;
+    font-size: 0.7rem;
+    color: #6b7280;
+}
+
+.previewButtons {
+    margin-top: 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.previewActionBtn {
+    border: 1px solid #d5dbe4;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #2563eb;
+    font-size: 0.74rem;
+    font-weight: 600;
+    padding: 0.45rem 0.6rem;
+    cursor: default;
+}
+
+.previewMeta {
+    margin-top: 0.45rem;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.previewTime {
+    font-size: 0.74rem !important;
+    color: #64748b;
+}
+
+.previewTick { color: #128c7e; }
+
+.previewEmptyHint {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    color: #9ca3af;
+    text-align: center;
+    padding: 1rem;
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 1024px) {
+    .modalWide { width: min(960px, 96vw); }
+
+    .builderLayout { grid-template-columns: 1fr; }
+
+    .previewColumn {
+        position: static;
+        justify-content: center;
+    }
+
+    .categoryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+    .modalBox { padding: 1rem; }
+    .modalMedium, .modalWide { width: 96vw; }
+
+    .categoryGrid { grid-template-columns: 1fr; }
+
+    .builderTopActions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .variableInputList { grid-template-columns: 1fr; }
+
+    .buttonItem { grid-template-columns: 1fr; }
+}
+
+// ── Section subtitle ──────────────────────────────────────────────────────────
+.sectionSubtitle {
+    font-size: 0.75rem !important;
+    color: #6b7280 !important;
+    margin-top: 2px !important;
+    margin-bottom: 0.6rem !important;
+    line-height: 1.4 !important;
+}
+
+// ── Optional badge ────────────────────────────────────────────────────────────
+.optionalBadge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #6b7280;
+    background: #f3f4f6;
+    border-radius: 4px;
+    padding: 1px 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+    text-transform: none;
+}
+
+// ── Header text wrap ──────────────────────────────────────────────────────────
+.headerTextWrap {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+// ── Media icon card grid ──────────────────────────────────────────────────────
+.mediaPickerWrap {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mediaIconGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.mediaIconCard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 8px 10px;
+    border: 1.5px solid #e4e8ee;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover {
+        border-color: rgba($primary-main, 0.4);
+        background: rgba($primary-main, 0.02);
+    }
+}
+
+.mediaIconCardActive {
+    border-color: $primary-main;
+    background: rgba($primary-main, 0.06);
+
+    .mediaIconSvg { color: $primary-main; }
+    .mediaIconLabel { color: $primary-main; font-weight: 700; }
+}
+
+.mediaIconCheck {
+    position: absolute;
+    top: 5px;
+    left: 7px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #fff;
+    background: $primary-main;
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mediaIconSvg {
+    color: #6b7280;
+    transition: color 0.15s;
+}
+
+.mediaIconLabel {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.mediaIconSoon {
+    font-size: 0.6rem;
+    color: #9ca3af;
+    background: #f3f4f6;
+    border-radius: 4px;
+    padding: 1px 4px;
+}
+
+// ── Sample upload box ─────────────────────────────────────────────────────────
+.mediaSampleBox {
+    background: #f8fafc;
+    border: 1px solid #e4e8ee;
+    border-radius: 10px;
+    padding: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mediaSampleTitle {
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    color: #1f2937 !important;
+}
+
+.mediaSampleDesc {
+    font-size: 0.72rem !important;
+    color: #6b7280 !important;
+    line-height: 1.5 !important;
+}
+
+.mediaSampleActions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.mediaUploadBtn {
+    text-transform: none !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    border: 1px solid #d2dae6 !important;
+    color: #334155 !important;
+    background: #fff !important;
+    padding: 0.38rem 0.85rem !important;
+    white-space: nowrap;
+}
+
+.mediaFileName {
+    font-size: 0.72rem !important;
+    color: #64748b !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mediaHint {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-left: 4px;
+}
+
+.uploadProgressWrap {
+    margin-top: 8px;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid #e4e8ee;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.uploadProgressHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    span {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: $primary-main;
+    }
+}
+
+
+// ── Body footer row (char counter + add variable) ─────────────────────────────
+.bodyFooterRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+}
+
+// ── Carousel Card Styles ──────────────────────────────────────────────────────
+.carouselCardsSection {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.cardNavWrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    
+    &::-webkit-scrollbar { height: 4px; }
+    &::-webkit-scrollbar-thumb { background: rgba($primary-main, 0.2); border-radius: 4px; }
+}
+
+.cardTab {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.85rem;
+    border: 1px solid #e4e8ee;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #64748b;
+
+    &:hover {
+        border-color: rgba($primary-main, 0.4);
+        background: rgba($primary-main, 0.02);
+    }
+}
+
+.cardTabActive {
+    border-color: $primary-main;
+    background: rgba($primary-main, 0.06);
+    color: $primary-main;
+}
+
+.addCardTab {
+    @extend .cardTab;
+    border: 1px dashed #cfd5de;
+    color: $primary-main;
+    
+    &:hover {
+        background: rgba($primary-main, 0.04);
+    }
+}
+
+.cardEditorPanel {
+    background: #f8fafc;
+    border: 1px solid #e4e8ee;
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.cardEditorHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    .cardTitle {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: $titleColor;
+    }
+}
+
+.cardDeleteBtn {
+    text-transform: none !important;
+    color: $error-main !important;
+    font-weight: 600 !important;
+    font-size: 0.75rem !important;
+}
+
+.cardBodySection {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}

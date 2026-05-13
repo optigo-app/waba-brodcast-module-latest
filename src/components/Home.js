@@ -15,7 +15,7 @@ const Home = ({ userToken }) => {
         steps,
         selectedChannel,
         message,
-        selectedTemplate,
+        selectedTemplates,
         sendDate,
         sendTime,
         sendOption,
@@ -30,7 +30,7 @@ const Home = ({ userToken }) => {
         setCurrentStep,
         setSelectedChannel,
         setMessage,
-        setSelectedTemplate,
+        setSelectedTemplates,
         setSendDate,
         setAudience,
         setDatasource,
@@ -54,12 +54,18 @@ const Home = ({ userToken }) => {
         goPrev();
     };
 
+    const hasSelectedTemplate = Array.isArray(selectedTemplates) && selectedTemplates.length > 0;
+
     const renderStepContent = () => {
         switch (currentStep) {
             case 1:
                 return (
                     <>
                         <div className="home_main_section">
+                             <ChannelSelector
+                                    selectedChannel={selectedChannel}
+                                    onChannelSelect={setSelectedChannel}
+                                />
                         </div>
 
                         <StepperNavigation
@@ -80,15 +86,15 @@ const Home = ({ userToken }) => {
                                 message={message}
                                 onMessageChange={setMessage}
                                 currentStep={currentStep}
-                                selectedTemplate={selectedTemplate}
-                                onTemplateSelect={setSelectedTemplate}
+                                selectedTemplate={selectedTemplates}
+                                onTemplateSelect={setSelectedTemplates}
                             />
                         </div>
                         <StepperNavigation
                             onNext={handleNext}
                             onPrevious={handleBack}
                             prevDisabled={currentStep === 1}
-                            nextDisabled={currentStep === steps.length}
+                            nextDisabled={currentStep === steps.length || !hasSelectedTemplate}
                             currentStep={currentStep}
                             steps={steps}
                         />
@@ -112,11 +118,11 @@ const Home = ({ userToken }) => {
                         sendDate={sendDate}
                         sendTime={sendTime}
                         sendOption={sendOption}
-                        distributeDays={distributeDays}
+                        recurrenceCount={distributeDays}
                         onSendDateChange={setSendDate}
                         onSendTimeChange={setSendTime}
                         onSendOptionChange={setSendOption}
-                        onDistributeDaysChange={setDistributeDays}
+                        onRecurrenceCountChange={setDistributeDays}
                         onNext={handleNext}
                         onPrevious={handleBack}
                         prevDisabled={currentStep === 1}
@@ -153,7 +159,7 @@ const Home = ({ userToken }) => {
                         onStepClick={(step) => setCurrentStep(step)}
                     />
                 </div>
-                <div className="home_main_section-div" style={{ marginTop: "2rem" }}>
+                <div className="home_main_section-div">
                     {renderStepContent()}
                 </div>
             </div>

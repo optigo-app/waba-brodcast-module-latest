@@ -1,18 +1,30 @@
 
-const BASE_URL = process.env.REACT_APP_BASE_URL;
 const MEDIA_BASE_URL = process.env.REACT_APP_MEDIA_BASE_URL;
 
-export const APIURL = `${BASE_URL}/report`;
+const isLocal = ["localhost", '5dmjw0dg-2000.inc1.devtunnels.ms'].includes(window.location.hostname);
+const isNxt = ['nxtwababroadcast.optigoapps.com'].includes(window.location.hostname);
+const isLocalWeb = ["wababroadcast.web"].includes(window.location.hostname);
+
+const API_BASE_URL = isLocal ?
+    process.env.REACT_APP_API_DEVELOPMENT_URL :
+    isLocalWeb ? process.env.REACT_APP_API_WEB_DEVELOPMENT_URL :
+        isNxt ? process.env.REACT_APP_API_NXT_URL :
+            process.env.REACT_APP_API_PRODUCTION_URL;
+
+export const APIURL = `${API_BASE_URL}/report`;
 export const MEDIAAPIURL = MEDIA_BASE_URL;
-export const MESSAGEAPIURL = `${BASE_URL}/whatsapp/chat/send`;
-export const MESSAGEAPIURLBULK = `${BASE_URL}/whatsapp/chat/send-bulk`;
-export const GETCONVERSATIONURL = `${BASE_URL}/report`;
+export const MESSAGEAPIURL = `${API_BASE_URL}/whatsapp/chat/send`;
+export const MESSAGEAPIURLBULK = `${API_BASE_URL}/whatsapp/chat/send-bulk`;
+export const GETCONVERSATIONURL = `${API_BASE_URL}/report`;
 export const UPLOADMEDIA = MEDIA_BASE_URL;
-export const LOGOUTAPI = `${BASE_URL}/whatsapp/chat/logout`;
-export const SAVEPLAYERID = `${BASE_URL}/report`;
-export const EXCELIMPORT = `${BASE_URL}/whatsapp/brodcast/excel-import`;
-export const SENDBULK = `${BASE_URL}/whatsapp/brodcast/send-bulk`;
-export const CRON = `${BASE_URL}/whatsapp/brodcast/scheduler/send`;
+export const LOGOUTAPI = `${API_BASE_URL}/whatsapp/chat/logout`;
+export const SAVEPLAYERID = `${API_BASE_URL}/report`;
+export const EXCELIMPORT = `${API_BASE_URL}/whatsapp/brodcast/excel-import`;
+export const SENDBULK = `${API_BASE_URL}/whatsapp/brodcast/send-bulk`;
+export const CRON = `${API_BASE_URL}/whatsapp/brodcast/scheduler/send`;
+export const TEMPLATE_CREATE = `${API_BASE_URL}/whatsapp/templates/manage/create`;
+export const TEMPLATE_MD_UPLOAD = `${API_BASE_URL}/whatsapp/media/upload`;
+export const META_MEDIA_UPLOAD = `${API_BASE_URL}/meta/v19.0`;
 
 
 
@@ -21,10 +33,18 @@ export const getHeaders = () => {
 
     const version = "v2";
     return {
-        Yearcode: userToken?.yc,
+        Yearcode: userToken?.yc || userToken?.yearcode,
         Version: version,
-        sv: userToken?.sv,
+        sv: userToken?.svid || userToken?.sv,
         sp: "16",
+    };
+};
+
+export const getHeaders1 = () => {
+    const userToken = JSON.parse(sessionStorage.getItem("userToken"));
+    return {
+        Yearcode: userToken?.yc || userToken?.yearcode,
+        sv: userToken?.svid || userToken?.sv,
     };
 };
 

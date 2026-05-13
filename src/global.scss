@@ -12,6 +12,7 @@ $button-Dangercolor: #ffffff;
     --secondary-color: #7D7f85;
 }
 
+$primary-adv :linear-gradient(270deg, rgba(37, 211, 102, 0.85) 0%, #1daa61 100%);
 $sidebar-Activebg: linear-gradient(270deg, rgba(115, 103, 240, 0.7) 0%, #7367f0 100%) !important;
 $sidebar-Bgcolor: #ffffff;
 $sidebar-borderColor: var(--sidebar-borderColor);
@@ -48,6 +49,7 @@ $transition-duration: 200ms;
 
 // Primary Colors
 $primary-main: #7367f0;
+$primary-light: #7367f0;
 $primary-light: rgba(115, 103, 240, 0.16);
 $primary-light-bg: rgba($primary-main, 0.16);
 
@@ -66,7 +68,7 @@ $warning-light: #ffe0b2;
 $warning-light-bg: rgba($warning-main, 0.16);
 
 // Info Colors
-$info-main: #00CFE8;
+$info-main: #00CFE8;    
 $info-light: #b3e5fc;
 $info-light-bg: rgba($info-main, 0.16);
 
@@ -80,7 +82,30 @@ $dark-bg: #6788f394;
 $dark-main: #fff;
 $dark-light: #fff;
 
+.buttonClassname {
+    font-family: $font-family !important;
+    background: $button-Bgcolor !important;
+    color: $button-color !important;
+    border-color: $button-Bordercolor !important;
+    text-transform: capitalize !important;
+    border-radius: 16px !important;
 
+    &:hover {
+        background-color: $button-color-hover;
+        border-color: $button-Bordercolor;
+    }
+}
+
+.disablebuttonClassanme {
+    font-family: $font-family !important;
+    background: $button-Bgcolor !important;
+    color: $button-color !important;
+    border-color: $button-Bordercolor !important;
+    text-transform: capitalize !important;
+    border-radius: 16px !important;
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 
 .secondaryBtnClassname {
     font-family: $font-family !important;
@@ -107,5 +132,37 @@ $dark-light: #fff;
     &:hover {
         background-color: $button-color-hover;
         border-color: $button-Bordercolor;
+    }
+}
+
+.dangerbtnClassName {
+    font-family: $font-family !important;
+    background: $button-DangerBgcolor !important;
+    color: $button-Dangercolor !important;
+    border-color: $button-DangerBgcolor !important;
+    text-transform: capitalize !important;
+    border-radius: 16px !important;
+
+    &:hover {
+        background-color: $button-DangerBgcolor-hover;
+        border-color: $button-DangerBgcolor;
+    }
+}
+
+
+.varientTextBtn {
+    display: flex;
+    justify-content: start;
+    align-items: end;
+    font-family: $font-family !important;
+    text-transform: capitalize;
+    font-weight: bold;
+    color: $placeholderColor;
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:hover {
+        background: transparent;
+        text-decoration: underline;
     }
 }

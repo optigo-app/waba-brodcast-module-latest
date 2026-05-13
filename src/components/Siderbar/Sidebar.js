@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './Sidebar.scss';
-import { HomeIcon, MessageCircle, Users, LayoutGrid } from 'lucide-react';
+import { HomeIcon, MessageCircle, Users, LayoutGrid, FileText } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const ICON_PROPS = { size: 20, strokeWidth: 2 };
@@ -14,6 +14,7 @@ const Sidebar = () => {
         { path: '/inbound', icon: <HomeIcon {...ICON_PROPS} />, label: 'Inbound' },
         { path: '/outbound', icon: <Users {...ICON_PROPS} />, label: 'Outbound' },
         { path: '/campaigns', icon: <LayoutGrid {...ICON_PROPS} />, label: 'Campaigns' },
+        { path: '/templates', icon: <FileText {...ICON_PROPS} />, label: 'Templates' },
     ];
 
     useEffect(() => {

@@ -203,7 +203,6 @@ const theme = createTheme({
           fontFamily: poppinsFont,
           fontWeight: 500,
           textTransform: 'none',
-          borderRadius: 8,
           padding: '8px 16px',
         },
       },

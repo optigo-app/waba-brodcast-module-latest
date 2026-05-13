@@ -99,6 +99,16 @@
   }
 }
 
+.schedule-helper-message {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: $secondaryColor;
+  background: rgba($primary-main, 0.08);
+  border: 1px solid rgba($primary-main, 0.16);
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+}
+
 .distribute-row {
   display: flex;
   align-items: center;

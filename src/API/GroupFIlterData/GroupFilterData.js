@@ -1,10 +1,33 @@
 import { CommonAPI } from "../InitialApi/CommonApi";
 
-export const fetchGroupFilterList = async (userId, groupFilter = "") => {
+export const fetchGroupFilterList = async (
+    userId,
+    {
+        groupFilter = "",
+        branchFilter = "",
+        customerName = "",
+        companyType = "",
+        state = "",
+        city = "",
+        country = "",
+        searchTerm = "",
+    } = {}
+) => {
     try {
+        const payload = {
+            GroupFilter: groupFilter,
+            Branch: branchFilter,
+            CustomerName: customerName,
+            CompanyType: companyType,
+            State: state,
+            City: city,
+            Country: country,
+            Search: searchTerm, 
+        };
+
         const body = {
-            "con": `{\"id\":\"\",\"mode\":\"broadcast_cust_list\",\"appuserid\":\"${userId}\"}`,
-            "p": `{\"GroupFilter\":\"${groupFilter}\"}`,
+            "con": `{"id":"","mode":"broadcast_cust_list","appuserid":"${userId}"}`,
+            "p": JSON.stringify(payload),
             "f": "Broadcast ( Customer Group List )"
         }
 

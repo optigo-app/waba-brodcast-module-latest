@@ -107,6 +107,7 @@ const SelectAutocomplete = ({
       disableCloseOnSelect={showCheckbox}
       renderOption={showCheckbox ? renderOption : undefined}
       renderTags={showCheckbox ? renderTags : undefined}
+      size='small'
       sx={{
         flex: 1,
         minWidth: 220,
@@ -131,6 +132,9 @@ const SelectAutocomplete = ({
           label={label}
           placeholder={getPlaceholder()}
           sx={{
+            '& .MuiAutocomplete-input ': {
+              p: '4px 4px 4px 8px !important',
+            },
             '& .MuiOutlinedInput-notchedOutline': {
               borderColor: 'var(--sidebar-borderColor)',
             },

@@ -45,6 +45,12 @@
     }
 
     .search-bar-container {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #fff;
+        padding-bottom: 0.35rem;
+
         .MuiTextField-root {
             background: #fcfcfd;
             border-radius: 12px;
@@ -78,142 +84,183 @@
         }
     }
 
-    .MuiTableContainer-root {
+    .campaign-table-container {
         border-radius: 16px;
         border: 1px solid $sidebar-borderColor;
         box-shadow: none !important;
         overflow: hidden;
+        background: #fff;
     }
 
-    .MuiTable-root {
-        border-collapse: separate;
+    .campaign-list-scroll {
+        max-height: 62vh;
+        overflow: auto;
+        padding: 0.9rem;
+        background: linear-gradient(180deg, #fcfcfd 0%, #ffffff 35%);
+    }
 
-        .MuiTableHead-root {
-            background-color: #fcfcfd;
-            border-bottom: 1px solid $sidebar-borderColor;
+    .campaign-card {
+        border: 1px solid rgba($secondaryColor, 0.12);
+        border-radius: 14px;
+        margin-bottom: 0.9rem;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 6px 16px rgba(17, 24, 39, 0.05);
+        transition: transform 0.18s ease, box-shadow 0.18s ease;
 
-            .MuiTableCell-root {
-                color: $secondaryColor;
-                font-weight: 600;
-                font-family: $font-family;
-                font-size: 0.8125rem;
-                padding: 0.75rem 1.25rem;
-                background-color: transparent;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
+        &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(17, 24, 39, 0.08);
         }
 
-        .MuiTableCell-root {
-            font-family: $font-family;
-            color: $titleColor;
-            border-bottom: 1px solid $sidebar-borderColor;
-        }
-
-        .campaign-row {
-            cursor: pointer;
-            transition: background-color 0.15s ease;
-
-            &:hover {
-                background-color: rgba($secondaryColor, 0.04);
-            }
-
-            &.open {
-                background-color: rgba($secondaryColor, 0.02);
-
-                .MuiTableCell-root {
-                    border-bottom: none;
-                }
-            }
+        &:last-child {
+            margin-bottom: 0;
         }
     }
 
-    .expand-cell {
-        padding: 0 0 0 1rem;
-        width: 48px;
-
-        .expand-button {
-            transition: transform 0.2s ease;
-            padding: 8px;
-            opacity: 0.85;
-        }
+    .campaign-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.9rem 1rem;
+        border-bottom: 1px solid rgba($secondaryColor, 0.08);
+        background: linear-gradient(90deg, rgba($secondaryColor, 0.06), rgba($secondaryColor, 0.015));
+        gap: 0.75rem;
     }
 
     .campaign-name-cell {
-        font-weight: 500;
-        font-size: 0.9rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: $secondaryColor;
+        font-family: $font-family;
+        line-height: 1.3;
+        word-break: break-word;
 
     }
 
     .templates-count-cell {
-        color: $text2ndColor;
-        font-size: 0.875rem;
+        color: $secondaryColor;
+        font-size: 0.8rem;
         text-align: right;
+        white-space: nowrap;
+        font-weight: 600;
+        background: rgba($secondaryColor, 0.09);
+        padding: 0.24rem 0.55rem;
+        border-radius: 999px;
     }
 
-    .campaign-details-cell {
-        background-color: #fcfcfd;
+    .template-list {
+        padding: 0.35rem 0.7rem 0.65rem;
     }
 
-    .campaign-collapse-box {
-        padding: 0 1.25rem 1.25rem 1.25rem;
-    }
+    .template-row {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        border-radius: 10px;
+        margin-top: 0.3rem;
+        padding: 0.15rem 0.45rem;
+        transition: all 0.2s ease;
+        position: relative;
 
-    .template-table {
-        background: #fff;
-        border: 1px solid $sidebar-borderColor;
-        border-radius: 12px;
-        overflow: hidden;
+        &:hover {
+            background-color: rgba($secondaryColor, 0.05);
+            cursor: pointer;
+        }
 
-        .template-row {
-            transition: all 0.2s ease;
-            position: relative;
+        &.selected {
+            background-color: rgba($primary-main, 0.09);
 
-            &:hover {
-                background-color: rgba($secondaryColor, 0.04);
-                cursor: pointer;
-            }
-
-            &.selected {
-                background-color: rgba($secondaryColor, 0.08);
-
-                &::before {
-                    content: '';
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    bottom: 0;
-                    width: 3px;
-                    background-color: $secondaryColor;
-                }
-            }
-
-            .template-name {
-                font-weight: 500;
-                font-family: $font-family;
-                font-size: 0.875rem;
+            &::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 6px;
+                bottom: 6px;
+                width: 3px;
+                border-radius: 3px;
+                background-color: $primary-main;
             }
         }
 
-        .MuiTableCell-root {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid $sidebar-borderColor;
+        &.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
-            &:last-child {
-                border-bottom: none;
-            }
+        .template-name {
+            font-weight: 500;
+            font-family: $font-family;
+            font-size: 0.89rem;
+            color: $titleColor;
         }
     }
 
     .template-checkbox-cell {
-        padding-left: 0.5rem;
+        padding-left: 0.1rem;
+        display: flex;
+        align-items: center;
 
         .MuiCheckbox-root {
-            color: rgba($secondaryColor, 0.4);
+            color: rgba($primary-main, 0.4);
+            padding: 8px;
 
             &.Mui-checked {
-                color: $secondaryColor;
+                color: $primary-main;
             }
+        }
+    }
+
+    .template-meta {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        gap: 0.1rem;
+        width: 100%;
+    }
+
+    .template-type {
+        font-size: 0.75rem;
+        color: $text2ndColor;
+        font-family: $font-family;
+        text-transform: capitalize;
+    }
+
+    .empty-template-text {
+        font-size: 0.82rem;
+        color: $text2ndColor;
+        font-style: italic;
+        padding: 0.6rem 0.7rem;
+    }
+
+    .empty-campaign-state {
+        min-height: 220px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: $text2ndColor;
+        font-family: $font-family;
+        border: 1px dashed rgba($secondaryColor, 0.24);
+        border-radius: 12px;
+        background: rgba($secondaryColor, 0.02);
+    }
+
+    @media (max-width: 768px) {
+        .campaign-list-scroll {
+            max-height: 58vh;
+            padding: 0.65rem;
+        }
+
+        .campaign-card-header {
+            padding: 0.8rem 0.8rem;
+        }
+
+        .campaign-name-cell {
+            font-size: 0.9rem;
+        }
+
+        .template-row {
+            padding: 0.1rem 0.25rem;
         }
     }
 

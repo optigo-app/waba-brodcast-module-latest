@@ -1,81 +1,28 @@
-
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Box, Typography, Paper, IconButton, Chip } from '@mui/material';
-import * as XLSX from 'xlsx';
-import { FileText, Upload, X } from 'lucide-react';
-import CloseIcon from '@mui/icons-material/Close';
+import { Box, Typography, Paper, Chip, Button, Dialog, IconButton } from '@mui/material';
+import { Plus, Database, FileSpreadsheet, X } from 'lucide-react';
 import StepperNavigation from "../NavigationStepper/StepperNavigation";
-import AudienceSourceSelector from './AudienceSourceSelector';
-import GroupDropdown from './GroupDropdown';
 import AudienceGrid from './AudienceGrid';
-import FilterDrawer from './FilterDrawer';
+import FilterSelectionDialog from './FilterSelectionDialog';
 import styles from './AudienceSection.module.scss';
-import { fetchCustomerList } from '../../API/CustomerList/CustomerList';
-import { fetchGroupFilterList } from '../../API/GroupFIlterData/GroupFilterData';
 import { ExcelImport } from '../../API/InitialApi/UploadMedia';
 import toast from 'react-hot-toast';
 import { fetchExcelList } from '../../API/ExcelLists/ExcelLists';
 import { useAuthToken } from '../../hooks/useAuthToken';
-import { getChipStyles } from '../../utils/chipStyles';
 
-// Utility to parse Excel/CSV file
-const parseFile = (file) => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-
-                if (jsonData.length < 2) {
-                    resolve([]);
-                    return;
-                }
-
-                const headers = jsonData[0].map(h => h.toLowerCase().replace(/\s+/g, '_'));
-                const rows = [];
-
-                for (let i = 1; i < jsonData.length; i++) {
-                    const row = {};
-                    for (let j = 0; j < headers.length; j++) {
-                        row[headers[j]] = jsonData[i][j] || '';
-                    }
-                    if (Object.values(row).some(val => val)) {
-                        rows.push({
-                            id: i,
-                            ...row,
-                            status: 'Imported'
-                        });
-                    }
-                }
-
-                resolve(rows);
-            } catch (error) {
-                reject(error);
-            }
-        };
-
-        reader.onerror = (error) => reject(error);
-        reader.readAsArrayBuffer(file);
-    });
-};
+const AUDIENCE_SELECTION_DRAFT_KEY = 'audienceSelectionDraft';
 
 const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNext, onPrevious, currentStep, steps }) => {
-    // State for source selection (CRM or Excel)
     const [source, setSource] = useState('crm');
-    const [selectedGroup, setSelectedGroup] = useState(null);
-    const [selectedBranches, setSelectedBranches] = useState([]);
-    const [GroupData, setGroupData] = useState([]);
     const [file, setFile] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
-    const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+    const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+    const [sourceSelectionOpen, setSourceSelectionOpen] = useState(false);
+    const [filteredDataFromDialog, setFilteredDataFromDialog] = useState(null);
     const { userToken } = useAuthToken();
     const [paginationModel, setPaginationModel] = useState({
-        page: 0, // 0-based index for MUI DataGrid
+        page: 0,
         pageSize: 20,
     });
     const [rowCount, setRowCount] = useState(0);
@@ -86,16 +33,12 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
         city: null,
         country: null,
     });
-
-    // Check if any filter is active
-    const isAnyFilterActive = useMemo(() => {
-        return Object.values(filters).some(filter => filter !== null);
-    }, [filters]);
     const [searchTerm, setSearchTerm] = useState('');
     const [searchInput, setSearchInput] = useState('');
-    const [groupSearchTerm, setGroupSearchTerm] = useState('');
     const [rowSelectionModel, setRowSelectionModel] = useState({ type: 'include', ids: new Set() });
     const [selectedRowMap, setSelectedRowMap] = useState({});
+    const [selectedBranches, setSelectedBranches] = useState([]);
+    const [selectedGroup, setSelectedGroup] = useState(null);
 
     // Create a ref to store the timeout ID
     const searchTimeoutRef = useRef(null);
@@ -110,28 +53,8 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
         // Set a new timeout
         searchTimeoutRef.current = setTimeout(() => {
             setSearchTerm(value);
-            // Only reset pagination if not using client-side filtering
-            if (!selectedGroup?.id) {
-                setPaginationModel(prev => ({ ...prev, page: 0 }));
-            }
+            setPaginationModel(prev => ({ ...prev, page: 0 }));
         }, 200); // 200ms delay
-    };
-
-    // Debounce search function
-    const debounceSearchGroup = (value) => {
-        // Clear any existing timeout
-        if (searchTimeoutRef.current) {
-            clearTimeout(searchTimeoutRef.current);
-        }
-
-        // Set a new timeout
-        searchTimeoutRef.current = setTimeout(() => {
-            setSearchTerm(value);
-            // Only reset pagination if not using client-side filtering
-            if (!selectedGroup?.id) {
-                setPaginationModel(prev => ({ ...prev, page: 0 }));
-            }
-        }, 200);
     };
 
     const [tableData, setTableData] = useState({
@@ -147,33 +70,61 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
 
     const getAudienceRowId = useCallback((row) => row?.CustomerId || row?.id, []);
 
-    // Filter rows based on search term
-    const filteredRows = useMemo(() => {
-        if (!searchTerm || !selectedGroup?.id) {
-            return null; // Return null to indicate no client-side filtering needed
-        }
+    const saveAudienceDraft = useCallback((rows, selectedIdsList, currentSource, currentFile) => {
+        const safeRows = Array.isArray(rows) ? rows : [];
+        const safeSelectedIds = Array.isArray(selectedIdsList) ? selectedIdsList : [];
 
-        const searchLower = searchTerm.toLowerCase();
-        return tableData.rows.filter(row => {
-            // Search in all relevant fields
-            return (
-                (row.CustomerName?.toLowerCase().includes(searchLower)) ||
-                (row.CustomerEmail?.toLowerCase().includes(searchLower)) ||
-                (row.CustomerPhone?.toLowerCase().includes(searchLower)) ||
-                (row.Country?.toLowerCase().includes(searchLower)) ||
-                (row.City?.toLowerCase().includes(searchLower)) ||
-                (row.State?.toLowerCase().includes(searchLower)) ||
-                (row.CustomerCode?.toLowerCase().includes(searchLower)) ||
-                (row.CompanyType?.toLowerCase().includes(searchLower))
-            );
-        });
-    }, [searchTerm, tableData.rows, selectedGroup]);
+        sessionStorage.setItem(AUDIENCE_SELECTION_DRAFT_KEY, JSON.stringify({
+            source: currentSource,
+            rows: safeRows,
+            selectedIds: safeSelectedIds,
+            fileName: currentFile?.name || '',
+            fileSize: currentFile?.size || 0,
+        }));
+    }, []);
+
+    useEffect(() => {
+        const rawDraft = sessionStorage.getItem(AUDIENCE_SELECTION_DRAFT_KEY);
+        if (!rawDraft) return;
+
+        try {
+            const draft = JSON.parse(rawDraft);
+            const draftRows = Array.isArray(draft?.rows) ? draft.rows : [];
+            const draftSelectedIds = Array.isArray(draft?.selectedIds)
+                ? draft.selectedIds
+                : draftRows.map((row) => row?.CustomerId || row?.id).filter(Boolean);
+
+            if (draft?.source) {
+                setSource(draft.source);
+            }
+
+            if (draftRows.length > 0) {
+                setFilteredDataFromDialog(draftRows);
+                setRowSelectionModel({ type: 'include', ids: new Set(draftSelectedIds) });
+
+                const draftRowMap = {};
+                draftRows.forEach((row) => {
+                    const rowId = row?.CustomerId || row?.id;
+                    if (rowId !== undefined && rowId !== null) {
+                        draftRowMap[rowId] = row;
+                    }
+                });
+                setSelectedRowMap(draftRowMap);
+            }
+
+            if (draft?.fileName) {
+                setFile({ name: draft.fileName, size: draft.fileSize || 0 });
+            }
+        } catch (error) {
+            console.error('Error restoring audience draft:', error);
+        }
+    }, []);
 
     const selectedIds = useMemo(() => {
         if (rowSelectionModel?.ids instanceof Set) {
             return Array.from(rowSelectionModel.ids);
         }
-        return Array.isArray(rowSelectionModel) ? rowSelectionModel : [];
+        return [];
     }, [rowSelectionModel]);
 
     const rowSelectionData = useMemo(() => {
@@ -181,116 +132,6 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
             .map((id) => selectedRowMap[id])
             .filter(Boolean);
     }, [selectedIds, selectedRowMap]);
-
-    // Fetch data from server with pagination
-    const fetchData = useCallback(async () => {
-        try {
-            if (source !== 'crm') return;
-
-            // Skip API call if we have a selected group and we're just doing client-side search
-            if (selectedGroup?.id && searchTerm) {
-                return;
-            }
-
-            setTableData(prev => ({ ...prev, loading: true }));
-            let result;
-
-            if (selectedGroup?.id) {
-                // For filtered group list
-                result = await fetchGroupFilterList(
-                    userToken?.userId,
-                    selectedGroup.WhereClause || '',
-                );
-            } else {
-                // For customer list
-                // Only include filters that have values
-                const { companyName, companyType, state, city, country } = filters;
-                result = await fetchCustomerList(
-                    userToken?.userId,
-                    companyName || '',
-                    companyType || '',
-                    state || '',
-                    city || '',
-                    country || '',
-                    groupSearchTerm || ''
-                );
-            }
-
-            if (result) {
-                setTableData({
-                    rows: result.data || [],
-                    loading: false
-                });
-                // Make sure to use the total count from the API response
-                setRowCount(Number(result.total) || 0);
-            }
-        } catch (error) {
-            console.error('Error fetching data:', error);
-            setTableData({
-                rows: [],
-                loading: false
-            });
-            setRowCount(0);
-        }
-    }, [source, paginationModel, selectedGroup, filters, userToken, groupSearchTerm, searchTerm]);
-
-    // Fetch data when source, pagination, or filters change
-    useEffect(() => {
-
-        if (source === 'excel' && fetchCampignId) {
-            fetchExcelData(fetchCampignId);
-        } else if (source === 'crm') {
-            fetchData();
-        } else {
-            // For other sources, reset the data
-            setTableData({
-                rows: [],
-                loading: false
-            });
-            setRowCount(0);
-        }
-    }, [source, selectedGroup, fetchCampignId, groupSearchTerm, filters]);
-
-    const handleGroupChange = (group) => {
-        setSelectedGroup(group);
-        setPaginationModel(prev => ({ ...prev, page: 0 })); // Reset to first page when group changes
-    };
-
-    // Handle file upload
-    const handleFileUpload = async (event) => {
-        const selectedFile = event.target.files[0];
-        if (!selectedFile) return;
-
-        setFile(selectedFile);
-        setIsLoading(true);
-
-        try {
-            if (!fetchCampignId) {
-                toast.error('Please select a campaign first');
-                return;
-            }
-
-            const data = await parseFile(selectedFile);
-            const fileUpload = await ExcelImport(selectedFile, userToken?.userId, fetchCampignId);
-            console.log("TCL: handleFileUpload -> fileUpload", fileUpload)
-
-            if (fileUpload?.success) {
-                toast.success(fileUpload?.message);
-                setGroupData(fileUpload?.totalRows?.rd)
-                // Use the new fetchExcelData function
-                await fetchExcelData(fetchCampignId);
-            } else {
-                toast.error(fileUpload?.message || 'Failed to upload file');
-            }
-            setRowSelectionModel({ type: 'include', ids: new Set() });
-            setSelectedRowMap({});
-        } catch (error) {
-            console.error('Error parsing file:', error);
-            toast.error('Error processing file');
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     // Handle filter changes
     const handleApplyFilters = (newFilters) => {
@@ -305,13 +146,12 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
         setPaginationModel(prev => ({ ...prev, page: 0 }));
     };
 
-    // Handle pagination model change - triggers new data fetch
+    // Handle pagination model change
     const handlePaginationModelChange = (newPaginationModel) => {
         setPaginationModel({
             page: newPaginationModel.page,
             pageSize: newPaginationModel.pageSize
         });
-        // The useEffect with paginationModel as dependency will trigger a new data fetch
 
         // If the source is Excel, fetch the new page of data
         if (source === 'excel' && fetchCampignId) {
@@ -323,7 +163,7 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
     const fetchExcelData = async (campaignId) => {
         try {
             setExcelData(prev => ({ ...prev, loading: true }));
-            const result = await fetchExcelList(userToken?.userId, campaignId, selectedGroup?.Category || "", filters, groupSearchTerm);
+            const result = await fetchExcelList(userToken?.userId, campaignId, "", filters, searchTerm);
 
             if (result) {
                 setExcelData({
@@ -356,6 +196,11 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
             };
         });
 
+        const selectedIdsToPersist = rowSelectionData
+            .map((row) => row?.CustomerId || row?.id)
+            .filter((id) => id !== undefined && id !== null);
+        saveAudienceDraft(rowSelectionData, selectedIdsToPersist, source, file);
+
         onAudienceChange(audience);
         onDataSourceChange(source === "crm" ? "optigo" : "excel");
         onNext();
@@ -364,28 +209,116 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
     // Check if next button should be enabled
     const isNextDisabled = rowSelectionData.length === 0;
 
-    // Toggle filter drawer
-    const toggleFilterDrawer = () => {
-        setFilterDrawerOpen(!filterDrawerOpen);
+    // Toggle filter dialog
+    const toggleFilterDialog = () => {
+        setFilterDialogOpen(!filterDialogOpen);
+    };
+
+    const openSourceSelectionDialog = () => {
+        setSourceSelectionOpen(true);
+    };
+
+    const closeSourceSelectionDialog = () => {
+        setSourceSelectionOpen(false);
+    };
+
+    const handleSourceSelection = (selectedSource) => {
+        setSource(selectedSource);
+        setSourceSelectionOpen(false);
+        setFilterDialogOpen(true);
+    };
+
+    // Handle continue from filter dialog
+    const handleFilterContinue = (data) => {
+        if (data?.source && data.source !== source) {
+            setSource(data.source);
+        }
+
+        setFilters(data.filters);
+        setSearchTerm(data.searchTerm);
+        setSelectedBranches(data.selectedBranches || []);
+        setSelectedGroup(data.selectedGroup || null);
+
+        // Set selected rows from dialog - use object format with Set
+        const selectedIds = Array.isArray(data.selectedIds) ? data.selectedIds : [];
+
+        // Filter gridData to only include selected rows
+        const selectedRows = (data.gridData || []).filter(row => {
+            const rowId = row.CustomerId || row.id;
+            return selectedIds.includes(rowId);
+        });
+
+        if (data.mode === 'replace') {
+            // Replace mode: replace all existing data with only selected rows
+            setFilteredDataFromDialog(selectedRows);
+            setRowSelectionModel({ type: 'include', ids: new Set(selectedIds) });
+
+            // Build selected row map
+            const newSelectedRowMap = {};
+            selectedRows.forEach(row => {
+                const rowId = row.CustomerId || row.id;
+                newSelectedRowMap[rowId] = row;
+            });
+            setSelectedRowMap(newSelectedRowMap);
+            saveAudienceDraft(selectedRows, selectedIds, source, file);
+        } else {
+            // Append mode: add only selected rows to existing data
+            const existingData = filteredDataFromDialog || [];
+
+            // Combine data, avoiding duplicates
+            const combinedData = [...existingData];
+            selectedRows.forEach(newRow => {
+                const rowId = newRow.CustomerId || newRow.id;
+                if (!combinedData.some(row => (row.CustomerId || row.id) === rowId)) {
+                    combinedData.push(newRow);
+                }
+            });
+
+            setFilteredDataFromDialog(combinedData);
+
+            // Update selection to include all rows (since we're showing only selected data)
+            const allIds = combinedData.map(row => row.CustomerId || row.id);
+            setRowSelectionModel({ type: 'include', ids: new Set(allIds) });
+
+            // Build selected row map
+            const newSelectedRowMap = { ...selectedRowMap };
+            selectedRows.forEach(row => {
+                const rowId = row.CustomerId || row.id;
+                newSelectedRowMap[rowId] = row;
+            });
+            setSelectedRowMap(newSelectedRowMap);
+            saveAudienceDraft(combinedData, allIds, source, file);
+        }
+
+        setFilterDialogOpen(false);
     };
 
     // Handle row selection change
     const handleRowSelectionModelChange = (newRowSelectionModel) => {
-        setRowSelectionModel(newRowSelectionModel);
+        // Ensure object format with Set
+        let selectionModel;
+        if (typeof newRowSelectionModel === 'object' && newRowSelectionModel?.ids instanceof Set) {
+            selectionModel = newRowSelectionModel;
+        } else if (Array.isArray(newRowSelectionModel)) {
+            selectionModel = { type: 'include', ids: new Set(newRowSelectionModel) };
+        } else {
+            selectionModel = { type: 'include', ids: new Set() };
+        }
+
+        // Ensure ids is always a Set
+        if (!selectionModel.ids || !(selectionModel.ids instanceof Set)) {
+            selectionModel = { type: 'include', ids: new Set() };
+        }
+
+        setRowSelectionModel(selectionModel);
 
         const currentRows = source === 'crm'
-            ? (filteredRows !== null ? filteredRows : tableData.rows)
+            ? tableData.rows
             : excelData.rows;
 
         setSelectedRowMap((prev) => {
             const next = { ...prev };
-            const selectedIdSet = new Set(
-                newRowSelectionModel?.ids instanceof Set
-                    ? Array.from(newRowSelectionModel.ids)
-                    : Array.isArray(newRowSelectionModel)
-                        ? newRowSelectionModel
-                        : []
-            );
+            const selectedIdSet = selectionModel.ids;
 
             currentRows.forEach((row) => {
                 const rowId = getAudienceRowId(row);
@@ -402,223 +335,357 @@ const AudienceSection = ({ audience, onAudienceChange, onDataSourceChange, onNex
         });
     };
 
-    // Handle source change
-    const handleSourceChange = (newSource) => {
-        setSource(newSource);
-        setRowSelectionModel({ type: 'include', ids: new Set() });
-        setSelectedRowMap({});
+    const processDroppedExcelFile = async (excelFile) => {
+        if (!excelFile) return;
+
+        const fileExt = excelFile.name.split('.').pop().toLowerCase();
+        const allowedExtensions = ['xlsx', 'xls', 'csv'];
+
+        if (!allowedExtensions.includes(fileExt)) {
+            alert('Please upload only Excel (.xlsx, .xls) or CSV files');
+            return;
+        }
+
+        if (excelFile.size > 10 * 1024 * 1024) {
+            alert('File size exceeds 10MB limit');
+            return;
+        }
+
+        if (!fetchCampignId) {
+            toast.error('Please select a campaign first');
+            return;
+        }
+
+        // Open dialog first for better UX, then process upload
+        setSource('excel');
+        setFile(excelFile);
+        setFilterDialogOpen(true);
+        setIsDragging(false);
+
+        const fileUpload = await ExcelImport(excelFile, userToken?.userId, fetchCampignId);
+        if (fileUpload?.success) {
+            toast.success(fileUpload?.message || 'File uploaded successfully');
+            await fetchExcelData(fetchCampignId);
+        } else {
+            toast.error(fileUpload?.message || 'Failed to upload file');
+        }
     };
 
-    // Handle file input change
-    const handleFileChange = (event) => {
-        handleFileUpload(event);
+    // Handle global drag & drop overlay
+    const handleGlobalDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (e.dataTransfer?.types?.includes('Files')) {
+            setIsDragging(true);
+        }
     };
 
-    // Handle file removal
-    const handleRemoveFile = () => {
-        setFile(null);
-        setTableData({
-            rows: [],
-            loading: false
-        });
-        setRowCount(0);
-        setRowSelectionModel({ type: 'include', ids: new Set() });
-        setSelectedRowMap({});
+    const handleGlobalDragLeave = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+            setIsDragging(false);
+        }
     };
 
-    // Handle branch removal
-    const handleRemoveBranch = (branchToRemove) => {
-        const newSelection = selectedBranches.filter(branch => branch.id !== branchToRemove.id);
-        setSelectedBranches(newSelection);
+    const handleGlobalDrop = async (e) => {
+        // Outside drop box should not accept files
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
     };
 
     return (
         <>
-            <div className="home_main_section">
+            <div
+                className="home_main_section"
+                onDragOver={handleGlobalDragOver}
+                onDragLeave={handleGlobalDragLeave}
+                onDrop={handleGlobalDrop}
+            >
                 <Paper elevation={0} className={styles.content}>
-                    {/* Source Selection */}
-                    <AudienceSourceSelector
-                        source={source}
-                        onSourceChange={handleSourceChange}
-                        searchTerm={searchTerm}
-                        searchInput={searchInput}
-                        onSearchChange={(value) => {
-                            setSearchInput(value);
-                            debounceSearch(value);
-                        }}
-                    />
-
-                    {/* Group and Filter Selection */}
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "15px" }}>
-                        <GroupDropdown
-                            GroupData={GroupData}
-                            selectedGroup={selectedGroup}
-                            onGroupChange={(group) => {
-                                setSelectedGroup(group);
-                                handleGroupChange(group);
-                            }}
-                            groupSearchTerm={groupSearchTerm}
-                            source={source}
-                            setFilterDrawerOpen={setFilterDrawerOpen}
-                            currentStep={currentStep}
-                            onSearchChange={(text) => {
-                                setGroupSearchTerm(text);
-                                debounceSearchGroup(text);
-                                // Reset to first page when searching
-                                setPaginationModel(prev => ({ ...prev, page: 0 }));
-                            }}
-                            isDisabled={isAnyFilterActive}
-                            onCreateNewGroup={() => console.log("Create group modal open")}
-                            showBranchDropdown={true}
-                            selectedBranches={selectedBranches}
-                            onBranchChange={(event, newValue) => setSelectedBranches(newValue)}
-                        />
-                    </Box>
-                    {/* )} */}
-
-                    {/* File Upload (for Excel) */}
-                    {source === 'excel' && (
+                    {isDragging && (
                         <Box
-                            className={`${styles.uploadArea} ${isDragging ? styles.dragActive : ''}`}
+                            sx={{
+                                position: 'fixed',
+                                inset: 0,
+                                zIndex: 1300,
+                                backgroundColor: 'rgba(10, 20, 30, 0.45)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
                             onDragOver={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                setIsDragging(true);
                             }}
-                            onDragLeave={(e) => {
+                            onDrop={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 setIsDragging(false);
-                            }}
-                            onDrop={async (e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setIsDragging(false);
-
-                                const files = Array.from(e.dataTransfer.files);
-                                if (files.length > 0) {
-                                    const excelFile = files[0];
-                                    const fileExt = excelFile.name.split('.').pop().toLowerCase();
-                                    const allowedExtensions = ['xlsx', 'xls', 'csv'];
-
-                                    if (allowedExtensions.includes(fileExt)) {
-                                        if (excelFile.size <= 10 * 1024 * 1024) { // 10MB limit
-                                            await handleFileUpload({ target: { files: [excelFile] } });
-                                        } else {
-                                            alert('File size exceeds 10MB limit');
-                                        }
-                                    } else {
-                                        alert('Please upload only Excel (.xlsx, .xls) or CSV files');
-                                    }
-                                }
                             }}
                         >
-                            {!file ? (
-                                <label htmlFor="file-upload" className={styles.uploadLabel}>
-                                    <input
-                                        id="file-upload"
-                                        type="file"
-                                        accept=".xlsx, .xls, .csv"
-                                        onChange={handleFileUpload}
-                                        style={{ display: 'none' }}
-                                    />
-                                    <Upload size={48} className={styles.uploadIcon} />
-                                    <Typography variant="h6" gutterBottom>
-                                        {isDragging ? 'Drop the file here' : 'Drag & drop your Excel/CSV file here'}
-                                    </Typography>
-                                    <Typography variant="body2" color="textSecondary" paragraph>
-                                        or <span className={styles.browseLink}>browse</span> to choose a file
-                                    </Typography>
-                                    <Typography variant="caption" color="textSecondary">
-                                        Supported formats: .xlsx, .xls, .csv (Max 10MB)
-                                    </Typography>
-                                </label>
-                            ) : (
-                                <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: "column", gap: "10px", justifyContent: 'space-between', mt: 2 }}>
-                                    <FileText size={32} />
-                                    <Box ml={2} flexGrow={1}>
-                                        <Typography variant="subtitle1">{file.name}</Typography>
-                                        <Typography variant="body2" color="textSecondary">
-                                            {/* {(file.size / 1024 / 1024).toFixed(2)} MB • {tableData.rows.length} records found */}
-                                            {(file.size / 1024 / 1024).toFixed(2)} MB
-                                        </Typography>
-                                    </Box>
-                                    <IconButton onClick={handleRemoveFile} size="small">
-                                        <X size={20} />
-                                    </IconButton>
-                                </Box>
-                            )}
+                            <Box
+                                sx={{
+                                    width: 'min(680px, 90vw)',
+                                    minHeight: 260,
+                                    border: '3px dashed #ffffff',
+                                    borderRadius: 4,
+                                    px: 6,
+                                    py: 5,
+                                    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+                                    backdropFilter: 'blur(4px)',
+                                    textAlign: 'center',
+                                    color: '#fff',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 1,
+                                }}
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                }}
+                                onDrop={async (e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+
+                                    const files = Array.from(e.dataTransfer.files || []);
+                                    await processDroppedExcelFile(files[0]);
+                                }}
+                            >
+                                <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+                                    Drop Excel/CSV file here
+                                </Typography>
+                                <Typography variant="body1" sx={{ opacity: 0.95 }}>
+                                    Drop inside this box to upload
+                                </Typography>
+                                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                                    {source === 'crm' ? 'CRM will switch to Excel mode automatically' : 'Excel mode active'}
+                                </Typography>
+                                <Typography variant="caption" sx={{ opacity: 0.85 }}>
+                                    Supported: .xlsx, .xls, .csv (Max 10MB)
+                                </Typography>
+                            </Box>
                         </Box>
                     )}
-
-                    {/* Data Grid */}
+                    {/* Data Grid - Hide when no data */}
                     <Box className={styles.gridBox}>
-                        <Box className={styles.gridHeader}>
+                        <Box className={styles.gridHeader} sx={{ justifyContent: 'space-between' }}>
                             <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1 }}>
                                 <Typography className={styles.gridTitle}>
                                     {source === 'crm' ? 'CRM Contacts' : 'Imported Contacts'}
                                 </Typography>
+                                {source === 'excel' && file && (
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                        ({file.name})
+                                    </Typography>
+                                )}
+                                {source === 'excel' && file && (
+                                    <Typography variant="caption" sx={{ color: 'var(--secondary-color)' }}>
+                                        Total: {excelData?.rows?.length || 0}
+                                    </Typography>
+                                )}
                                 <Typography sx={{ color: 'var(--secondary-color)', fontSize: '0.875rem' }}>
                                     Selected: {selectedIds.length}
                                 </Typography>
                                 {/* Selected Branches Chips */}
-                                {source === 'crm' && selectedBranches?.length > 0 && (
-                                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                                        {selectedBranches.map((branch) => (
+                                {selectedBranches.length > 0 && (
+                                    <Box sx={{ px: 2, pb: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                        {selectedBranches.slice(0, 3).map((branch) => (
                                             <Chip
-                                                key={branch.id}
-                                                label={branch.name}
-                                                onDelete={() => handleRemoveBranch(branch)}
-                                                deleteIcon={<CloseIcon />}
+                                                key={branch.Number}
+                                                label={branch.UFCC}
                                                 size="small"
-                                                sx={getChipStyles()}
                                             />
                                         ))}
+                                        {selectedBranches.length > 3 && (
+                                            <Chip
+                                                label={`+${selectedBranches.length - 3} more`}
+                                                size="small"
+                                            />
+                                        )}
                                     </Box>
                                 )}
                             </Box>
+                            {source === 'crm' && (
+                                <Button
+                                    variant='contained'
+                                    className='buttonClassname'
+                                    size="small"
+                                    startIcon={<Plus />}
+                                    onClick={openSourceSelectionDialog}
+                                >
+                                    Add Audience
+                                </Button>
+                            )}
+                            {source === 'excel' && (
+                                <Button
+                                    variant='contained'
+                                    className='buttonClassname'
+                                    size="small"
+                                    startIcon={<Plus />}
+                                    onClick={openSourceSelectionDialog}
+                                >
+                                    {file ? 'Filter Audience' : 'Add Audience'}
+                                </Button>
+                            )}
                         </Box>
 
                         <Box sx={{ minHeight: 420 }}>
-                            <AudienceGrid
-                                rows={
-                                    filteredRows !== null
-                                        ? filteredRows
-                                        : source === 'crm'
-                                            ? tableData.rows
-                                            : excelData.rows
-                                }
-                                onRowSelectionModelChange={handleRowSelectionModelChange}
-                                rowSelectionModel={rowSelectionModel}
-                                onFilterClick={toggleFilterDrawer}
-                                source={source}
-                                loading={source === 'crm' ? tableData.loading : excelData.loading}
-                                rowCount={filteredRows !== null ? filteredRows.length : rowCount}
-                                paginationModel={paginationModel}
-                                onPaginationModelChange={handlePaginationModelChange}
-                                searchText={searchInput}
-                                onSearchChange={(value) => {
-                                    setSearchInput(value);
-                                    debounceSearch(value);
-                                }}
-                            />
+                            {filteredDataFromDialog && filteredDataFromDialog.length > 0 ? (
+                                // Show filtered data from dialog
+                                <AudienceGrid
+                                    rows={filteredDataFromDialog}
+                                    onRowSelectionModelChange={handleRowSelectionModelChange}
+                                    rowSelectionModel={rowSelectionModel}
+                                    onFilterClick={toggleFilterDialog}
+                                    source={source}
+                                    loading={false}
+                                    rowCount={filteredDataFromDialog.length}
+                                    paginationModel={paginationModel}
+                                    onPaginationModelChange={handlePaginationModelChange}
+                                    searchText={searchInput}
+                                    onSearchChange={(value) => {
+                                        setSearchInput(value);
+                                        debounceSearch(value);
+                                    }}
+                                />
+                            ) : (
+                                // Show empty state with Add button
+                                <Box
+                                    sx={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        height: '420px',
+                                        border: '2px dashed var(--sidebar-borderColor)',
+                                        borderRadius: '12px',
+                                        backgroundColor: '#fcfcfd'
+                                    }}
+                                >
+                                    <Typography variant="h6" sx={{ color: 'var(--secondary-color)', mb: 2 }}>
+                                        {source === 'excel' && file ? 'Excel uploaded successfully' : 'No contacts selected'}
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: 'var(--secondary-color)', mb: 3 }}>
+                                        {source === 'crm'
+                                            ? 'Click Add to filter and select contacts from CRM'
+                                            : file
+                                                ? `Excel has ${excelData?.rows?.length || 0} contacts. Click Filter Audience to select contacts.`
+                                                : 'Upload Excel file to filter contacts'}
+                                    </Typography>
+                                    <Button
+                                        variant='contained'
+                                        className='buttonClassname'
+                                        startIcon={<Plus />}
+                                        onClick={openSourceSelectionDialog}
+                                    >
+                                        {source === 'crm' ? 'Add Audience' : file ? 'Filter Audience' : 'Upload Excel'}
+                                    </Button>
+                                </Box>
+                            )}
                         </Box>
                     </Box>
                 </Paper>
 
-                {/* Filter Drawer */}
-                <FilterDrawer
-                    open={filterDrawerOpen}
-                    onClose={() => setFilterDrawerOpen(false)}
-                    onApplyFilters={handleApplyFilters}
-                    filters={{
-                        companyName: filters.companyName ? { companyname: filters.companyName } : null,
-                        companyType: filters.companyType ? { businessclassname: filters.companyType } : null,
-                        state: filters.state ? { StateName: filters.state } : null,
-                        city: filters.city ? { City: filters.city } : null,
-                        country: filters.country ? { CountryName: filters.country } : null,
+                {/* Filter Selection Dialog */}
+                <FilterSelectionDialog
+                    open={filterDialogOpen}
+                    onClose={toggleFilterDialog}
+                    onContinue={handleFilterContinue}
+                    filters={filters}
+                    onFilterChange={handleApplyFilters}
+                    userToken={userToken}
+                    source={source}
+                    excelData={excelData?.rows || []}
+                    onFileUpload={async (file) => {
+                        if (!file) {
+                            setFile(null);
+                            return;
+                        }
+
+                        setFile(file);
+                        const fileUpload = await ExcelImport(file, userToken?.userId, fetchCampignId);
+                        if (fileUpload?.success) {
+                            toast.success(fileUpload?.message || 'File uploaded successfully');
+                            await fetchExcelData(fetchCampignId);
+                        } else {
+                            toast.error(fileUpload?.message || 'Failed to upload file');
+                        }
                     }}
+                    uploadedFile={file}
                 />
+
+                <Dialog
+                    open={sourceSelectionOpen}
+                    onClose={closeSourceSelectionDialog}
+                    maxWidth="md"
+                    fullWidth
+                    PaperProps={{ className: styles.sourceSelectionDialogPaper }}
+                >
+                    <Box className={styles.sourceSelectionDialogBody}>
+                        <Typography className={styles.sourceSelectionTitle}>
+                            Choose import source
+                        </Typography>
+                        <Typography className={styles.sourceSelectionSubtitle}>
+                            Select where you want to import audience contacts from.
+                        </Typography>
+                        <IconButton
+                            onClick={closeSourceSelectionDialog}
+                            sx={{ position: 'absolute', top: 16, right: 16, '&:hover': { backgroundColor: '#f5f5f5', color: '#ff2727' } }}
+                        >
+                            <X size={20} />
+                        </IconButton>
+
+                        <Box className={styles.sourceCardGrid}>
+                            <Box
+                                className={`${styles.sourceCard} ${styles.crmSourceCard}`}
+                                onClick={() => handleSourceSelection('crm')}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        handleSourceSelection('crm');
+                                    }
+                                }}
+                            >
+                                <Box className={styles.sourceIconWrap}>
+                                    <Database size={22} />
+                                </Box>
+                                <Typography className={styles.sourceCardTitle}>Import from CRM</Typography>
+                                <Typography className={styles.sourceCardDesc}>
+                                    Use your CRM customer contacts and filter by group, branch, and profile data.
+                                </Typography>
+                            </Box>
+
+                            <Box
+                                className={`${styles.sourceCard} ${styles.excelSourceCard}`}
+                                onClick={() => handleSourceSelection('excel')}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        handleSourceSelection('excel');
+                                    }
+                                }}
+                            >
+                                <Box className={styles.sourceIconWrap}>
+                                    <FileSpreadsheet size={22} />
+                                </Box>
+                                <Typography className={styles.sourceCardTitle}>Import from Excel / CSV</Typography>
+                                <Typography className={styles.sourceCardDesc}>
+                                    Upload and use audience contacts from your spreadsheet file.
+                                </Typography>
+                            </Box>
+                        </Box>
+                    </Box>
+                </Dialog>
 
             </div>
             <StepperNavigation

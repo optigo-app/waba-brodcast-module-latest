@@ -110,10 +110,7 @@ const ComposedMessage = ({
     onMessageChange,
     templateData
 }) => {
-    console.log("TCL: templateData", templateData)
-    // Track if the media is a default image from a template
     const [isDefaultMedia, setIsDefaultMedia] = useState(false);
-
     // Update isDefaultMedia when uploadedMedia changes
     useEffect(() => {
         setIsDefaultMedia(!!uploadedDefaultMedia);
@@ -828,13 +825,44 @@ const ComposedMessage = ({
 
     const renderMainButtonsPreview = () => {
         if (!Array.isArray(buttons) || buttons.length === 0) return null;
+        return null; // rendered outside the bubble
+    };
+
+    const renderButtonsOutsideBubble = () => {
+        if (!Array.isArray(buttons) || buttons.length === 0) return null;
         return (
-            <div className="mt-2 flex flex-col items-start space-y-2">
-                {buttons.map((btn) => (
-                    <button key={btn.id} className="text-sm px-3 py-1 rounded border border-emerald-300 bg-white text-emerald-700 hover:bg-emerald-50">
-                        {btn.type === 'call' && btn.text ? btn.text : btn.text || 'Button'}
-                    </button>
-                ))}
+            <div className="flex flex-col w-full max-w-[80%] mt-1 space-y-1">
+                {buttons.map((btn) => {
+                    const isQuickReply = btn.type === 'quick_reply';
+                    return (
+                        <button
+                            key={btn.id}
+                            className="flex items-center justify-center bg-white text-emerald-600 text-sm font-medium rounded-lg border border-gray-200 px-3 py-2 shadow-sm w-full"
+                        >
+                            {btn.type === 'url' && (
+                                <svg className="w-4 h-4 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                            )}
+                            {btn.type === 'call' && (
+                                <svg className="w-4 h-4 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                </svg>
+                            )}
+                            {isQuickReply && (
+                                <svg className="w-4 h-4 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                </svg>
+                            )}
+                            <span className="truncate">{btn.text || 'Button'}</span>
+                            {!isQuickReply && (
+                                <svg className="w-4 h-4 ml-auto flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            )}
+                        </button>
+                    );
+                })}
             </div>
         );
     };
@@ -1148,17 +1176,15 @@ const ComposedMessage = ({
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex justify-start mt-5">
+                                    <div className="flex flex-col items-start mt-5">
                                         <div className="bg-white text-gray-800 rounded-lg p-3 max-w-[80%] text-sm">
-                                            <div className="text-xs text-gray-500 mt-1">
-                                                {renderHeaderPreview()}
-                                                <div dangerouslySetInnerHTML={{ __html: message }} />
-                                                {renderMainButtonsPreview()}
-                                                <div className="text-left mt-2 text-xs text-gray-500">
-                                                    {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </div>
+                                            {renderHeaderPreview()}
+                                            <div dangerouslySetInnerHTML={{ __html: message }} />
+                                            <div className="text-left mt-2 text-xs text-gray-500">
+                                                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </div>
                                         </div>
+                                        {renderButtonsOutsideBubble()}
                                     </div>
                                 </div>
                             ) : (

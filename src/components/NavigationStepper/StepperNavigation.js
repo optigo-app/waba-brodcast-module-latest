@@ -11,15 +11,13 @@ const StepperNavigation = ({ onNext, onPrevious, nextDisabled = false, prevDisab
       >
         Previous
       </button>
-      {currentStep !== steps.length &&
-        <button
-          className="nav-button next-button"
-          onClick={onNext}
-          disabled={nextDisabled}
-        >
-          Next
-        </button>
-      }
+      <button
+        className="nav-button next-button"
+        onClick={onNext}
+        disabled={nextDisabled || currentStep === steps.length}
+      >
+        Next
+      </button>
     </div>
   );
 };

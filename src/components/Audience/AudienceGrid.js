@@ -78,7 +78,7 @@ const CustomToolbar = ({ onFilterClick, onSearchChange, searchText, selectedCoun
 const AudienceGrid = ({
   rows = [],
   onRowSelectionModelChange,
-  rowSelectionModel = [],
+  rowSelectionModel,
   onFilterClick,
   source,
   loading = false,
@@ -89,27 +89,54 @@ const AudienceGrid = ({
 }) => {
   const [searchText, setSearchText] = useState('');
 
-  // Ensure rowSelectionModel shape is compatible with current MUI DataGrid
+  // Ensure rowSelectionModel is always in object format with Set
   const safeRowSelectionModel = React.useMemo(() => {
-    if (rowSelectionModel && typeof rowSelectionModel === 'object' && rowSelectionModel.ids instanceof Set) {
+    // Return a valid object with Set to prevent undefined errors
+    if (!rowSelectionModel || typeof rowSelectionModel !== 'object') {
+      return { type: 'include', ids: new Set() };
+    }
+    if (rowSelectionModel?.ids instanceof Set) {
       return rowSelectionModel;
     }
     if (Array.isArray(rowSelectionModel)) {
       return { type: 'include', ids: new Set(rowSelectionModel) };
+    }
+    // Fallback: if it's an object but ids is not a Set, convert to Set
+    if (rowSelectionModel.ids) {
+      return { type: 'include', ids: new Set(Array.isArray(rowSelectionModel.ids) ? rowSelectionModel.ids : []) };
     }
     return { type: 'include', ids: new Set() };
   }, [rowSelectionModel]);
 
   const selectedCount = safeRowSelectionModel?.ids?.size || 0;
 
+  const getRowSerialNumber = (params) => {
+    const currentRowId = params?.row?.CustomerId || params?.row?.id;
+
+    if (currentRowId !== undefined && currentRowId !== null) {
+      const indexById = rows.findIndex((row) => (row?.CustomerId || row?.id) === currentRowId);
+      if (indexById >= 0) {
+        return indexById + 1;
+      }
+    }
+
+    const nodeIndex = params?.rowNode?.index;
+    if (typeof nodeIndex === 'number' && nodeIndex >= 0) {
+      return nodeIndex + 1;
+    }
+
+    return '';
+  };
+
   // Define columns for the DataGrid
   const columns = [
     {
-      field: 'CustomerId',
-      headerName: 'ID',
+      field: 'SrNo',
+      headerName: 'Sr No',
       width: 70,
       type: 'number',
       headerClassName: 'data-grid-header',
+      renderCell: (params) => getRowSerialNumber(params),
     },
     {
       field: 'CustomerCode',
@@ -148,8 +175,8 @@ const AudienceGrid = ({
       headerClassName: 'data-grid-header',
     },
     {
-      field: 'City',
-      headerName: 'City',
+      field: 'Country',
+      headerName: 'Country',
       width: 120,
       headerClassName: 'data-grid-header',
     },
@@ -160,8 +187,8 @@ const AudienceGrid = ({
       headerClassName: 'data-grid-header',
     },
     {
-      field: 'Country',
-      headerName: 'Country',
+      field: 'City',
+      headerName: 'City',
       width: 120,
       headerClassName: 'data-grid-header',
     },

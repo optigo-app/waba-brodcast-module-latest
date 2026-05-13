@@ -10,6 +10,7 @@ import FilterDrawer from './components/Audience/FilterDrawer';
 import Sidebar from './components/Siderbar/Sidebar';
 import Header from './components/Header/Header';
 import Unauthenticated from './components/Unauthenticated/Unauthenticated';
+import Templates from './components/Templates/Templates';
 
 function App() {
   const { userToken } = useAuthToken();
@@ -33,6 +34,7 @@ function App() {
             <Route path='/outbound' element={<Outbound />} />
             <Route path='/campaigns' element={<CampaignGrid />} />
             <Route path='/filter' element={<FilterDrawer />} />
+            <Route path='/templates' element={<Templates />} />
           </Routes>
         </main>
       </div>

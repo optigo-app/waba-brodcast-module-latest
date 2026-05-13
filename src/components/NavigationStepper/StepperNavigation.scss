@@ -3,17 +3,21 @@
 .stepper-navigation {
   display: flex;
   justify-content: space-between;
-  margin-top: 2rem;
-  padding: 1rem 0;
+  gap: 0.65rem;
+  padding: 0.8rem 1rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: #fff;
   border-top: 1px solid $sidebar-borderColor;
 
   .nav-button {
-    padding: 0.75rem 2rem;
-    border-radius: 4px;
-    font-weight: 500;
+    padding: 0.65rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 1rem;
+    font-size: 0.9rem;
 
     &:disabled {
       opacity: 0.5;
@@ -38,6 +42,17 @@
 
     &:hover:not(:disabled) {
       background-color: var(--background-theme);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .stepper-navigation {
+    padding: 0.65rem 0.7rem;
+
+    .nav-button {
+      padding: 0.55rem 1rem;
+      font-size: 0.85rem;
     }
   }
 }
