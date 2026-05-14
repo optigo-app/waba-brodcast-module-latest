@@ -1,0 +1,88 @@
+@use '../../global.scss' as *;
+
+// ── Page layout ───────────────────────────────────────────────────────────────
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    height: 100vh;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+// ── Top bar ───────────────────────────────────────────────────────────────────
+.topBar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    background: #fff;
+    border-bottom: 1px solid $sidebar-borderColor;
+    border-radius: 12px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.topBarLeft {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.headerIconWrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(115, 103, 240, 0.1);
+    color: $primary-main;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.pageTitle {
+    font-size: 1rem;
+    font-weight: 700;
+    color: $titleColor;
+    margin: 0;
+    font-family: $font-family;
+    line-height: 1.2;
+}
+
+.pageSubtitle {
+    font-size: 0.75rem;
+    color: $secondaryColor;
+    margin: 0;
+    font-family: $font-family;
+    line-height: 1.2;
+}
+
+.topActions {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+.spinning {
+    animation: spin 0.8s linear infinite;
+}
+
+// ── Content area ──────────────────────────────────────────────────────────────
+.contentArea {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}

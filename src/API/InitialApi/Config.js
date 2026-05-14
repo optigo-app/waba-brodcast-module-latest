@@ -23,6 +23,9 @@ export const EXCELIMPORT = `${API_BASE_URL}/whatsapp/brodcast/excel-import`;
 export const SENDBULK = `${API_BASE_URL}/whatsapp/brodcast/send-bulk`;
 export const CRON = `${API_BASE_URL}/whatsapp/brodcast/scheduler/send`;
 export const TEMPLATE_CREATE = `${API_BASE_URL}/whatsapp/templates/manage/create`;
+export const TEMPLATE_EDIT = `${API_BASE_URL}/whatsapp/templates/manage/edit`;
+export const TEMPLATE_SYNC = `${API_BASE_URL}/whatsapp/templates/manage/sync`;
+export const TEMPLATE_DELETE = `${API_BASE_URL}/whatsapp/templates/manage/delete`;
 export const TEMPLATE_MD_UPLOAD = `${API_BASE_URL}/whatsapp/media/upload`;
 export const META_MEDIA_UPLOAD = `${API_BASE_URL}/meta/v19.0`;
 

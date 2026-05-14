@@ -1,31 +1,240 @@
 @use '../../global.scss' as *;
 
-// ── Modal shell ───────────────────────────────────────────────────────────────
-.modalBox {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    max-width: 95vw;
-    max-height: 90vh;
-    overflow-y: auto;
-    background-color: #fff;
-    border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    padding: 1.5rem;
-    outline: none;
-    font-family: $font-family;
+// ── Page root ─────────────────────────────────────────────────────────────────
+.pageRoot {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background: #f8fafc;
+}
 
-    &::-webkit-scrollbar { width: 6px; }
-    &::-webkit-scrollbar-track { background: transparent; }
-    &::-webkit-scrollbar-thumb {
-        background: rgba($secondaryColor, 0.1);
-        border-radius: 10px;
+// ── Page header ───────────────────────────────────────────────────────────────
+.pageHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.5rem;
+    background: #fff;
+    border-bottom: 1px solid #e4e8ee;
+    flex-shrink: 0;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.pageHeaderLeft {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.headerIconWrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(115, 103, 240, 0.1);
+    color: $primary-main;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.pageTitle {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    color: $titleColor !important;
+    margin: 0 !important;
+    line-height: 1.2 !important;
+}
+
+.pageSubtitle {
+    font-size: 0.75rem;
+    color: $secondaryColor;
+    margin: 0;
+    font-family: $font-family;
+    line-height: 1.2;
+}
+
+.backBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid #e4e8ee;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    color: #475569;
+    transition: all 0.15s;
+    flex-shrink: 0;
+
+    &:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
     }
 }
 
-.modalMedium { width: min(720px, 95vw); }
-.modalWide   { width: min(1380px, 96vw); }
+// ── Step progress pills ───────────────────────────────────────────────────────
+.stepProgress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.stepPill {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid var(--sidebar-borderColor);
+    border-radius: 999px;
+    background: #f8fafc;
+    cursor: default;
+    transition: all 0.2s;
+    font-family: $font-family;
+}
+
+.stepPillActive {
+    border-color: $primary-main;
+    background: rgba($primary-main, 0.08);
+
+    .stepPillNum {
+        background: $primary-main;
+        color: #fff;
+    }
+
+    .stepPillLabel {
+        color: $primary-main;
+        font-weight: 600;
+    }
+}
+
+.stepPillDone {
+    border-color: $success-main;
+    background: rgba($success-main, 0.06);
+    cursor: pointer;
+
+    &:hover {
+        background: rgba($success-main, 0.12);
+    }
+
+    .stepPillNum {
+        background: $success-main;
+        color: #fff;
+    }
+
+    .stepPillLabel {
+        color: $success-main;
+    }
+}
+
+.stepPillNum {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: $secondaryColor;
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.stepPillLabel {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: $secondaryColor;
+    white-space: nowrap;
+    transition: color 0.2s;
+}
+
+.stepConnector {
+    width: 24px;
+    height: 2px;
+    background: #e2e8f0;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+
+.stepConnectorDone {
+    background: $success-main;
+}
+
+// ── Step 1 wrapper ────────────────────────────────────────────────────────────
+.detailsWrapper {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 2rem 1rem;
+
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #e2e8f0;
+        border-radius: 99px;
+    }
+}
+
+// ── Step 2 wrapper ────────────────────────────────────────────────────────────
+.builderWrapper {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #e2e8f0;
+        border-radius: 99px;
+    }
+}
+
+.headerLine {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid $sidebar-borderColor;
+}
+
+// ── Modal shell (kept for compat, no longer primary) ──────────────────────────
+.modalBox {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    outline: none;
+    font-family: $font-family;
+}
+
+.modalMedium {
+    max-width: 560px;
+    width: 100%;
+}
+
+.modalWide {
+    max-width: 100%;
+    width: 100%;
+}
 
 // ── Modal header ─────────────────────────────────────────────────────────────
 .modalHeader {
@@ -56,13 +265,16 @@
 
 // ── Step 1: Template details panel ───────────────────────────────────────────
 .stepPanel {
-    background: rgba(244, 245, 247, 0.34);
-    border: 1px solid rgba(221, 226, 232, 0.2);
-    border-radius: 14px;
-    padding: 1.25rem;
+    background: #fff;
+    border: 1px solid #e4e8ee;
+    border-radius: 16px;
+    padding: 1.75rem;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 560px;
+    box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
 }
 
 .inputSection {
@@ -78,8 +290,14 @@
         background: #fff;
         border-radius: 10px;
 
-        :global(fieldset) { border-color: #dde2e8; }
-        &:hover :global(fieldset) { border-color: #cfd6de; }
+        :global(fieldset) {
+            border-color: #dde2e8;
+        }
+
+        &:hover :global(fieldset) {
+            border-color: #cfd6de;
+        }
+
         &:global(.Mui-focused) :global(fieldset) {
             border-color: $primary-main;
         }
@@ -126,18 +344,19 @@
     background: #fff;
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     display: flex;
     flex-direction: column;
-    border: 1px solid rgba(0,0,0,0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.carouselNavBtnLeft, .carouselNavBtnRight {
+.carouselNavBtnLeft,
+.carouselNavBtnRight {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(255,255,255,0.9);
-    border: 1px solid rgba(0,0,0,0.1);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 50%;
     width: 28px;
     height: 28px;
@@ -146,19 +365,24 @@
     justify-content: center;
     cursor: pointer;
     z-index: 10;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     color: #4b5563;
     transition: all 0.2s;
 
     &:hover {
         background: #fff;
         color: #1f2937;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
     }
 }
 
-.carouselNavBtnLeft { left: -6px; }
-.carouselNavBtnRight { right: -6px; }
+.carouselNavBtnLeft {
+    left: -6px;
+}
+
+.carouselNavBtnRight {
+    right: -6px;
+}
 
 .carouselDotRow {
     display: flex;
@@ -290,10 +514,17 @@
 
 // ── Step 2: Builder ───────────────────────────────────────────────────────────
 .builderRoot {
-    background: rgba(244, 245, 247, 0.34);
-    border: 1px solid rgba(221, 226, 232, 0.2);
-    border-radius: 14px;
-    padding: 1rem;
+    width: 100%;
+    padding: 0 1.5rem 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.previewShell {
+    position: sticky;
+    top: 120px;
+    align-self: flex-start;
 }
 
 .builderTopActions {
@@ -301,14 +532,14 @@
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
+    padding: 0.85rem 1.5rem;
+    margin-inline: -25px;
+    border-bottom: 1px solid #e4e8ee;
+    background: #fff;
     position: sticky;
     top: 0;
     z-index: 10;
-    background: #fff;
-    border-bottom: 1px solid #e4e8ee;
-    padding: 0.75rem 1rem;
-    margin: -1rem -1rem 1rem -1rem;
-    border-radius: 14px 14px 0 0;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
 }
 
 .ghostBtn {
@@ -487,23 +718,28 @@
     display: flex;
 }
 
-.previewShell { width: 100%; }
+.previewShell {
+    width: 100%;
+}
 
 .previewPhone {
     margin: 0 auto;
     width: 100%;
-    max-width: 320px;
+    max-width: 380px;
     height: 100%;
-    max-height: 640px;
+    max-height: calc(100vh - 140px);
     border: 1px solid #d7dde6;
     border-radius: 16px;
     background: #fff;
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
     scrollbar-width: none;
     -ms-overflow-style: none;
 
-    &::-webkit-scrollbar { display: none; }
+    &::-webkit-scrollbar {
+        display: none;
+    }
 }
 
 .previewChatHeader {
@@ -545,8 +781,15 @@
     line-height: 1.1;
 }
 
-.chatName  { font-size: 0.7rem; font-weight: 700; }
-.chatStatus { font-size: 0.6rem; opacity: 0.9; }
+.chatName {
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.chatStatus {
+    font-size: 0.6rem;
+    opacity: 0.9;
+}
 
 .previewChatBg {
     border-radius: 0 0 20px 20px;
@@ -578,7 +821,7 @@
     display: block;
     font-size: 0.82rem;
     font-weight: 700;
-    color: #111827;
+    color: $titleColor;
     margin-bottom: 0.4rem;
     line-height: 1.3;
 }
@@ -624,7 +867,9 @@
     background: rgba(37, 99, 235, 0.12);
 }
 
-.previewDocIcon  { color: #2563eb; }
+.previewDocIcon {
+    color: #2563eb;
+}
 
 .previewDocMeta {
     display: flex;
@@ -690,7 +935,9 @@
     color: #64748b;
 }
 
-.previewTick { color: #128c7e; }
+.previewTick {
+    color: #128c7e;
+}
 
 .previewEmptyHint {
     width: 100%;
@@ -705,32 +952,58 @@
 
 // ── Responsive ────────────────────────────────────────────────────────────────
 @media (max-width: 1024px) {
-    .modalWide { width: min(960px, 96vw); }
-
-    .builderLayout { grid-template-columns: 1fr; }
+    .builderLayout {
+        grid-template-columns: 1fr;
+    }
 
     .previewColumn {
         position: static;
         justify-content: center;
     }
 
-    .categoryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .categoryGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 640px) {
-    .modalBox { padding: 1rem; }
-    .modalMedium, .modalWide { width: 96vw; }
+    .pageHeader {
+        padding: 0.75rem 1rem;
+    }
 
-    .categoryGrid { grid-template-columns: 1fr; }
+    .detailsWrapper {
+        padding: 1rem;
+    }
+
+    .builderRoot {
+        padding: 0 1rem 1rem;
+    }
+
+    .stepPanel {
+        padding: 1.25rem;
+    }
+
+    .categoryGrid {
+        grid-template-columns: 1fr;
+    }
 
     .builderTopActions {
         flex-direction: column;
         align-items: stretch;
+        padding: 0.75rem 1rem;
     }
 
-    .variableInputList { grid-template-columns: 1fr; }
+    .variableInputList {
+        grid-template-columns: 1fr;
+    }
 
-    .buttonItem { grid-template-columns: 1fr; }
+    .buttonItem {
+        grid-template-columns: 1fr;
+    }
+
+    .stepIndicator {
+        display: none;
+    }
 }
 
 // ── Section subtitle ──────────────────────────────────────────────────────────
@@ -802,8 +1075,14 @@
     border-color: $primary-main;
     background: rgba($primary-main, 0.06);
 
-    .mediaIconSvg { color: $primary-main; }
-    .mediaIconLabel { color: $primary-main; font-weight: 700; }
+    .mediaIconSvg {
+        color: $primary-main;
+    }
+
+    .mediaIconLabel {
+        color: $primary-main;
+        font-weight: 700;
+    }
 }
 
 .mediaIconCheck {
@@ -871,6 +1150,47 @@
     margin-top: 4px;
 }
 
+// ── Existing media preview (edit mode) ────────────────────────────────────────
+.existingMediaRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.existingMediaThumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #d1fae5;
+    flex-shrink: 0;
+}
+
+.existingMediaVideo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 48px;
+    height: 48px;
+    background: #e0f2fe;
+    border-radius: 6px;
+    justify-content: center;
+    color: #0369a1;
+    flex-shrink: 0;
+    font-size: 0.7rem;
+}
+
+.existingMediaLabel {
+    font-size: 0.72rem !important;
+    color: #16a34a !important;
+    line-height: 1.4 !important;
+}
+
 .mediaUploadBtn {
     text-transform: none !important;
     font-size: 0.75rem !important;
@@ -914,7 +1234,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    
+
     span {
         font-size: 0.72rem;
         font-weight: 600;
@@ -944,9 +1264,15 @@
     gap: 0.75rem;
     overflow-x: auto;
     padding-bottom: 0.5rem;
-    
-    &::-webkit-scrollbar { height: 4px; }
-    &::-webkit-scrollbar-thumb { background: rgba($primary-main, 0.2); border-radius: 4px; }
+
+    &::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: rgba($primary-main, 0.2);
+        border-radius: 4px;
+    }
 }
 
 .cardTab {
@@ -980,7 +1306,7 @@
     @extend .cardTab;
     border: 1px dashed #cfd5de;
     color: $primary-main;
-    
+
     &:hover {
         background: rgba($primary-main, 0.04);
     }
@@ -1000,7 +1326,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    
+
     .cardTitle {
         font-size: 0.9rem;
         font-weight: 700;

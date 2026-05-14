@@ -1,0 +1,1070 @@
+@use '../../global.scss' as *;
+
+.page {
+    padding: 0.75rem 1rem;
+    height: 100vh;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+// ── Top Header ─────────────────────────────────────────────────────────────
+.topHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 0.75rem 1.5rem;
+    background: #fff;
+    border-bottom: 1px solid var(--sidebar-borderColor);
+    border-radius: 12px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.backBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--sidebar-borderColor);
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    color: #475569;
+    transition: all 0.15s;
+    flex-shrink: 0;
+
+    &:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+    }
+}
+
+.headerIconWrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(115, 103, 240, 0.1);
+    color: $primary-main;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.pageTitle {
+    font-size: 1rem;
+    font-weight: 700;
+    color: $titleColor;
+    margin: 0;
+    font-family: $font-family;
+    line-height: 1.2;
+}
+
+.pageSubtitle {
+    font-size: 0.75rem;
+    color: $secondaryColor;
+    margin: 0;
+    font-family: $font-family;
+    line-height: 1.2;
+}
+
+// ── Step progress pills ─────────────────────────────────────────────────────
+.stepProgress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.stepPill {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid var(--sidebar-borderColor);
+    border-radius: 999px;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: $font-family;
+
+    &:hover {
+        border-color: rgba($primary-main, 0.4);
+        background: rgba($primary-main, 0.04);
+    }
+}
+
+.stepPillActive {
+    border-color: $primary-main;
+    background: rgba($primary-main, 0.08);
+
+    .stepPillNum {
+        background: $primary-main;
+        color: #fff;
+    }
+
+    .stepPillLabel {
+        color: $primary-main;
+        font-weight: 600;
+    }
+}
+
+.stepPillDone {
+    border-color: $success-main;
+    background: rgba($success-main, 0.06);
+
+    .stepPillNum {
+        background: $success-main;
+        color: #fff;
+    }
+
+    .stepPillLabel {
+        color: $success-main;
+    }
+}
+
+.stepPillNum {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: $secondaryColor;
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.stepPillLabel {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: $secondaryColor;
+    white-space: nowrap;
+    transition: color 0.2s;
+}
+
+.stepConnector {
+    width: 24px;
+    height: 2px;
+    background: #e2e8f0;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+
+.stepConnectorDone {
+    background: $success-main;
+}
+
+// ── Main Content ────────────────────────────────────────────────────────────
+.mainContent {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+// ── Left Sidebar ────────────────────────────────────────────────────────────
+.leftSidebar {
+    flex: 0 0 280px;
+    max-width: 280px;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
+}
+
+.stepperCard {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--sidebar-borderColor);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.stepperMenu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.menuItem {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-2nd-color);
+    font-size: 0.8rem;
+    font-weight: 500;
+    font-family: $font-family;
+    position: relative;
+
+    .menuIcon {
+        color: var(--text-2nd-color);
+        flex-shrink: 0;
+    }
+
+    &:hover {
+        background: #f1f5f9;
+    }
+
+    &.active {
+        background: rgba(115, 103, 240, 0.1);
+        color: var(--primary-main);
+        font-weight: 600;
+
+        .menuIcon {
+            color: var(--primary-main);
+        }
+
+        .menuStepBadge {
+            background: var(--primary-main);
+            color: #fff;
+        }
+    }
+
+    &.done {
+        .menuStepBadge {
+            background: $success-main;
+            color: #fff;
+        }
+    }
+}
+
+.menuStepBadge {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: $secondaryColor;
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.menuLabel {
+    flex: 1;
+    min-width: 0;
+}
+
+.addMessageButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 1px dashed var(--primary-main);
+    background: rgba(115, 103, 240, 0.05);
+    color: var(--primary-main);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-family: $font-family;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        background: rgba(115, 103, 240, 0.1);
+    }
+}
+
+.infoCard {
+    border: 1px solid var(--sidebar-borderColor);
+    border-radius: 8px;
+    padding: 1rem;
+    background: #f8fafc;
+}
+
+.infoCardContent {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.infoIcon {
+    color: var(--info-main);
+}
+
+.infoText {
+    font-size: 0.875rem;
+    color: var(--text-2nd-color);
+    font-weight: 500;
+    font-family: $font-family;
+}
+
+// ── Right Content ────────────────────────────────────────────────────────────
+.rightContent {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
+}
+
+.formCard {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid var(--sidebar-borderColor);
+    padding: 1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+    height: 96%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.formTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: $titleColor;
+    margin: 0;
+    font-family: $font-family;
+}
+
+.formField {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-2nd-color);
+    font-family: $font-family;
+}
+
+.textField {
+    .MuiOutlinedInput-root {
+        border-radius: 8px;
+    }
+}
+
+.chipGroup {
+    display: flex;
+    gap: 0.75rem;
+    margin-block: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.chipButton {
+    padding: 0.4rem 1.25rem;
+    border: 1px solid var(--sidebar-borderColor);
+    background: var(--sidebar-borderColor);
+    border-radius: 16px;
+    color: var(--text-2nd-color);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: $font-family;
+
+    &.active {
+        background: var(--primary-gradient);
+        border-color: var(--primary-main);
+        color: #fff;
+        font-weight: 600;
+    }
+}
+
+.infoAlert {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+
+.alertIcon {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.alertMessage {
+    font-size: 0.875rem;
+    color: var(--text-2nd-color);
+    line-height: 1.5;
+    font-family: $font-family;
+    margin: 0;
+}
+
+.checkboxLabel {
+    margin: 0;
+    font-family: $font-family;
+    font-size: 0.875rem;
+    color: var(--text-2nd-color);
+}
+
+.formActions {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 1rem;
+    gap: 1rem;
+    border-top: 1px solid var(--sidebar-borderColor);
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    z-index: 2;
+    margin: 0 -1.2rem -1rem;
+    padding: 1rem 1.2rem;
+    border-radius: 0 0 12px 12px;
+}
+
+.nextButton {
+    background: var(--success-main) !important;
+    color: #fff !important;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    font-family: $font-family;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-transform: none;
+}
+
+// ── Additional Styles for Step Components ─────────────────────────────────────
+.searchFilterGroup {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.audienceCount {
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid var(--sidebar-borderColor);
+}
+
+.countLabel {
+    font-size: 0.875rem;
+    color: var(--text-2nd-color);
+    font-family: $font-family;
+}
+
+.countNumber {
+    font-weight: 600;
+    color: var(--primary-main);
+}
+
+.messagePreview {
+    margin-top: 1rem;
+}
+
+.previewLabel {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-2nd-color);
+    margin-bottom: 0.5rem;
+    font-family: $font-family;
+}
+
+.previewBox {
+    padding: 1.5rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid var(--sidebar-borderColor);
+    min-height: 120px;
+}
+
+.previewText {
+    color: var(--text-2nd-color);
+    font-size: 0.875rem;
+    font-family: $font-family;
+}
+
+.summarySection {
+    padding: 1.5rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid var(--sidebar-borderColor);
+    margin-bottom: 1rem;
+}
+
+.summaryTitle {
+    font-size: 1rem;
+    font-weight: 600;
+    color: $titleColor;
+    margin-bottom: 1rem;
+    font-family: $font-family;
+}
+
+.summaryItem {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--sidebar-borderColor);
+    font-size: 0.875rem;
+    font-family: $font-family;
+
+    &:last-child {
+        border-bottom: none;
+    }
+}
+
+.summaryLabel {
+    color: var(--text-2nd-color);
+    font-weight: 500;
+}
+
+.summaryValue {
+    color: var(--title-color);
+    font-weight: 600;
+}
+
+.validationSection {
+    padding: 1rem;
+    background: #f0fdf4;
+    border-radius: 8px;
+    border: 1px solid var(--success-main);
+    margin-bottom: 1rem;
+}
+
+.validationItem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-family: $font-family;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.validationSuccess {
+    color: var(--success-main);
+}
+
+.validationError {
+    color: var(--error-main);
+}
+
+.validationText {
+    color: var(--text-2nd-color);
+}
+
+// ── Recurrence Configuration Styles ────────────────────────────────────────────
+.recurrenceSection {
+    padding: 1.5rem;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid var(--sidebar-borderColor);
+    margin-top: 1rem;
+}
+
+.recurrenceSectionTitle {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: $titleColor;
+    margin-bottom: 1rem;
+    margin-top: 1.5rem;
+    font-family: $font-family;
+
+    &:first-child {
+        margin-top: 0;
+    }
+}
+
+.recurrenceRangeRow {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.recurrenceRangeField {
+    flex: 1;
+    min-width: 0;
+}
+
+.radioGroupInline {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.radioGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.radioLabel {
+    margin: 0;
+    font-family: $font-family;
+    font-size: 0.875rem;
+    color: var(--text-2nd-color);
+}
+
+.recurrencePatternBox {
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid var(--sidebar-borderColor);
+    margin-top: 1rem;
+}
+
+.recurrenceYearlyRow {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+
+    .formField {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+.daysPicker {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 0.5rem;
+    max-height: 150px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.dayCheckboxWrapper {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+        border-color: var(--primary-main);
+        background: rgba(115, 103, 240, 0.05);
+        border-radius: 16px;
+    }
+}
+
+.dayLabel {
+    font-size: 0.875rem;
+    color: var(--text-2nd-color);
+    font-family: $font-family;
+    font-weight: 500;
+}
+
+.dayCheckboxLabel {
+    margin: 0;
+    font-family: $font-family;
+    font-size: 0.875rem;
+    color: var(--text-2nd-color);
+}
+
+.upcomingEvents {
+    padding: 1rem;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid var(--sidebar-borderColor);
+    min-height: 80px;
+}
+
+.eventItem {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--sidebar-borderColor);
+
+    &:last-child {
+        border-bottom: none;
+    }
+}
+
+.eventDate {
+    font-size: 0.875rem;
+    color: var(--text-2nd-color);
+    font-family: $font-family;
+}
+
+.noEvents {
+    font-size: 0.875rem;
+    color: var(--text-2nd-color);
+    font-family: $font-family;
+    text-align: center;
+    padding: 1rem;
+}
+
+// ── Audience Section Styles ───────────────────────────────────────────────────
+.audienceContainer {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.gridBox {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.gridHeader {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid var(--sidebar-borderColor);
+}
+
+.gridTitle {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: $titleColor;
+    font-family: $font-family;
+}
+
+.sourceSelectionDialogPaper {
+    border-radius: 16px !important;
+    overflow: hidden;
+}
+
+.sourceSelectionDialogBody {
+    padding: 2.5rem;
+    position: relative;
+}
+
+.sourceSelectionTitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: $titleColor;
+    margin-bottom: 0.5rem;
+    font-family: $font-family;
+}
+
+.sourceSelectionSubtitle {
+    font-size: 0.9rem;
+    color: var(--text-2nd-color);
+    margin-bottom: 2.5rem;
+    font-family: $font-family;
+}
+
+.sourceCardGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.sourceCard {
+    padding: 2.5rem;
+    border-radius: 16px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.25rem;
+    position: relative;
+    overflow: hidden;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -1;
+        opacity: 0.05;
+    }
+}
+
+.sourceIconWrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.crmSourceCard {
+    background: linear-gradient(135deg, rgba(115, 103, 240, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
+    border-color: rgba(115, 103, 240, 0.2);
+
+    &::before {
+        background: linear-gradient(135deg, #7367f0 0%, #6366f1 100%);
+    }
+
+    .sourceIconWrap {
+        background: rgba(115, 103, 240, 0.15);
+        backdrop-filter: blur(10px);
+        color: #7367f0;
+        box-shadow: 0 8px 16px rgba(115, 103, 240, 0.15);
+    }
+
+    &:hover {
+        border-color: rgba(115, 103, 240, 0.4);
+        box-shadow: 0 12px 24px rgba(115, 103, 240, 0.2);
+    }
+}
+
+.excelSourceCard {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(22, 163, 74, 0.08) 100%);
+    border-color: rgba(34, 197, 94, 0.2);
+
+    &::before {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    }
+
+    .sourceIconWrap {
+        background: rgba(34, 197, 94, 0.15);
+        backdrop-filter: blur(10px);
+        color: #22c55e;
+        box-shadow: 0 8px 16px rgba(34, 197, 94, 0.15);
+    }
+
+    &:hover {
+        border-color: rgba(34, 197, 94, 0.4);
+        box-shadow: 0 12px 24px rgba(34, 197, 94, 0.2);
+    }
+}
+
+.sourceCardTitle {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: $titleColor;
+    font-family: $font-family;
+}
+
+.sourceCardDesc {
+    font-size: 0.875rem;
+    color: var(--text-2nd-color);
+    font-family: $font-family;
+    line-height: 1.6;
+}
+
+// ── Message Step Styles ───────────────────────────────────────────────────────
+.messageTypeRadioGroup {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.radioLabel {
+    .MuiFormControlLabel-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-2nd-color);
+        font-family: $font-family;
+    }
+}
+
+.metaApprovalInfo {
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+}
+
+.metaApprovalText {
+    font-size: 0.8rem;
+    font-family: $font-family;
+    line-height: 1.5;
+}
+
+.checkboxLabel {
+    margin-top: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--primary-main);
+        cursor: pointer;
+    }
+
+    .MuiFormControlLabel-label {
+        font-size: 0.875rem;
+        color: var(--text-2nd-color);
+        font-family: $font-family;
+    }
+}
+
+.autoFillButton {
+    background: var(--primary-main);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.8rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-family: $font-family;
+    width: 100%;
+
+    &:hover {
+        background: darken($primary-main, 5%);
+    }
+}
+
+.variablesSection {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+
+    &.threeColumns {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    &.fourColumns {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.variableInput {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.variableLabel {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-2nd-color);
+    font-family: $font-family;
+}
+
+.inputIconButton {
+    color: var(--secondary-color);
+    padding: 4px;
+
+    &:hover {
+        background: rgba(115, 103, 240, 0.1);
+        color: var(--primary-main);
+    }
+}
+
+.sendTestButtonContainer {
+    display: flex;
+    justify-content: flex-start;
+    margin-block: 1.5rem;
+
+}
+
+.sendTestButton {
+    background: var(--primary-main);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-family: $font-family;
+    text-transform: none;
+
+    &:hover {
+        background: darken($primary-main, 5%);
+    }
+}
+
+.nextButtonGreen {
+    background: #22c55e !important;
+    color: #fff !important;
+    font-weight: 600;
+    font-family: $font-family;
+
+    &:hover {
+        background: #16a34a !important;
+    }
+}
+
+// ── Auto Fill Dialog Styles ─────────────────────────────────────────────────
+.autoFillDialogPaper {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.dialogTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: $titleColor;
+    font-family: $font-family;
+}
+
+.dialogContent {
+    padding: 1.5rem;
+}
+
+.dialogHelperText {
+    font-size: 0.875rem;
+    color: var(--text-2nd-color);
+    margin-bottom: 1rem;
+    font-family: $font-family;
+}
+
+.autoFillTextArea {
+    .MuiOutlinedInput-root {
+        font-family: $font-family;
+        font-size: 0.875rem;
+    }
+}
+
+.dialogActions {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--sidebar-borderColor);
+}
+
+// ── Emoji Picker Styles ─────────────────────────────────────────────────────
+.emojiPickerWrapper {
+    position: relative;
+    z-index: 9999;
+}
+
+// ── Character Count Styles ─────────────────────────────────────────────────
+.charCount {
+    color: var(--text-3rd-color);
+    font-size: 0.75rem;
+    font-family: $font-family;
+}

@@ -1,0 +1,485 @@
+@use '../../global.scss' as *;
+
+.page {
+    padding: 1.5rem;
+    background: #fdfdfd;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+}
+
+.header {
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid $sidebar-borderColor;
+}
+
+.pageTitle {
+     font-size: 1.5rem;
+    font-weight: 700;
+    color: $titleColor;
+    margin: 0;
+    font-family: $font-family;
+}
+
+.pageSubtitle {
+    font-size: 0.875rem;
+    color: $text2ndColor;
+    margin: 0.25rem 0 0;
+    font-family: $font-family;
+}
+
+// ── Card Grid ─────────────────────────────────────────────────────────────────
+.cardGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+// ── Channel Card ──────────────────────────────────────────────────────────────
+.card {
+    background: #fff;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    padding: 1.5rem;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    transition: box-shadow 0.2s, transform 0.2s;
+
+    &:hover {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.09);
+        transform: translateY(-2px);
+    }
+}
+
+// ── Top Row ───────────────────────────────────────────────────────────────────
+.cardTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.channelInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+}
+
+.iconWrap {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+}
+
+.waIcon {
+    width: 28px;
+    height: 28px;
+    fill: #fff;
+}
+
+.nameBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.channelName {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+.appName {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+// ── Balance ───────────────────────────────────────────────────────────────────
+.balanceBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.balanceLabel {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.balanceAmount {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+}
+
+// ── Progress Bar ──────────────────────────────────────────────────────────────
+.progressSection {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.progressBar {
+    width: 100%;
+    height: 7px;
+    background: #f1f5f9;
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.progressFill {
+    height: 100%;
+    background: linear-gradient(90deg, #25d366, #128c7e);
+    border-radius: 99px;
+    transition: width 0.5s ease;
+}
+
+.progressMeta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+// ── Divider ───────────────────────────────────────────────────────────────────
+.divider {
+    width: 100%;
+    height: 1px;
+    background: #f1f5f9;
+}
+
+// ── Action Buttons ────────────────────────────────────────────────────────────
+.cardActions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.actionBtn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    border: 1.5px solid #e2e8f0;
+    background: #f8fafc;
+    color: #374151;
+    transition: all 0.18s;
+
+    &:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #0f172a;
+    }
+
+    svg {
+        flex-shrink: 0;
+    }
+}
+
+.walletBtn {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #fff;
+    border-color: transparent;
+
+    &:hover {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        color: #fff;
+        border-color: transparent;
+    }
+}
+
+// ── Wallet Drawer ─────────────────────────────────────────────────────────────
+.drawerRoot {
+    width: 420px;
+    height: 100%;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.drawerHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    background: #fff;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+.drawerTitleRow {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+}
+
+.drawerTitle {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+    font-family: 'Inter', sans-serif;
+}
+
+.drawerIcon {
+    color: #128c7e;
+}
+
+.drawerClose {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+    }
+}
+
+// ── Summary Cards ─────────────────────────────────────────────────────────────
+.summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    flex-shrink: 0;
+}
+
+.summaryCard {
+    border-radius: 14px;
+    padding: 0.875rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+.summaryLabel {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.75;
+    font-family: 'Inter', sans-serif;
+}
+
+.summaryValue {
+    font-size: 1.1rem;
+    font-weight: 800;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.02em;
+}
+
+.summaryIcon {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    opacity: 0.2;
+    width: 20px;
+    height: 20px;
+}
+
+.summaryTotal {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    color: #1e40af;
+}
+
+.summaryDeducted {
+    background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+    color: #be123c;
+}
+
+.summaryRemaining {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    color: #166534;
+}
+
+// ── Drawer Progress ───────────────────────────────────────────────────────────
+.drawerProgressSection {
+    padding: 0 1.5rem 1.25rem;
+    flex-shrink: 0;
+}
+
+.drawerProgressLabel {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #64748b;
+    margin-bottom: 6px;
+    font-family: 'Inter', sans-serif;
+}
+
+.drawerProgressBar {
+    width: 100%;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.drawerProgressFill {
+    height: 100%;
+    background: linear-gradient(90deg, #25d366, #128c7e);
+    border-radius: 99px;
+    transition: width 0.5s ease;
+}
+
+// ── Transaction History ───────────────────────────────────────────────────────
+.transactionSection {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #e2e8f0;
+        border-radius: 99px;
+    }
+}
+
+.transactionTitle {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 0.25rem;
+    font-family: 'Inter', sans-serif;
+    padding-top: 0.25rem;
+}
+
+.transactionList {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+
+.txnRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s;
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    &:hover {
+        background: #f8fafc;
+    }
+}
+
+.txnLeft {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.txnDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.txnDotCredit {
+    background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+}
+
+.txnDotDebit {
+    background: #f43f5e;
+    box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.15);
+}
+
+.txnDesc {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1e293b;
+    font-family: 'Inter', sans-serif;
+}
+
+.txnDate {
+    display: block;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    font-weight: 400;
+    font-family: 'Inter', sans-serif;
+    margin-top: 1px;
+}
+
+.txnRight {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.txnAmount {
+    font-size: 0.88rem;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+}
+
+.txnCredit {
+    color: #16a34a;
+}
+
+.txnDebit {
+    color: #dc2626;
+}
+
+.txnBalance {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    font-family: 'Inter', sans-serif;
+}

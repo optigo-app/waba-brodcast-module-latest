@@ -9,7 +9,15 @@ $button-Dangercolor: #ffffff;
 :root {
     --sidebar-borderColor: #5a5a5a0e;
     --primary-main: #7367f0;
+    --primary-gradient: linear-gradient(270deg, rgba(115, 103, 240, 0.7) 0%, #7367f0 100%);
     --secondary-color: #7D7f85;
+    --success-main: #28C76F;
+    --error-main: #d32f2f;
+    --warning-main: #f57c00;
+    --info-main: #00CFE8;
+    --title-color: #444050;
+    --text-2nd-color: #6D6B77;
+    --placeholder-color: #808080;
 }
 
 $primary-adv :linear-gradient(270deg, rgba(37, 211, 102, 0.85) 0%, #1daa61 100%);
@@ -68,7 +76,7 @@ $warning-light: #ffe0b2;
 $warning-light-bg: rgba($warning-main, 0.16);
 
 // Info Colors
-$info-main: #00CFE8;    
+$info-main: #00CFE8;
 $info-light: #b3e5fc;
 $info-light-bg: rgba($info-main, 0.16);
 
@@ -114,10 +122,12 @@ $dark-light: #fff;
     border-color: #ebebed !important;
     text-transform: capitalize !important;
     border-radius: 16px !important;
+    transition: all 0.3s ease;
 
     &:hover {
-        background-color: $button-color-hover;
-        border-color: $button-Bordercolor;
+        background-color: $button-color-hover !important;
+        border-color: $button-Bordercolor !important;
+        color: $button-color !important;
     }
 }
 
@@ -128,6 +138,7 @@ $dark-light: #fff;
     border-color: $button-Bordercolor !important;
     text-transform: capitalize !important;
     border-radius: 16px !important;
+    transition: all 0.3s ease;
 
     &:hover {
         background-color: $button-color-hover;
@@ -149,6 +160,22 @@ $dark-light: #fff;
     }
 }
 
+.varientOutlinedBtn {
+    font-family: $font-family !important;
+    background: transparent !important;
+    color: $secondaryColor !important;
+    border-color: $placeholderColor !important;
+    text-transform: capitalize !important;
+    border-radius: 16px !important;
+    transition: all 0.3s ease;
+
+    &:hover {
+        background-color: $button-color-hover !important;
+        border-color: $button-Bordercolor !important;
+        color: $button-color !important;
+    }
+}
+
 
 .varientTextBtn {
     display: flex;
@@ -164,5 +191,27 @@ $dark-light: #fff;
     &:hover {
         background: transparent;
         text-decoration: underline;
+    }
+}
+
+.toggle-button-group {
+    font-family: $font-family !important;
+
+    .MuiToggleButton-root {
+        border-radius: 16px 16px 16px 16px;
+        font-family: inherit;
+        color: $titleColor;
+        text-transform: capitalize !important;
+        transition: background-color 0.3s ease, color 0.3s ease;
+
+        &.Mui-selected {
+            background: $button-Bgcolor !important;
+            color: #fff;
+        }
+
+        &:hover {
+            background-color: rgba(173, 156, 220, 0.2);
+            color: $titleColor;
+        }
     }
 }

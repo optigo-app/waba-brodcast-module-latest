@@ -30,7 +30,7 @@ body {
 
 .app-sidebar {
   flex: 0 0 20%;
-  max-width: 13%;
+  max-width: 12%;
   min-width: 230px;
   height: calc(100vh - var(--header-height));
   overflow: hidden;
@@ -40,7 +40,6 @@ body {
   flex: 1 1 86%;
   min-width: 0;
   height: calc(100vh - var(--header-height));
-  padding: 20px;
   background-color: #fff;
   overflow-y: auto;
 }

@@ -11,10 +11,11 @@ const Sidebar = () => {
     const [activePath, setActivePath] = useState(location.pathname);
 
     const menuItems = [
+        { path: '/', icon: <MessageCircle {...ICON_PROPS} />, label: 'Dashboard' },
+        { path: '/templates', icon: <FileText {...ICON_PROPS} />, label: 'Templates' },
+        { path: '/campaigns', icon: <LayoutGrid {...ICON_PROPS} />, label: 'Campaigns' },
         { path: '/inbound', icon: <HomeIcon {...ICON_PROPS} />, label: 'Inbound' },
         { path: '/outbound', icon: <Users {...ICON_PROPS} />, label: 'Outbound' },
-        { path: '/campaigns', icon: <LayoutGrid {...ICON_PROPS} />, label: 'Campaigns' },
-        { path: '/templates', icon: <FileText {...ICON_PROPS} />, label: 'Templates' },
     ];
 
     useEffect(() => {

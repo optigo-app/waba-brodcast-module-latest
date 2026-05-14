@@ -21,7 +21,7 @@ const theme = createTheme({
       contrastText: '#ffffff',
     },
     success: {
-      main: '#1d9051ff',
+      main: '#28C76F',
       light: '#c8e6c9',
       lightBg: 'rgba(40, 199, 111, 0.16)',
     },
@@ -51,7 +51,7 @@ const theme = createTheme({
     text: {
       primary: '#444050',
       secondary: '#7D7f85',
-      disabled: '#666666',
+      disabled: '#808080',
       dark: '#0A0A0A',
       light: '#bebebeff',
       extraLight: '#f1f1f1',

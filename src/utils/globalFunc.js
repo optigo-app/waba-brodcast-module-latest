@@ -81,17 +81,38 @@ export const getWhatsAppAvatarConfig = (name, size = 40) => {
 
 
 export const formatDate = (dateString) => {
-  if (!dateString) return '';
+    if (!dateString) return '';
 
-  const date = new Date(dateString);
+    const date = new Date(dateString);
 
-  return date.toLocaleString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: 'UTC', // remove if you want IST
-  });
+    return date.toLocaleString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'UTC', // remove if you want IST
+    });
 };
+
+
+export const previewBg = {
+    backgroundImage: `linear-gradient(rgba(249, 250, 251, 0.30), rgba(249, 250, 251, 0.80)), url(${process.env.PUBLIC_URL}/bg-3.jpg)`,
+};
+
+
+
+export function normalizePhoneNumber(input, defaultCountryCode = "91") {
+    let phone = input.replace(/[+\-\s()]/g, "");
+    let hasCountryCode = /^\d{1,3}\d{10}$/.test(phone);
+    if (!hasCountryCode) {
+        phone = phone.replace(/^0+/, "");
+        phone = defaultCountryCode + phone;
+    }
+    if (!/^\d{10,15}$/.test(phone)) {
+        console.error(`❌ Invalid phone number: ${input}`);
+        return null;
+    }
+    return phone;
+}

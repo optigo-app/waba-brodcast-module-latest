@@ -2,14 +2,14 @@ import ReactDOM from 'react-dom';
 import { ExternalLink, X } from 'lucide-react';
 import './ConfimationModal.scss';
 
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, description, icon: Icon }) => {
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, description, icon: Icon, isDanger }) => {
     if (!isOpen) return null;
 
     return ReactDOM.createPortal(
         <div className="confirmation-modal-overlay" onClick={onClose}>
             <div className="confirmation-modal-content" onClick={e => e.stopPropagation()}>
-                <div className="modal-icon-wrapper">
-                    {Icon || <ExternalLink />}
+                <div className={`modal-icon-wrapper ${isDanger ? 'danger' : ''}`}>
+                    {Icon ? <Icon /> : <ExternalLink />}
                 </div>
 
                 <h2>{title}</h2>
@@ -19,8 +19,8 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, description, ico
                     <button className="btn-cancel" onClick={onClose}>
                         Cancel
                     </button>
-                    <button className="btn-confirm" onClick={onConfirm}>
-                        Continue <ExternalLink size={16} />
+                    <button className={`btn-confirm ${isDanger ? 'btn-danger' : ''}`} onClick={onConfirm}>
+                        {isDanger ? 'Delete' : 'Continue'} {Icon ? <Icon size={16} /> : <ExternalLink size={16} />}
                     </button>
                 </div>
             </div>

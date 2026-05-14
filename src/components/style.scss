@@ -112,7 +112,7 @@
             color: #1f2937;
 
             &:hover {
-                color: #111827;
+                color: $titleColor;
             }
         }
 
@@ -310,7 +310,7 @@
             .title {
                 font-size: 1.125rem;
                 font-weight: 600;
-                color: #111827;
+                color: $titleColor;
 
                 &.active {
                     color: $primary-main;

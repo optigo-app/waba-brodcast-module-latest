@@ -96,10 +96,10 @@
 
             &:hover {
                 background-color: #f9fafb;
-                color: #111827;
+                color: $titleColor;
 
                 .menu-icon {
-                    color: #111827;
+                    color: $titleColor;
                 }
             }
 

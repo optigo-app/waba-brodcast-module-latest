@@ -10,12 +10,13 @@ import { TEMPLATE_CREATE, getHeaders } from "../InitialApi/Config";
  * @param {string} payload.UserId
  * @param {string} payload.Language      - e.g. "en_US"
  * @param {Array}  payload.Components    - WhatsApp template components array
+ * @param {number} payload.IsDraft       - 1 for draft, 0 for create (optional, defaults to 0)
  */
 export const createTemplate = async (payload) => {
     try {
         const headers = getHeaders();
 
-        const { data } = await axios.post(TEMPLATE_CREATE, payload, { headers });
+        const { data } = await axios.post(TEMPLATE_CREATE, { ...payload, IsDraft: payload.IsDraft ?? 0 }, { headers });
 
         return {
             success: true,

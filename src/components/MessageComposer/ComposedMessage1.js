@@ -32,12 +32,6 @@ const ComposedMessage1 = ({ onSave, onMessageChange, templateData = {} }) => {
             : null
     );
 
-    const handleBlurUpdate = (field, value) => {
-        const updatedFormData = { ...formData, [field]: value };
-        setFormData(updatedFormData);
-        if (onMessageChange) onMessageChange(updatedFormData);
-    };
-
     const handleTemplateChange = (event, value) => {
         setSelectedTemplate(value);
         const updatedFormData = {

@@ -1,0 +1,388 @@
+@import '../../global.scss';
+
+// ── Preview Shell ────────────────────────────────────────────────────────────
+.previewShell {
+    width: 100%;
+}
+
+.previewPhone {
+    margin: 0 auto;
+    width: 100%;
+    max-width: 380px;
+    height: 100%;
+    max-height: calc(100vh - 140px);
+    border: 1px solid #d7dde6;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.previewChatHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.42rem 0.5rem;
+    background: #128c7e;
+    color: #fff;
+}
+
+.headerIcon {
+    color: #fff;
+    opacity: 0.95;
+}
+
+.headerActions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.chatAvatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.63rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.chatMeta {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.chatName {
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.chatStatus {
+    font-size: 0.6rem;
+    opacity: 0.9;
+}
+
+.previewChatBg {
+    border-radius: 0 0 20px 20px;
+    min-height: 580px;
+    padding: 0.85rem;
+    display: flex;
+    align-items: flex-end;
+    background-color: #e8e2d6;
+    background-size: cover;
+    background-position: center;
+}
+
+.previewBubbleWrap {
+    width: 100%;
+    max-width: 86%;
+    display: flex;
+}
+
+.previewBubbleAccent {
+    width: 8px;
+    height: 8px;
+    background: #128c7e;
+    border-radius: 50%;
+    margin-right: -4px;
+    margin-bottom: auto;
+    flex-shrink: 0;
+}
+
+.previewBubble {
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 0 12px 12px 12px;
+    padding: 0.8rem;
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.previewHeaderText {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: $titleColor;
+    margin-bottom: 0.4rem;
+    line-height: 1.3;
+}
+
+.previewHeaderImage {
+    display: block;
+    width: 100%;
+    max-height: 150px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 0.55rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.previewHeaderVideo {
+    display: block;
+    width: 100%;
+    max-height: 170px;
+    border-radius: 10px;
+    margin-bottom: 0.55rem;
+    background: #0f172a;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.previewHeaderDocument {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.55rem 0.6rem;
+    border-radius: 10px;
+    margin-bottom: 0.55rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(248, 250, 252, 0.95);
+}
+
+.previewDocIconWrap {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(37, 99, 235, 0.12);
+}
+
+.previewDocIcon {
+    color: #2563eb;
+}
+
+.previewDocMeta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.previewDocTitle {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.previewDocSub {
+    font-size: 0.65rem;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.previewBodyText {
+    font-size: 0.78rem;
+    color: #1f2937;
+    white-space: pre-wrap;
+    line-height: 1.5;
+}
+
+.previewFooterText {
+    margin-top: 0.5rem;
+    font-size: 0.7rem;
+    color: #6b7280;
+}
+
+.previewButtons {
+    margin-top: 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.previewActionBtn {
+    border: 1px solid #d5dbe4;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #2563eb;
+    font-size: 0.74rem;
+    font-weight: 600;
+    padding: 0.45rem 0.6rem;
+    cursor: default;
+}
+
+.previewMeta {
+    margin-top: 0.45rem;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.previewTime {
+    font-size: 0.74rem !important;
+    color: #64748b;
+}
+
+.previewTick {
+    color: #128c7e;
+}
+
+.previewEmptyHint {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    color: #9ca3af;
+    text-align: center;
+    padding: 1rem;
+}
+
+// ── Preview Carousel ─────────────────────────────────────────────────────────
+.previewCarouselWrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.previewCarouselContainer {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    padding: 2px 0 10px 0;
+}
+
+.previewCardSlider {
+    display: flex;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+}
+
+.previewCardUnit {
+    flex: 0 0 100%;
+    display: flex;
+    justify-content: center;
+    padding: 0 4px;
+}
+
+.previewCard {
+    width: 100%;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.carouselNavBtnLeft,
+.carouselNavBtnRight {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    color: #4b5563;
+    transition: all 0.2s;
+
+    &:hover {
+        background: #fff;
+        color: #1f2937;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+}
+
+.carouselNavBtnLeft {
+    left: -6px;
+}
+
+.carouselNavBtnRight {
+    right: -6px;
+}
+
+.carouselDotRow {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: -4px;
+    margin-bottom: 8px;
+}
+
+.carouselDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    transition: all 0.3s;
+}
+
+.carouselDotActive {
+    background: #00a884;
+    transform: scale(1.2);
+}
+
+.previewCardMedia {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.previewCardContent {
+    padding: 12px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.previewCardBody {
+    font-size: 0.82rem;
+    color: #1f2937;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.previewCardButtons {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid #f1f5f9;
+}
+
+.previewCardBtn {
+    background: transparent;
+    color: #00a884;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 10px;
+    text-align: center;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: default;
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    &:hover {
+        background: #f8fafc;
+    }
+}
