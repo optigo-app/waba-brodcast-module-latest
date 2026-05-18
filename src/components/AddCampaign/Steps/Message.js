@@ -1,15 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { Typography, TextField, Button, RadioGroup, Radio, FormControlLabel, Select, MenuItem, Box, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Grid } from '@mui/material';
-import { Smile, Code, Send, Info } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Typography, TextField, Button, RadioGroup, Radio, FormControlLabel, Select, MenuItem, Box, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Grid, Menu, ListItemText, ListItemIcon, Popover } from '@mui/material';
+import { Smile, Code, Send, Info, ChevronDown, User } from 'lucide-react';
 import SelectAutocomplete from '../../Audience/SelectAutocomplete';
 import { fetchTemplateLists } from '../../../API/TemplateList/TemplateList';
 import { useAuthToken } from '../../../hooks/useAuthToken';
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 import MessagePreview from '../../MessagePreview/MessagePreview';
+import TemplateVariableInput from '../../Common/TemplateVariableInput/TemplateVariableInput';
+import DynamicVariableMenu from '../../Common/DynamicVariableMenu/DynamicVariableMenu';
+import toast from 'react-hot-toast';
 import styles from '../AddCampaign.module.scss';
 
-const Message = ({ onNext, onBack, onMessageConfigured }) => {
+// ── Local Input Wrapper for General Performance ──────────────────────────────
+const LocalTextField = React.memo(({ value, onChange, ...props }) => {
+  const [localValue, setLocalValue] = useState(value || '');
+
+  useEffect(() => {
+    if (value !== localValue) {
+      setLocalValue(value || '');
+    }
+  }, [value]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localValue !== value) {
+        onChange(localValue);
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [localValue, onChange, value]);
+
+  return (
+    <TextField
+      {...props}
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
+      onBlur={() => {
+        if (localValue !== value) {
+          onChange(localValue);
+        }
+      }}
+    />
+  );
+});
+
+
+
+const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError, onTemplateData }) => {
   const { userToken } = useAuthToken();
   const [messageType, setMessageType] = useState('preApprovedTemplate');
   const [template, setTemplate] = useState(null);
@@ -21,8 +59,31 @@ const Message = ({ onNext, onBack, onMessageConfigured }) => {
   const [templatesLoading, setTemplatesLoading] = useState(false);
   const [variableCount, setVariableCount] = useState(0);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(null);
+  const [emojiAnchorEl, setEmojiAnchorEl] = useState(null);
   const [regularMessageType, setRegularMessageType] = useState('Text');
   const [regularMessageText, setRegularMessageText] = useState('');
+  const [variableMenuAnchor, setVariableMenuAnchor] = useState(null);
+  const [selectedVariableIndex, setSelectedVariableIndex] = useState(null);
+
+  const handleVariableMenuOpen = (event, index) => {
+    setVariableMenuAnchor(event.currentTarget);
+    setSelectedVariableIndex(index);
+  };
+
+  const handleVariableMenuClose = () => {
+    setVariableMenuAnchor(null);
+    setSelectedVariableIndex(null);
+  };
+
+  const handleVariableSelect = (variableValue) => {
+    if (selectedVariableIndex !== null) {
+      setVariables(prev => ({
+        ...prev,
+        [selectedVariableIndex + 1]: variableValue
+      }));
+    }
+    handleVariableMenuClose();
+  };
 
   // Fetch templates on mount
   useEffect(() => {
@@ -48,6 +109,7 @@ const Message = ({ onNext, onBack, onMessageConfigured }) => {
     if (!template) {
       setVariableCount(0);
       setVariables({});
+      onTemplateData?.(null);
       return;
     }
 
@@ -62,64 +124,78 @@ const Message = ({ onNext, onBack, onMessageConfigured }) => {
           const count = matches ? matches.length : 0;
           setVariableCount(count);
 
-          // Clear variables when template changes
-          setVariables({});
+          // Initialize variables object if count changes - Pre-fill with sample values if available
+          const newVars = {};
+          const bodyExample = bodyComponent?.example?.body_text?.[0] || [];
+          for (let i = 1; i <= count; i++) {
+            newVars[i] = bodyExample[i - 1] || '';
+          }
+          setVariables(newVars);
+          console.log('Initialized variables with samples:', newVars);
 
-          // Initialize variables object if count changes
-          setVariables(prev => {
-            const newVars = {};
-            for (let i = 1; i <= count; i++) {
-              newVars[i] = '';
-            }
-            return newVars;
-          });
+          // Pass template data to parent
+          const templateData = {
+            TemplateId: template.TemplateId,
+            WabaTemplateId: template.WabaTemplateId,
+            Components: count > 0 ? components : [], // Send blank array if no variables
+            variables: newVars
+          };
+          console.log('Initial template data:', templateData);
+          onTemplateData?.(templateData);
         } else {
           setVariableCount(0);
           setVariables({});
+          onTemplateData?.(null);
         }
       } else {
         setVariableCount(0);
         setVariables({});
+        onTemplateData?.(null);
       }
     } catch (error) {
       console.error('Error parsing template components:', error);
       setVariableCount(0);
       setVariables({});
+      onTemplateData?.(null);
     }
-  }, [template]);
+  }, [template, onTemplateData]);
 
   const getTemplateLabel = (option) => {
     if (!option) return '';
     return `${option.TemplateName} (${option.TemplateType})`;
   };
 
-  const handleVariableChange = (index, value) => {
-    setVariables(prev => ({
-      ...prev,
-      [index]: value
-    }));
-  };
+  const handleVariableChange = useCallback((index, value) => {
+    setVariables(prev => {
+      if (prev[index] === value) return prev;
+      return {
+        ...prev,
+        [index]: value
+      };
+    });
+  }, []);
 
-  const handleEmojiPickerOpen = (index) => {
-    setEmojiPickerOpen(index);
+  const handleEmojiPickerOpen = (event, index) => {
+    setEmojiAnchorEl(event.currentTarget);
+    setEmojiPickerOpen(index !== undefined ? index : 'regularMessage');
   };
 
   const handleEmojiPickerClose = () => {
     setEmojiPickerOpen(null);
+    setEmojiAnchorEl(null);
   };
 
   const handleEmojiSelect = (emoji) => {
     if (emojiPickerOpen === 'regularMessage') {
       setRegularMessageText(prev => prev + emoji.native);
-      handleEmojiPickerClose();
     } else if (emojiPickerOpen !== null) {
       const currentValue = variables[emojiPickerOpen] || '';
       setVariables(prev => ({
         ...prev,
         [emojiPickerOpen]: currentValue + emoji.native
       }));
-      handleEmojiPickerClose();
     }
+    handleEmojiPickerClose();
   };
 
   // Show preview column when: template is selected (preApproved) OR regular message mode
@@ -143,6 +219,26 @@ const Message = ({ onNext, onBack, onMessageConfigured }) => {
     onMessageConfigured?.(isConfigured);
   }, [messageType, template, variables, variableCount, regularMessageText, onMessageConfigured]);
 
+  // Update template data when variables change - Debounced
+  useEffect(() => {
+    if (template && variableCount > 0) {
+      const timer = setTimeout(() => {
+        try {
+          const components = JSON.parse(template.Components);
+          onTemplateData?.({
+            TemplateId: template.TemplateId,
+            WabaTemplateId: template.WabaTemplateId,
+            Components: components,
+            variables
+          });
+        } catch (error) {
+          console.error('Error parsing template components:', error);
+        }
+      }, 400); // Larger debounce for the heavy parent update
+      return () => clearTimeout(timer);
+    }
+  }, [variables, template, variableCount, onTemplateData]);
+
   return (
     <div className={styles.formCard}>
       <Grid container spacing={4}>
@@ -154,7 +250,13 @@ const Message = ({ onNext, onBack, onMessageConfigured }) => {
             <RadioGroup
               row
               value={messageType}
-              onChange={(e) => setMessageType(e.target.value)}
+              onChange={(e) => {
+                if (e.target.value === 'regularMessage') {
+                  toast('Regular Message coming soon...', { icon: '🚧' });
+                  return;
+                }
+                setMessageType(e.target.value);
+              }}
               className={styles.messageTypeRadioGroup}
             >
               <FormControlLabel
@@ -180,11 +282,19 @@ const Message = ({ onNext, onBack, onMessageConfigured }) => {
                   : 'Regular messages are delivered in 24 Hours Active Session Window. If your recipient has not messages you in last 24 Hours, these messages will not be delivered. You can use Pre-Approved Template Messages to ensure delivery. You can also use system field Last Seen Timestamp to filter the audience with active session.'}
               </Typography>
             </Box>
+
+            {messageError && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: '#fee2e2', borderRadius: '8px', border: '1px solid #ef4444' }}>
+                <Typography sx={{ color: '#dc2626', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  Message configuration is required. Please configure your message before proceeding.
+                </Typography>
+              </Box>
+            )}
           </div>
 
           {/* Template Section - Only show for Pre Approved Template */}
           {messageType === 'preApprovedTemplate' && (
-            <div className={styles.formField}>
+            <div className={styles.formField} style={{ marginBottom: '1rem' }}>
               <label className={styles.label}>Template</label>
               <SelectAutocomplete
                 value={template}
@@ -193,20 +303,6 @@ const Message = ({ onNext, onBack, onMessageConfigured }) => {
                 placeholder="Select a template"
                 getOptionLabel={getTemplateLabel}
                 disabled={templatesLoading}
-              />
-
-              <FormControlLabel
-                control={
-                  <input
-                    type="checkbox"
-                    checked={deleteTemplate}
-                    onChange={(e) => setDeleteTemplate(e.target.checked)}
-                    className={styles.checkbox}
-                  />
-                }
-                sx={{ marginLeft: '0' }}
-                label="Delete Template After Campaign Completion"
-                className={styles.checkboxLabel}
               />
             </div>
           )}
@@ -235,13 +331,13 @@ const Message = ({ onNext, onBack, onMessageConfigured }) => {
               {/* Text Message Area */}
               <div className={styles.formField}>
                 <label className={styles.label}>Message</label>
-                <TextField
+                <LocalTextField
                   fullWidth
                   multiline
                   rows={6}
                   placeholder="Start typing..."
                   value={regularMessageText}
-                  onChange={(e) => setRegularMessageText(e.target.value)}
+                  onChange={(val) => setRegularMessageText(val)}
                   variant="outlined"
                   className={styles.textField}
                   InputProps={{
@@ -254,7 +350,7 @@ const Message = ({ onNext, onBack, onMessageConfigured }) => {
                           <IconButton
                             size="small"
                             className={styles.inputIconButton}
-                            onClick={() => setEmojiPickerOpen('regularMessage')}
+                            onClick={(e) => handleEmojiPickerOpen(e, 'regularMessage')}
                           >
                             <Smile size={16} />
                           </IconButton>
@@ -269,7 +365,7 @@ const Message = ({ onNext, onBack, onMessageConfigured }) => {
 
           {/* Auto Fill Button - Only show for Pre Approved Template with variables */}
           {messageType === 'preApprovedTemplate' && variableCount > 0 && (
-            <Box sx={{ width: '100%', display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+            <Box sx={{ width: '100%', display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 1.5 }}>
               <Button
                 variant='contained'
                 className='secondaryBtnClassname'
@@ -284,44 +380,29 @@ const Message = ({ onNext, onBack, onMessageConfigured }) => {
           {messageType === 'preApprovedTemplate' && variableCount > 0 && (
             <div className={`${styles.variablesSection} ${variableCount > 4 ? styles.threeColumns : ''} ${variableCount > 9 ? styles.fourColumns : ''}`}>
               {Array.from({ length: variableCount }, (_, i) => i + 1).map(index => (
-                <div key={index} className={styles.variableInput}>
-                  <label className={styles.variableLabel}>BODY VARIABLE #{index}</label>
-                  <TextField
-                    fullWidth
-                    placeholder="Start typing..."
-                    value={variables[index] || ''}
-                    onChange={(e) => handleVariableChange(index, e.target.value)}
-                    variant="outlined"
-                    size="small"
-                    className={styles.textField}
-                    InputProps={{
-                      endAdornment: (
-                        <Box sx={{ display: 'flex', gap: 0.5 }}>
-                          <Tooltip title="Add Emoji">
-                            <IconButton
-                              size="small"
-                              className={styles.inputIconButton}
-                              onClick={() => handleEmojiPickerOpen(index)}
-                            >
-                              <Smile size={16} />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Add Code Snippet">
-                            <IconButton size="small" className={styles.inputIconButton}>
-                              <Code size={16} />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      ),
-                    }}
-                  />
-                </div>
+                <TemplateVariableInput
+                  key={index}
+                  label={`BODY VARIABLE #${index}`}
+                  value={variables[index] || ''}
+                  onChange={(val) => handleVariableChange(index, val)}
+                  onEmojiClick={(e) => handleEmojiPickerOpen(e, index)}
+                  onVariableClick={(e) => handleVariableMenuOpen(e, index - 1)}
+                  className={styles.variableInput}
+                />
               ))}
             </div>
           )}
 
+          {/* Dynamic Variables Menu */}
+          <DynamicVariableMenu
+            anchorEl={variableMenuAnchor}
+            open={Boolean(variableMenuAnchor)}
+            onClose={handleVariableMenuClose}
+            onSelect={handleVariableSelect}
+          />
+
           {/* Send Test Message Button */}
-          {messageType === 'preApprovedTemplate' && (
+          {(messageType === 'preApprovedTemplate' && template) && (
             <Box className={styles.sendTestButtonContainer}>
               <Button
                 variant="contained"
@@ -405,51 +486,67 @@ const Message = ({ onNext, onBack, onMessageConfigured }) => {
 
         {/* Right: Preview — only shown when showPreview is true */}
         {showPreview && (
-        <Grid size={{ lg: 4, md: 4, sm: 12, xs: 12 }}>
-          {messageType === 'preApprovedTemplate' && template ? (
-            <MessagePreview
-              headerType="None"
-              headerText=""
-              headerTextExample=""
-              headerMedia={null}
-              body={template.Components ? JSON.parse(template.Components).find(c => c.type === 'BODY')?.text || '' : ''}
-              footer=""
-              buttons={[]}
-              templateType="Interactive"
-              carouselCards={[]}
-              variableValues={variables}
-              showEmptyHint={false}
-            />
-          ) : messageType === 'regularMessage' ? (
-            <MessagePreview
-              headerType="None"
-              headerText=""
-              headerTextExample=""
-              headerMedia={null}
-              body={regularMessageText}
-              footer=""
-              buttons={[]}
-              templateType="Interactive"
-              carouselCards={[]}
-              variableValues={{}}
-              showEmptyHint={false}
-            />
-          ) : null}
-        </Grid>
+          <Grid size={{ lg: 4, md: 4, sm: 12, xs: 12 }}>
+            {messageType === 'preApprovedTemplate' && template ? (
+              <MessagePreview
+                headerType="None"
+                headerText=""
+                headerTextExample=""
+                headerMedia={null}
+                body={template.Components ? JSON.parse(template.Components).find(c => c.type === 'BODY')?.text || '' : ''}
+                footer=""
+                buttons={[]}
+                templateType="Interactive"
+                carouselCards={[]}
+                variableValues={variables}
+                showEmptyHint={false}
+              />
+            ) : messageType === 'regularMessage' ? (
+              <MessagePreview
+                headerType="None"
+                headerText=""
+                headerTextExample=""
+                headerMedia={null}
+                body={regularMessageText}
+                footer=""
+                buttons={[]}
+                templateType="Interactive"
+                carouselCards={[]}
+                variableValues={{}}
+                showEmptyHint={false}
+              />
+            ) : null}
+          </Grid>
         )}
       </Grid>
 
-      {/* Emoji Picker */}
-      {emojiPickerOpen !== null && (
-        <Box className={styles.emojiPickerWrapper}>
-          <Picker
-            data={data}
-            onEmojiSelect={handleEmojiSelect}
-            theme="light"
-            style={{ position: 'absolute', bottom: '100%', right: 0, zIndex: 9999 }}
-          />
-        </Box>
-      )}
+      {/* Emoji Picker Popover */}
+      <Popover
+        open={Boolean(emojiAnchorEl)}
+        anchorEl={emojiAnchorEl}
+        onClose={handleEmojiPickerClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        PaperProps={{
+          sx: {
+            borderRadius: '12px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <Picker
+          data={data}
+          onEmojiSelect={handleEmojiSelect}
+          theme="light"
+        />
+      </Popover>
     </div>
   );
 };

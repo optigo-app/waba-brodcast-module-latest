@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, Chip, Tooltip, Grid, TablePagination } from '@mui/material';
-import { FileText, Eye, Send, Copy, Edit, Trash2, BookOpen, CheckCircle2, Clock, XCircle, AlertCircle, Image, Video, FileType, FileQuestion, Rocket } from 'lucide-react';
+import { Box, Card, CardContent, Typography, Chip, Grid, Pagination } from '@mui/material';
+import { FileText, Eye, Send, Copy, Trash2, BookOpen, CheckCircle2, Clock, XCircle, AlertCircle, Image, Video, FileType, FileQuestion, Rocket, Edit2 } from 'lucide-react';
 import IconButton from '../Common/IconButton/IconButton';
 
 const STATUS_CONFIG = {
@@ -31,7 +31,7 @@ const HEADER_ICONS = {
     text: { Icon: FileQuestion, label: 'Text', color: 'var(--title-color)', bg: 'rgba(68, 64, 80, 0.16)' },
 };
 
-const TemplateGrid = ({ items, onView, onSend, onClone, onEdit, onDelete, count, page, rowsPerPage, onPageChange, onRowsPerPageChange }) => {
+const TemplateGrid = ({ items, onView, onSend, onClone, onEdit, onDelete, onPublish, count, page, rowsPerPage, onPageChange, onRowsPerPageChange }) => {
     return (
         <Grid
             container
@@ -152,10 +152,10 @@ const TemplateGrid = ({ items, onView, onSend, onClone, onEdit, onDelete, count,
 
                                     <IconButton icon={Copy} color="info" tooltip="Clone" onClick={() => onClone(template)} size={20} />
 
-                                    <IconButton icon={Edit} color="warning" tooltip="Edit" onClick={() => onEdit(template)} size={20} />
+                                    <IconButton icon={Edit2} color="secondary" tooltip="Edit" onClick={() => onEdit(template)} size={20} />
 
                                     {isDraft && (
-                                        <IconButton icon={Rocket} color="primary" tooltip="Submit/Apply" size={20} />
+                                        <IconButton icon={Rocket} color="primary" tooltip="Submit/Apply" onClick={() => onPublish(template)} size={20} />
                                     )}
 
                                     <IconButton icon={Trash2} color="error" tooltip="Delete" onClick={() => onDelete(template)} size={20} />
@@ -166,26 +166,20 @@ const TemplateGrid = ({ items, onView, onSend, onClone, onEdit, onDelete, count,
                 );
             })}
 
-            <Grid item xs={12}>
-                <TablePagination
-                    rowsPerPageOptions={[5, 10, 20, 50, 100]}
-                    component="div"
-                    count={count}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={onPageChange}
-                    onRowsPerPageChange={onRowsPerPageChange}
-                    sx={{
-                        borderTop: '1px solid #e4e8ee',
-                        mt: 'auto',
-                        '& .MuiTablePagination-spacer': { display: 'none' },
-                        '& .MuiTablePagination-displayedRows': { order: 1, marginRight: 'auto' },
-                        '& .MuiTablePagination-selectLabel': { order: 2 },
-                        '& .MuiTablePagination-select': { order: 3 },
-                        '& .MuiTablePagination-actions': { order: 4 },
-                    }}
-                    labelDisplayedRows={({ from, to, count }) => `Showing ${from} to ${to} of ${count} entries`}
-                />
+            <Grid size={{ xs: 12 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderTop: '1px solid #e4e8ee', pt: 2, mt: 'auto', borderRadius: '0 0 12px 12px' }}>
+                    <Typography variant="body2" sx={{ color: 'var(--text-2nd-color)', fontSize: '0.875rem', mb: 1 }}>
+                        Showing {page * rowsPerPage + 1} to {Math.min((page + 1) * rowsPerPage, count)} of {count} entries
+                    </Typography>
+                    <Pagination
+                        count={Math.ceil(count / rowsPerPage)}
+                        page={page + 1}
+                        onChange={(event, newPage) => onPageChange(event, newPage - 1)}
+                        shape="rounded"
+                        color="primary"
+                        size="small"
+                    />
+                </Box>
             </Grid>
         </Grid>
     );

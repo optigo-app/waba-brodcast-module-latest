@@ -1,7 +1,9 @@
 import { SendBulkCampaign } from "../InitialApi/SendBulkCampaign";
 
 export const sendBulk = async ({
+    appuserid,
     userId,
+    whatsappNumber,
     campaignId = 1,
     templates = [],
     dataSource,
@@ -20,16 +22,15 @@ export const sendBulk = async ({
             : [];
 
         const body = {
+            appuserid,
             userId,
             CampaignId: campaignId,
-            Templates: normalizedTemplates,
-            DataSource: dataSource,
-            Customers: normalizedCustomers
         };
 
-        const response = await SendBulkCampaign(body);
+        const response = await SendBulkCampaign(body, whatsappNumber);
 
-        if (response?.success) {
+        const isSuccess = response?.success || response?.stat === 1 || response?.stat_code === 1000;
+        if (isSuccess) {
             return response;
         }
 

@@ -116,3 +116,16 @@ export function normalizePhoneNumber(input, defaultCountryCode = "91") {
     }
     return phone;
 }
+
+export const MESSAGE_STATUS_MAPPING = {
+    0: { label: 'Pending', color: '#f59e0b' },
+    1: { label: 'Sent', color: '#3b82f6' },
+    2: { label: 'Delivered', color: '#10b981' },
+    3: { label: 'Read', color: '#8b5cf6' },
+    4: { label: 'Failed', color: '#ef4444' },
+    5: { label: 'Replied', color: '#06b6d4' }
+};
+
+export const getMessageStatus = (status) => {
+    return MESSAGE_STATUS_MAPPING[status] || { label: 'Unknown', color: '#6b7280' };
+};

@@ -51,6 +51,9 @@ const FilterSelectionDialog = ({
   excelData,
   onFileUpload,
   uploadedFile,
+  preSelectedData,
+  preSelectedBranches,
+  preSelectedGroup,
 }) => {
   const { userToken: token } = useAuthToken();
   const [dialogFilters, setDialogFilters] = useState({
@@ -107,8 +110,25 @@ const FilterSelectionDialog = ({
   useEffect(() => {
     if (open) {
       setLocalSource(source);
+      
+      // Initialize filters from parent if provided
+      if (filters) {
+        setDialogFilters(filters);
+        setAppliedFilters(filters);
+      }
+      
+      // Initialize pre-selected branches and group if provided
+      if (preSelectedBranches && preSelectedBranches.length > 0) {
+        setSelectedBranches(preSelectedBranches);
+        setAppliedBranches(preSelectedBranches);
+      }
+      
+      if (preSelectedGroup) {
+        setSelectedGroup(preSelectedGroup);
+        setAppliedGroup(preSelectedGroup);
+      }
     }
-  }, [open, source]);
+  }, [open, source, filters, preSelectedBranches, preSelectedGroup]);
 
   // Reset selections when source changes
   useEffect(() => {
@@ -348,6 +368,15 @@ const FilterSelectionDialog = ({
     return rows;
   }, [gridData, isLocalFilterMode, searchText, appliedFilters, searchableRows]);
 
+  // Apply pre-selected data after grid data is loaded
+  useEffect(() => {
+    if (open && preSelectedData && preSelectedData.length > 0 && visibleGridData.length > 0) {
+      const preSelectedIds = preSelectedData.map(row => row.CustomerId || row.id);
+      setSelectedIds(preSelectedIds);
+      setRowSelectionModel({ type: 'include', ids: new Set(preSelectedIds) });
+    }
+  }, [open, preSelectedData, visibleGridData.length]);
+
   const fetchGroupData = async () => {
     try {
       const result = await fetchGroupList(token?.userId);
@@ -423,6 +452,7 @@ const FilterSelectionDialog = ({
         city: filtersValue.city || '',
         country: filtersValue.country || '',
         searchTerm: searchTermValue || '',
+        whereClause: appliedGroup?.WhereClause || '',
       });
 
       if (result && latestSourceRef.current === 'crm') {
@@ -1137,7 +1167,7 @@ const FilterSelectionDialog = ({
             )}
             <Divider sx={{ my: 0.5 }} />
 
-            <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', letterSpacing: 0.2 }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, color: 'var(--secondary-color)', letterSpacing: 0.2 }}>
               Additional Filters
             </Typography>
 

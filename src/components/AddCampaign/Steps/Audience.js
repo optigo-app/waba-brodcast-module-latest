@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Paper, Button, Chip } from '@mui/material';
+import { Box, Typography, Paper, Button, Chip, FormControl, InputLabel, Select, MenuItem, Dialog, IconButton } from '@mui/material';
 import { Plus, Database, FileSpreadsheet, X } from 'lucide-react';
 import AudienceGrid from '../../Audience/AudienceGrid';
 import FilterSelectionDialog from '../../Audience/FilterSelectionDialog';
@@ -7,24 +7,19 @@ import styles from '../AddCampaign.module.scss';
 import { ExcelImport } from '../../../API/InitialApi/UploadMedia';
 import toast from 'react-hot-toast';
 import { fetchExcelList } from '../../../API/ExcelLists/ExcelLists';
+import { fetchCampaignDetails } from '../../../API/CampaignList/FetchCampaignDetails';
 import { useAuthToken } from '../../../hooks/useAuthToken';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Dialog, IconButton } from '@mui/material';
 
 const AUDIENCE_SELECTION_DRAFT_KEY = 'audienceSelectionDraft';
 
-const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange }) => {
+const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilterChange, showError, audienceError, customerFilters, audienceData, audienceGridData, isEditClone, campaignId, isRetargetFlow = false, retargetSourceCampaignName = '', retargetStatus = 'Overall', retargetStatusOptions = [], onRetargetStatusChange, retargetSourceCampaignId = null, retargetChatMsgStatus = null }) => {
     const [source, setSource] = useState('crm');
     const [file, setFile] = useState(null);
     const [filterDialogOpen, setFilterDialogOpen] = useState(false);
     const [sourceSelectionOpen, setSourceSelectionOpen] = useState(false);
     const [filteredDataFromDialog, setFilteredDataFromDialog] = useState(null);
     const { userToken } = useAuthToken();
-    const [paginationModel, setPaginationModel] = useState({
-        page: 0,
-        pageSize: 20,
-    });
-    const [rowCount, setRowCount] = useState(0);
     const [filters, setFilters] = useState({
         companyName: null,
         companyType: null,
@@ -39,8 +34,117 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange }) => {
     const [selectedBranches, setSelectedBranches] = useState([]);
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
+    const hasLoadedCustomersRef = useRef(false);
 
     const searchTimeoutRef = useRef(null);
+
+    // Fetch audience data for retarget flow
+    useEffect(() => {
+        const fetchRetargetAudience = async () => {
+            if (isRetargetFlow && retargetSourceCampaignId && !hasLoadedCustomersRef.current) {
+                try {
+                    toast.loading('Loading audience data...', { id: 'retarget-audience' });
+                    const detailsResult = await fetchCampaignDetails(userToken?.userId, retargetSourceCampaignId, retargetChatMsgStatus);
+
+                    if (detailsResult.success && detailsResult.data?.rd2) {
+                        const apiAudience = detailsResult.data.rd2;
+
+                        if (apiAudience.length > 0) {
+                            const mappedAudience = apiAudience.map((item) => ({
+                                CustomerId: item.CustomerId || item.MessageId || '',
+                                CustomerCode: item.CustomerCode || item.CustomerId || '',
+                                CustomerName: item.CustomerName || item.FirstName || '',
+                                CompanyType: item.CompanyType || item.Company || '',
+                                CustomerEmail: item.CustomerEmail || item.Email || '',
+                                CustomerPhone: item.CustomerPhone || item.PhoneNo || '',
+                                PhoneNo: item.PhoneNo || item.CustomerPhone || '',
+                                Email: item.Email || item.CustomerEmail || '',
+                                Country: item.Country || '',
+                                State: item.State || '',
+                                City: item.City || '',
+                                Company: item.Company || item.CompanyType || '',
+                                CustomerType: item.CustomerType || '',
+                                Category: item.Category || '',
+                                FirstName: item.FirstName || '',
+                                LastName: item.LastName || '',
+                                Source: item.DataSource || 'optigo'
+                            }));
+
+                            const source = mappedAudience[0]?.Source || 'optigo';
+                            setSource(source === 'optigo' ? 'crm' : 'excel');
+                            onDataSourceChange(source === 'optigo' ? 'crm' : 'excel');
+
+                            setFilteredDataFromDialog(mappedAudience);
+                            const selectedIds = mappedAudience.map(row => row.CustomerId || row.MessageId || row.id);
+                            setRowSelectionModel({ type: 'include', ids: new Set(selectedIds) });
+
+                            const rowMap = {};
+                            mappedAudience.forEach(row => {
+                                const rowId = row.CustomerId || row.MessageId || row.id;
+                                if (rowId) {
+                                    rowMap[rowId] = row;
+                                }
+                            });
+                            setSelectedRowMap(rowMap);
+
+                            onAudienceChange(mappedAudience);
+                        } else {
+                            toast.error('No audience found for the selected status');
+                        }
+                    } else {
+                        toast.error('Failed to load audience data');
+                    }
+                } catch (error) {
+                    console.error('Error fetching retarget audience:', error);
+                    toast.error('Error loading audience data');
+                } finally {
+                    toast.dismiss('retarget-audience');
+                    hasLoadedCustomersRef.current = true;
+                }
+            }
+        };
+
+        fetchRetargetAudience();
+    }, [isRetargetFlow, retargetSourceCampaignId, retargetChatMsgStatus, userToken?.userId, onDataSourceChange, onAudienceChange]);
+
+    // Handle audience data when editing/cloning
+    useEffect(() => {
+        if (!hasLoadedCustomersRef.current && !isRetargetFlow) {
+            if (isEditClone && audienceGridData && audienceGridData.length > 0) {
+                const source = audienceGridData[0]?.Source || 'optigo';
+                setSource(source === 'optigo' ? 'crm' : 'excel');
+                onDataSourceChange(source === 'optigo' ? 'crm' : 'excel');
+
+                setFilteredDataFromDialog(audienceGridData);
+                const selectedIds = audienceGridData.map(row => row.CustomerId || row.id);
+                setRowSelectionModel({ type: 'include', ids: new Set(selectedIds) });
+
+                const rowMap = {};
+                audienceGridData.forEach(row => {
+                    const rowId = row.CustomerId || row.id;
+                    if (rowId) {
+                        rowMap[rowId] = row;
+                    }
+                });
+                setSelectedRowMap(rowMap);
+
+                if (customerFilters) {
+                    setSelectedGroup(customerFilters.selectedGroup || null);
+                    setSelectedBranches(customerFilters.selectedBranches || []);
+                    setFilters(customerFilters.filters || {
+                        companyName: null,
+                        companyType: null,
+                        state: null,
+                        city: null,
+                        country: null,
+                    });
+                    setSearchTerm(customerFilters.searchTerm || '');
+                }
+
+                hasLoadedCustomersRef.current = true;
+            }
+        }
+    }, [isEditClone, isRetargetFlow, audienceData, audienceGridData, customerFilters, onDataSourceChange]);
 
     const debounceSearch = (value) => {
         if (searchTimeoutRef.current) {
@@ -48,7 +152,6 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange }) => {
         }
         searchTimeoutRef.current = setTimeout(() => {
             setSearchTerm(value);
-            setPaginationModel(prev => ({ ...prev, page: 0 }));
         }, 200);
     };
 
@@ -57,9 +160,7 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange }) => {
         loading: true
     });
 
-    const fetchCampignId = JSON.parse(sessionStorage.getItem("campaignStepperState"))?.selectedTemplates[0]?.campaignId;
-
-    const getAudienceRowId = useCallback((row) => row?.CustomerId || row?.id, []);
+    const fetchCampignId = campaignId || JSON.parse(sessionStorage.getItem("campaignStepperState"))?.selectedTemplates[0]?.campaignId;
 
     const saveAudienceDraft = useCallback((rows, selectedIdsList, currentSource, currentFile) => {
         const safeRows = Array.isArray(rows) ? rows : [];
@@ -132,18 +233,6 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange }) => {
             city: newFilters.city?.City || null,
             country: newFilters.country?.CountryName || null,
         });
-        setPaginationModel(prev => ({ ...prev, page: 0 }));
-    };
-
-    const handlePaginationModelChange = (newPaginationModel) => {
-        setPaginationModel({
-            page: newPaginationModel.page,
-            pageSize: newPaginationModel.pageSize
-        });
-
-        if (source === 'excel' && fetchCampignId) {
-            fetchExcelData(fetchCampignId);
-        }
     };
 
     const fetchExcelData = async (campaignId) => {
@@ -163,7 +252,6 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange }) => {
                 rows: [],
                 loading: false
             });
-            setRowCount(0);
         }
     };
 
@@ -245,6 +333,16 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange }) => {
         setSelectedBranches(data.selectedBranches || []);
         setSelectedGroup(data.selectedGroup || null);
 
+        // Pass filter data to parent
+        if (onFilterChange) {
+            onFilterChange({
+                filters: data.filters,
+                searchTerm: data.searchTerm,
+                selectedBranches: data.selectedBranches || [],
+                selectedGroup: data.selectedGroup || null,
+            });
+        }
+
         const selectedIds = Array.isArray(data.selectedIds) ? data.selectedIds : [];
 
         const selectedRows = (data.gridData || []).filter(row => {
@@ -290,36 +388,14 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange }) => {
         setFilterDialogOpen(false);
     };
 
-    const handleRowSelectionModelChange = useCallback((newRowSelectionModel) => {
-        let selectionModel;
-        if (typeof newRowSelectionModel === 'object' && newRowSelectionModel?.ids instanceof Set) {
-            selectionModel = newRowSelectionModel;
-        } else if (Array.isArray(newRowSelectionModel)) {
-            selectionModel = { type: 'include', ids: new Set(newRowSelectionModel) };
-        } else {
-            selectionModel = { type: 'include', ids: new Set() };
+    const handleRowSelectionModelChange = useCallback((model) => {
+        setRowSelectionModel(model);
+        onAudienceChange(model);
+        // Clear error when audience is selected
+        if (model.length > 0) {
+            // The parent component should handle clearing the error
         }
-
-        setRowSelectionModel(selectionModel);
-
-        // Use filteredDataFromDialog — the actual rows shown in the grid
-        const currentRows = filteredDataFromDialog || [];
-        const selectedIdSet = selectionModel.ids;
-
-        setSelectedRowMap((prev) => {
-            const next = { ...prev };
-            currentRows.forEach((row) => {
-                const rowId = getAudienceRowId(row);
-                if (!rowId) return;
-                if (selectedIdSet.has(rowId)) {
-                    next[rowId] = row;
-                } else {
-                    delete next[rowId];
-                }
-            });
-            return next;
-        });
-    }, [filteredDataFromDialog, getAudienceRowId]);
+    }, [onAudienceChange]);
 
     const processDroppedExcelFile = async (excelFile) => {
         if (!excelFile) return;
@@ -470,7 +546,7 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange }) => {
                                 </Typography>
                             )}
                             <Typography sx={{ color: 'var(--secondary-color)', fontSize: '0.875rem' }}>
-                                Selected: {selectedIds.length}
+                                Selected: {selectedIds.length} {selectedIds.length === 1 ? 'row' : 'rows'}
                             </Typography>
                             {selectedBranches.length > 0 && (
                                 <Box sx={{ px: 2, pb: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -490,15 +566,32 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange }) => {
                                 </Box>
                             )}
                         </Box>
-                        <Button
-                            variant='contained'
-                            className='buttonClassname'
-                            size="small"
-                            startIcon={<Plus />}
-                            onClick={openSourceSelectionDialog}
-                        >
-                            Add Audience
-                        </Button>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {/* {isRetargetFlow && (
+                                <FormControl size="small" sx={{ minWidth: 170 }}>
+                                    <InputLabel id="retarget-status-label">Retarget Status</InputLabel>
+                                    <Select
+                                        labelId="retarget-status-label"
+                                        value={retargetStatus || 'Overall'}
+                                        label="Retarget Status"
+                                        onChange={(e) => onRetargetStatusChange?.(e.target.value)}
+                                    >
+                                        {retargetStatusOptions.map((statusOption) => (
+                                            <MenuItem key={statusOption} value={statusOption}>{statusOption}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            )} */}
+                            <Button
+                                variant='contained'
+                                className='buttonClassname'
+                                size="small"
+                                startIcon={<Plus />}
+                                onClick={openSourceSelectionDialog}
+                            >
+                                Add Audience
+                            </Button>
+                        </Box>
                     </Box>
 
                     <Box sx={{ flex: 1, minHeight: 0, width: '100%', overflow: 'hidden' }}>
@@ -520,7 +613,7 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange }) => {
                                     flexDirection: 'column',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    height: '100%',
+                                    height: '97%',
                                     minHeight: 300,
                                     border: '2px dashed var(--sidebar-borderColor)',
                                     borderRadius: '12px',
@@ -547,6 +640,14 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange }) => {
                                 </Button>
                             </Box>
                         )}
+
+                        {audienceError && (
+                            <Box sx={{ mt: 2, p: 2, bgcolor: '#fee2e2', borderRadius: '8px', border: '1px solid #ef4444' }}>
+                                <Typography sx={{ color: '#dc2626', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    Audience selection is required. Please add audience members before proceeding.
+                                </Typography>
+                            </Box>
+                        )}
                     </Box>
                 </Box>
 
@@ -558,17 +659,20 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange }) => {
                     onFilterChange={handleApplyFilters}
                     userToken={userToken}
                     source={source}
-                    excelData={excelData?.rows || []}
+                    excelData={excelData}
                     onFileUpload={handleFileUploadForDialog}
                     uploadedFile={file}
+                    preSelectedData={filteredDataFromDialog}
+                    preSelectedBranches={selectedBranches}
+                    preSelectedGroup={selectedGroup}
                 />
 
                 <Dialog
                     open={sourceSelectionOpen}
                     onClose={closeSourceSelectionDialog}
-                    maxWidth="md"
                     fullWidth
                     keepMounted
+                    maxWidth="md"
                     PaperProps={{ className: styles.sourceSelectionDialogPaper }}
                 >
                     <Box className={styles.sourceSelectionDialogBody}>

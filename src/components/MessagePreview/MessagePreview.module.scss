@@ -177,7 +177,7 @@
 
 .previewDocSub {
     font-size: 0.65rem;
-    color: #64748b;
+    color: $text2ndColor;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -224,7 +224,7 @@
 
 .previewTime {
     font-size: 0.74rem !important;
-    color: #64748b;
+    color: $text2ndColor;
 }
 
 .previewTick {

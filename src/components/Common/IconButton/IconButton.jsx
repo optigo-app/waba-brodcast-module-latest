@@ -9,6 +9,7 @@ const IconButton = ({
   tooltip,
   disabled = false,
   size = 18,
+  className = '',
 }) => {
   const colorMap = {
     primary: 'var(--primary-main)',
@@ -30,7 +31,7 @@ const IconButton = ({
 
   const button = (
     <button
-      className={styles.iconButton}
+      className={`${styles.iconButton} ${className}`}
       style={{
         '--icon-color': colorMap[color],
         '--hover-bg': bgColorMap[color],

@@ -9,11 +9,10 @@ import {
   GridToolbarDensitySelector,
   GridToolbarExport,
 } from '@mui/x-data-grid';
-import styles from './AudienceSection.module.scss';
 
 // ── Stable column definitions (never recreated) ───────────────────────────────
 const CRM_COLUMNS = [
-  { field: 'SrNo',          headerName: '#',             width: 60,  type: 'number', headerClassName: 'data-grid-header' },
+  { field: 'SrNo',          headerName: 'Sr #',             width: 60,  type: 'number', headerClassName: 'data-grid-header' },
   { field: 'CustomerCode',  headerName: 'Customer Code', width: 160, headerClassName: 'data-grid-header' },
   { field: 'CustomerName',  headerName: 'Name',          width: 200, headerClassName: 'data-grid-header' },
   { field: 'CompanyType',   headerName: 'Company Type',  width: 150, headerClassName: 'data-grid-header' },
@@ -54,7 +53,7 @@ const GRID_SX = {
 
 // ── Toolbar — fully memoized, stable prop shape ───────────────────────────────
 const CustomToolbar = React.memo(({ onFilterClick, onSearchChange, searchText, selectedCount }) => (
-  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, gap: 1 }}>
+  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, gap: 1 }}> 
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
       <TextField
         variant="outlined"
@@ -122,17 +121,16 @@ const AudienceGrid = ({
   searchText: externalSearchText,
   onSearchChange: externalOnSearchChange,
 }) => {
+  console.log('AudienceGrid props:', { rows, onRowSelectionModelChange, rowSelectionModel, onFilterClick, source, loading, pageSizeOptions, searchText: externalSearchText, onSearchChange: externalOnSearchChange });
   const [internalSearch, setInternalSearch] = useState('');
   const searchText = externalSearchText !== undefined ? externalSearchText : internalSearch;
 
-  // Stable onChange handler passed directly to TextField — avoids wrapper arrow
   const handleSearchInputChange = useCallback((e) => {
     const val = e.target.value;
     if (externalOnSearchChange) externalOnSearchChange(val);
     else setInternalSearch(val);
   }, [externalOnSearchChange]);
 
-  // Normalize selection model — only recompute when reference changes
   const safeSelection = useMemo(() => {
     if (!rowSelectionModel) return EMPTY_SELECTION;
     if (rowSelectionModel.ids instanceof Set) return rowSelectionModel;
@@ -143,20 +141,15 @@ const AudienceGrid = ({
 
   const selectedCount = safeSelection.ids.size;
 
-  // Build rows with SrNo injected — single pass, no spread of every field
-  // We use a Map to avoid O(n²) index lookup
   const processedRows = useMemo(() => {
     return rows.map((row, i) => {
-      // Only add SrNo if not already present — avoid full object spread when possible
       if (row.SrNo === i + 1) return row;
       return { ...row, SrNo: i + 1 };
     });
   }, [rows]);
 
-  // Precompute search blobs once per rows change — O(n) upfront, O(1) per filter
   const searchBlobs = useMemo(() => {
     return processedRows.map((row) => {
-      // Build blob from only the visible column fields to keep it lean
       const fields = source === 'crm'
         ? [row.CustomerCode, row.CustomerName, row.CompanyType, row.CustomerEmail, row.CustomerPhone, row.Country, row.State, row.City]
         : [row.CustomerName, row.Email, row.PhoneNo, row.Company, row.CustomerType, row.Category, row.City, row.State];
@@ -164,7 +157,6 @@ const AudienceGrid = ({
     });
   }, [processedRows, source]);
 
-  // Filter using precomputed blobs — no per-row Object.values() call
   const filteredRows = useMemo(() => {
     const q = searchText?.trim().toLowerCase();
     if (!q) return processedRows;
@@ -175,10 +167,7 @@ const AudienceGrid = ({
     onRowSelectionModelChange?.(model);
   }, [onRowSelectionModelChange]);
 
-  // Stable getRowId — no random fallback (causes re-renders)
-  const getRowId = useCallback((row) => row.CustomerId ?? row.id ?? row.PhoneNo ?? row.Email, []);
-
-  // Stable toolbar props — only recompute when actual values change
+  const getRowId = useCallback((row) => row.CustomerId ?? row.id ?? row.PhoneNo ?? row.Email ?? row.SrNo?.toString(), []);
   const slotProps = useMemo(() => ({
     toolbar: {
       onFilterClick,
@@ -191,7 +180,7 @@ const AudienceGrid = ({
   const columns = source === 'crm' ? CRM_COLUMNS : EXCEL_COLUMNS;
 
   return (
-    <Box sx={{ width: '100%', height: '100%', overflowX: 'auto' }}>
+    <Box sx={{ width: '100%', height: '98%', overflowX: 'auto' }}>
       <Box sx={{ minWidth: 400, height: '100%' }}>
         <DataGrid
           rows={filteredRows}

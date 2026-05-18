@@ -4,7 +4,7 @@ import {
     MoreVertical, Smile, Paperclip, Camera, Mic, CheckCheck, FileText,
     Image, Video, MapPin, Upload,
     ChevronRight, Megaphone, Bell, Key,
-    MessageSquare, Layout, Clock, BookOpen, Package, Save, CheckCircle, Slash, Type, Code
+    MessageSquare, Layout, Clock, BookOpen, Package, Save, Slash, Type, Code
 } from 'lucide-react';
 import { Box, Modal, Typography, Button, IconButton, TextField, CircularProgress, LinearProgress, Grid, Paper, Tooltip } from '@mui/material';
 import { createTemplate } from '../../API/TemplateList/CreateTemplate';
@@ -13,7 +13,6 @@ import { uploadMetaMedia } from '../../API/InitialApi/UploadMetaMedia';
 import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './CreateTemplatePage.module.scss';
-import { previewBg } from '../../utils/globalFunc';
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal';
 import MessagePreview from '../MessagePreview/MessagePreview';
 import Picker from '@emoji-mart/react';
@@ -107,6 +106,14 @@ const CreateTemplatePage = () => {
             const body = components.find(c => c.type === 'BODY');
             const footer = components.find(c => c.type === 'FOOTER');
             const buttons = components.find(c => c.type === 'BUTTONS');
+
+            const initialVars = {};
+            if (body?.example?.body_text?.[0]) {
+                body.example.body_text[0].forEach((val, idx) => {
+                    initialVars[idx + 1] = val;
+                });
+            }
+            setVariableValues(initialVars);
 
             setBuilderData({
                 templateType: 'Interactive',
@@ -541,7 +548,7 @@ const CreateTemplatePage = () => {
         };
 
         if (isEditMode && editTemplateData?.Id) {
-            payload.WabaTemplateId = editTemplateData.Id;
+            payload.TemplateId = editTemplateData.Id;
         }
 
         setIsSaving(true);
@@ -686,13 +693,13 @@ const CreateTemplatePage = () => {
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                color: templateDetails.templateCategory === card.key ? '#7367f0' : '#64748b'
+                                                color: templateDetails.templateCategory === card.key ? '#7367f0' : 'var(--secondary-color)'
                                             }}>
                                                 <Icon size={20} />
                                             </div>
                                             <div style={{ flex: 1 }}>
                                                 <Typography sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>{card.key}</Typography>
-                                                <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>{card.description}</Typography>
+                                                <Typography sx={{ color: 'var(--secondary-color)', fontSize: '0.875rem' }}>{card.description}</Typography>
                                             </div>
                                         </button>
                                     );
@@ -772,7 +779,7 @@ const CreateTemplatePage = () => {
                                                     type="button"
                                                     className={`${styles.choiceChip} ${isSelected ? styles.activeChip : ''}`}
                                                     onClick={() => {
-                                                        if (['LTO', 'Catalog', 'MPM'].includes(key)) {
+                                                        if (['Carousel', 'LTO', 'Catalog', 'MPM'].includes(key)) {
                                                             toast('Coming soon', { icon: '🚧' });
                                                             return;
                                                         }
@@ -1000,7 +1007,7 @@ const CreateTemplatePage = () => {
                                         helperText={saveError === 'Template body is required.' ? 'This field is required' : (builderData.templateType === 'Carousel' ? 'Introductory text for the carousel.' : '')}
                                     />
                                     <div className={styles.bodyFooterRow} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', position: 'relative' }}>
-                                        <Typography className={styles.charCounter} sx={{ color: '#64748b', fontSize: '0.75rem' }}>
+                                        <Typography className={styles.charCounter} sx={{ color: 'var(--secondary-color)', fontSize: '0.75rem' }}>
                                             Characters: {bodyCharCount}/1024
                                         </Typography>
                                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1385,19 +1392,23 @@ const CreateTemplatePage = () => {
 
                             {/* Right: preview */}
                             <Grid size={{ lg: 4, md: 4, sm: 12, xs: 12 }}>
-                                <MessagePreview
-                                    headerType={builderData.headerType}
-                                    headerText={builderData.headerText}
-                                    headerTextExample={builderData.headerTextExample}
-                                    headerMedia={headerMedia}
-                                    body={builderData.body}
-                                    footer={builderData.footer}
-                                    buttons={builderData.buttons}
-                                    templateType={builderData.templateType}
-                                    carouselCards={carouselCards}
-                                    variableValues={variableValues}
-                                    showEmptyHint={true}
-                                />
+                                <div className={styles.previewShell}>
+                                    <MessagePreview
+                                        headerType={builderData.headerType}
+                                        headerText={builderData.headerText}
+                                        headerTextExample={builderData.headerTextExample}
+                                        headerMedia={headerMedia}
+                                        previewImageUrl={previewImageUrl}
+                                        previewVideoUrl={previewVideoUrl}
+                                        body={builderData.body}
+                                        footer={builderData.footer}
+                                        buttons={builderData.buttons}
+                                        templateType={builderData.templateType}
+                                        carouselCards={carouselCards}
+                                        variableValues={variableValues}
+                                        showEmptyHint={true}
+                                    />
+                                </div>
                             </Grid>
                         </Grid>
                     </Box>

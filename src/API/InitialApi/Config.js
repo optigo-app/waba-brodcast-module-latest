@@ -25,22 +25,31 @@ export const CRON = `${API_BASE_URL}/whatsapp/brodcast/scheduler/send`;
 export const TEMPLATE_CREATE = `${API_BASE_URL}/whatsapp/templates/manage/create`;
 export const TEMPLATE_EDIT = `${API_BASE_URL}/whatsapp/templates/manage/edit`;
 export const TEMPLATE_SYNC = `${API_BASE_URL}/whatsapp/templates/manage/sync`;
+export const TEMPLATE_TESTSEND = `${API_BASE_URL}/whatsapp/templates/send`;
 export const TEMPLATE_DELETE = `${API_BASE_URL}/whatsapp/templates/manage/delete`;
+export const TEMPLATE_PUBLISH = `${API_BASE_URL}/whatsapp/templates/manage/publish`;
 export const TEMPLATE_MD_UPLOAD = `${API_BASE_URL}/whatsapp/media/upload`;
 export const META_MEDIA_UPLOAD = `${API_BASE_URL}/meta/v19.0`;
 
 
 
-export const getHeaders = () => {
+export const getHeaders = (whatsappNumber) => {
     const userToken = JSON.parse(sessionStorage.getItem("userToken"));
 
     const version = "v2";
-    return {
+    const headers = {
         Yearcode: userToken?.yc || userToken?.yearcode,
         Version: version,
         sv: userToken?.svid || userToken?.sv,
         sp: "16",
     };
+
+    const resolvedWhatsappNumber = whatsappNumber || userToken?.whatsappNumber;
+    if (resolvedWhatsappNumber) {
+        headers.whatsappNumber = resolvedWhatsappNumber;
+    }
+
+    return headers;
 };
 
 export const getHeaders1 = () => {

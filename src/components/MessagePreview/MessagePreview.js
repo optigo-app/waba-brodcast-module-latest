@@ -9,6 +9,8 @@ const MessagePreview = ({
     headerText = '',
     headerTextExample = '',
     headerMedia = null,
+    previewImageUrl = '',
+    previewVideoUrl = '',
     body = '',
     footer = '',
     buttons = [],
@@ -29,8 +31,8 @@ const MessagePreview = ({
             variableValues[k]?.trim() ? variableValues[k] : `{{${k}}}`
         ), [body, variableValues]);
 
-    const previewImageUrl = headerMedia?.mediaType === 'image' ? headerMedia.mediaUrl : '';
-    const previewVideoUrl = headerMedia?.mediaType === 'video' ? headerMedia.mediaUrl : '';
+    const finalPreviewImageUrl = previewImageUrl || (headerMedia?.mediaType === 'image' ? (headerMedia.file ? URL.createObjectURL(headerMedia.file) : headerMedia.mediaUrl) : '');
+    const finalPreviewVideoUrl = previewVideoUrl || (headerMedia?.mediaType === 'video' ? (headerMedia.file ? URL.createObjectURL(headerMedia.file) : headerMedia.mediaUrl) : '');
     const previewDocumentLabel = useMemo(() => {
         if (headerType !== 'Media' || headerMedia?.mediaType !== 'document') return '';
         if (headerMedia?.file?.name) return headerMedia.file.name;
@@ -149,13 +151,16 @@ const MessagePreview = ({
                                             {headerText.replace(/\{\{1\}\}/g, headerTextExample || '{{1}}')}
                                         </Typography>
                                     )}
-                                    {previewImageUrl && (
-                                        <img src={previewImageUrl} alt="Header" className={styles.previewHeaderImage} />
+                                    {finalPreviewImageUrl && (
+                                        <img src={finalPreviewImageUrl} alt="Header" className={styles.previewHeaderImage} />
                                     )}
-                                    {previewVideoUrl && (
-                                        <video className={styles.previewHeaderVideo} controls playsInline preload="metadata">
-                                            <source src={previewVideoUrl} />
-                                        </video>
+                                    {finalPreviewVideoUrl && (
+                                        <video
+                                            key={finalPreviewVideoUrl}
+                                            src={finalPreviewVideoUrl}
+                                            className={styles.previewHeaderVideo}
+                                            controls playsInline preload="metadata"
+                                        />
                                     )}
                                     {previewDocumentLabel && (
                                         <div className={styles.previewHeaderDocument}>
@@ -203,4 +208,4 @@ const MessagePreview = ({
     );
 };
 
-export default MessagePreview;
+export default React.memo(MessagePreview);

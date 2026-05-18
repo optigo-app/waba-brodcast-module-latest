@@ -1,6 +1,6 @@
-import { Paper, Chip, Tooltip, Box, Typography } from '@mui/material';
+import { Paper, Chip, Box, Typography } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { FileText, Eye, Send, Copy, Edit, Trash2, BookOpen, CheckCircle2, Clock, XCircle, AlertCircle, Image, Video, FileType, FileQuestion, Rocket } from 'lucide-react';
+import { FileText, Eye, Send, Copy, Trash2, BookOpen, CheckCircle2, Clock, XCircle, AlertCircle, Image, Video, FileType, FileQuestion, Rocket, Edit2 } from 'lucide-react';
 import IconButton from '../Common/IconButton/IconButton';
 
 const STATUS_CONFIG = {
@@ -31,7 +31,7 @@ const HEADER_ICONS = {
     text: { Icon: FileQuestion, label: 'Text', color: 'var(--title-color)', bg: 'rgba(68, 64, 80, 0.16)' },
 };
 
-const TemplateTable = ({ items, onView, onSend, onClone, onEdit, onDelete, count, page, rowsPerPage, onPageChange, onRowsPerPageChange }) => {
+const TemplateTable = ({ items, onView, onSend, onClone, onEdit, onDelete, onPublish, count, page, rowsPerPage, onPageChange, onRowsPerPageChange }) => {
     const rows = items.map((template) => {
         const status = getStatusConfig(template.WabaStatus);
 
@@ -179,9 +179,9 @@ const TemplateTable = ({ items, onView, onSend, onClone, onEdit, onDelete, count
                         <IconButton icon={Send} color="success" tooltip="Send" onClick={() => onSend(params.row)} />
                     )}
                     <IconButton icon={Copy} color="info" tooltip="Clone" onClick={() => onClone(params.row)} />
-                    <IconButton icon={Edit} color="warning" tooltip="Edit" onClick={() => onEdit(params.row)} />
+                    <IconButton icon={Edit2} color="secondary" tooltip="Edit" onClick={() => onEdit(params.row)} />
                     {params.row.isDraft && (
-                        <IconButton icon={Rocket} color="primary" tooltip="Submit/Apply" />
+                        <IconButton icon={Rocket} color="primary" tooltip="Submit/Apply" onClick={() => onPublish(params.row)} />
                     )}
                     <IconButton icon={Trash2} color="error" tooltip="Delete" onClick={() => onDelete(params.row)} />
                 </Box>

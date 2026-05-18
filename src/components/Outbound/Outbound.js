@@ -3,15 +3,8 @@ import './Outbound.scss';
 import {
     Send,
     Clock,
-    Calendar,
-    XCircle,
-    Pencil,
-    Mail,
-    List,
     ChevronRight,
     PlusCircle,
-    Download,
-    Info,
     CheckCheck,
     Reply,
     Package,
@@ -21,7 +14,6 @@ import {
     MessageSquare
 } from 'lucide-react';
 import { Box, Modal, Paper, Typography } from '@mui/material';
-import ApprovedTemplates from './ApprovedTemplates';
 import { fetchOutboundList } from '../../API/getOutbound/GetOutbound';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthToken } from '../../hooks/useAuthToken';
@@ -158,6 +150,7 @@ const Outbound = () => {
                         onPageChange={handlePageChange}
                         onPageSizeChange={handlePageSizeChange}
                         onRowClick={handleRowClick}
+                        onReport={(row) => navigate(`/report/${row.campaignId}`)}
                     />
 
                     {/* Campaign Detail Dialog */}

@@ -885,7 +885,7 @@
 
 .previewDocSub {
     font-size: 0.65rem;
-    color: #64748b;
+    color: $text2ndColor;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -932,7 +932,7 @@
 
 .previewTime {
     font-size: 0.74rem !important;
-    color: #64748b;
+    color: $text2ndColor;
 }
 
 .previewTick {
@@ -1205,7 +1205,7 @@
 
 .mediaFileName {
     font-size: 0.72rem !important;
-    color: #64748b !important;
+    color: $text2ndColor !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1288,7 +1288,7 @@
     transition: all 0.2s;
     font-size: 0.78rem;
     font-weight: 600;
-    color: #64748b;
+    color: $text2ndColor;
 
     &:hover {
         border-color: rgba($primary-main, 0.4);

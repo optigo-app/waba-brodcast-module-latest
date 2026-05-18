@@ -5,6 +5,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateTimePicker, DatePicker, TimePicker } from '@mui/x-date-pickers';
 import dayjs from 'dayjs';
+import toast from 'react-hot-toast';
 import styles from '../AddCampaign.module.scss';
 
 const CampaignDetails = ({
@@ -36,7 +37,10 @@ const CampaignDetails = ({
   recurrenceYearlyMonth,
   setRecurrenceYearlyMonth,
   recurrenceYearlyDay,
-  setRecurrenceYearlyDay
+  setRecurrenceYearlyDay,
+  showError,
+  campaignNameError,
+  setCampaignNameError
 }) => {
   const [nameError, setNameError] = useState(false);
 
@@ -47,6 +51,14 @@ const CampaignDetails = ({
     }
     setNameError(false);
     onNext();
+  };
+
+  const handleCampaignNameChange = (value) => {
+    setCampaignName(value);
+    if (value.trim()) {
+      setNameError(false);
+      setCampaignNameError?.(false);
+    }
   };
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const monthsOfYear = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -94,20 +106,19 @@ const CampaignDetails = ({
     <div className={styles.formCard}>
       {/* Campaign Name */}
       <div className={styles.formField}>
-        <label className={styles.label}>Campaign Name *</label>
+        <label className={styles.label}>Campaign Name <span style={{ color: '#dc2626' }}>*</span></label>
         <TextField
           fullWidth
           placeholder="Enter Campaign Name"
           value={campaignName}
           onChange={(e) => {
-            setCampaignName(e.target.value);
-            setNameError(false);
+            handleCampaignNameChange(e.target.value);
           }}
+          error={nameError || campaignNameError}
+          helperText={(nameError || campaignNameError) ? 'Campaign name is required' : ''}
           variant="outlined"
           size="small"
           className={styles.textField}
-          error={nameError}
-          helperText={nameError ? 'Campaign name is required' : ''}
         />
       </div>
 
@@ -134,7 +145,7 @@ const CampaignDetails = ({
           <Info size={18} className={styles.alertIcon} />
           <div className={styles.alertContent}>
             <Typography variant="body2" className={styles.alertMessage}>
-              Immediate is used to trigger campaign immediately without any time delay. Once you trigger a campaign, your messages will start sending within 1 minute.
+              Immediate is used to trigger campaign immediately without any time delay. Once you trigger a campaign, in next 1 minute it will start sending your messages. 1 minute is queue setup time.
             </Typography>
           </div>
         </div>
@@ -169,7 +180,13 @@ const CampaignDetails = ({
           control={
             <Checkbox
               checked={repeat}
-              onChange={(e) => setRepeat(e.target.checked)}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  toast('Repeat feature coming soon...', { icon: '🚧' });
+                  return;
+                }
+                setRepeat(e.target.checked);
+              }}
               className={styles.checkbox}
             />
           }
@@ -420,7 +437,7 @@ const CampaignDetails = ({
 
       {/* Action Button */}
       <div className={styles.formActions}>
-        <div/>
+        <div />
         <Button className='buttonClassname' onClick={handleNextClick}>
           Next
         </Button>

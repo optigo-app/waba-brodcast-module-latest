@@ -1,9 +1,9 @@
 import axios from "axios";
 import { SENDBULK, getHeaders } from "./Config";
 
-export const SendBulkCampaign = async (body, version) => {
+export const SendBulkCampaign = async (body, whatsappNumber) => {
     try {
-        const headers = getHeaders();
+        const headers = getHeaders(whatsappNumber);
 
         const { data } = await axios.post(SENDBULK, body, { headers: headers });
         return data;

@@ -14,8 +14,8 @@ const Sidebar = () => {
         { path: '/', icon: <MessageCircle {...ICON_PROPS} />, label: 'Dashboard' },
         { path: '/templates', icon: <FileText {...ICON_PROPS} />, label: 'Templates' },
         { path: '/campaigns', icon: <LayoutGrid {...ICON_PROPS} />, label: 'Campaigns' },
-        { path: '/inbound', icon: <HomeIcon {...ICON_PROPS} />, label: 'Inbound' },
-        { path: '/outbound', icon: <Users {...ICON_PROPS} />, label: 'Outbound' },
+        // { path: '/inbound', icon: <HomeIcon {...ICON_PROPS} />, label: 'Inbound' },
+        // { path: '/outbound', icon: <Users {...ICON_PROPS} />, label: 'Outbound' },
     ];
 
     useEffect(() => {
@@ -27,7 +27,7 @@ const Sidebar = () => {
             <div className="sidebar-content">
                 <div className="sidebar-sections">
                     {/* Header / brand */}
-                    <div className="agentic-chat-header" onClick={() => navigate('/')}> 
+                    <div className="agentic-chat-header" onClick={() => navigate('/')}>
                         <div className="agentic-chat-header__icon">
                             <div className="icon-bg">
                                 <MessageCircle className="icon" {...ICON_PROPS} />

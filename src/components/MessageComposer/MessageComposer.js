@@ -5,9 +5,9 @@ import {
   InputAdornment, Typography,
   Checkbox, Button
 } from '@mui/material';
-import { Search, Play, ChevronUp, ChevronDown } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useStepper } from '../../context/StepperContext';
-import { fetchCampaignLists } from '../../API/CampaignList/CampaignList';
+import { fetchCampaignLists } from '../../API/CampaignList/CampaignList'; 
 import OptionModal1 from './OptionalModal1';
 import { addCampaign } from '../../API/AddCampaign/AddCampaign';
 import toast from 'react-hot-toast';
@@ -25,7 +25,7 @@ const MessageComposer = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTemplates, setSelectedTemplates] = useState([]); // Now stores full template objects
+  const [selectedTemplates, setSelectedTemplates] = useState([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [allCampaigns, setAllCampaigns] = useState([]);

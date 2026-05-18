@@ -14,7 +14,7 @@ const TemplateSkelton = ({ count = 4 }) => {
     return (
         <Grid container spacing={2}>
             {[...Array(count)].map((_, i) => (
-                <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={i}>
+                <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={i}>
                     <Card
                         sx={{
                             borderRadius: "18px",

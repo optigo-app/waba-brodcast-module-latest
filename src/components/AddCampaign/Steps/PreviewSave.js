@@ -4,10 +4,23 @@ import { Send, ChevronLeft, CheckCircle, AlertCircle, Megaphone, Clock, Filter, 
 import styles from '../AddCampaign.module.scss';
 import ConfirmationModal from '../../ConfirmationModal/ConfirmationModal';
 
-const PreviewSave = ({ onBack, onSave, campaignName, campaignType, scheduledFor, audience, dataSource, repeat, recurrenceFrequency, messageConfigured }) => {
+const PreviewSave = ({ onBack, onSave, campaignName, campaignType, scheduledFor, audience, dataSource, repeat, recurrenceFrequency, messageConfigured, onNavigateToStep, isSaving }) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleSaveClick = () => {
+    // Check validation before showing confirmation modal
+    if (!campaignName) {
+      onNavigateToStep?.(1, 'campaignName'); // Navigate to Campaign Details with error field
+      return;
+    }
+    if (audience.length === 0) {
+      onNavigateToStep?.(2, 'audience'); // Navigate to Audience with error field
+      return;
+    }
+    if (!messageConfigured) {
+      onNavigateToStep?.(3, 'message'); // Navigate to Message with error field
+      return;
+    }
     setShowConfirmModal(true);
   };
 
@@ -28,7 +41,7 @@ const PreviewSave = ({ onBack, onSave, campaignName, campaignType, scheduledFor,
     },
     {
       label: 'Trigger Campaign',
-      value: campaignType === 'immediate' ? 'Immediately' : scheduledFor ? scheduledFor : 'Scheduled',
+      value: campaignType === 'immediate' ? 'Immediately' : scheduledFor ? scheduledFor.format('DD MMM YYYY, HH:mm') : 'Scheduled',
       icon: Clock,
       color: '#059669'
     },
@@ -149,11 +162,11 @@ const PreviewSave = ({ onBack, onSave, campaignName, campaignType, scheduledFor,
 
       {/* Action Buttons */}
       <div className={styles.formActions}>
-        <Button variant="outlined" className='varientOutlinedBtn' onClick={onBack}>
+        <Button variant="outlined" className='varientOutlinedBtn' onClick={onBack} disabled={isSaving}>
           Back
         </Button>
-        <Button variant="contained" className='buttonClassname' onClick={handleSaveClick}>
-          Save & Launch
+        <Button variant="contained" className='buttonClassname' onClick={handleSaveClick} disabled={isSaving}>
+          {isSaving ? 'Saving...' : 'Save & Launch'}
         </Button>
       </div>
 

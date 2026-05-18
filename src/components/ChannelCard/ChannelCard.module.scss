@@ -1,215 +1,5 @@
 @use '../../global.scss' as *;
 
-.page {
-    padding: 1.5rem;
-    background: #fdfdfd;
-    min-height: 100vh;
-    font-family: 'Inter', sans-serif;
-}
-
-.header {
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid $sidebar-borderColor;
-}
-
-.pageTitle {
-     font-size: 1.5rem;
-    font-weight: 700;
-    color: $titleColor;
-    margin: 0;
-    font-family: $font-family;
-}
-
-.pageSubtitle {
-    font-size: 0.875rem;
-    color: $text2ndColor;
-    margin: 0.25rem 0 0;
-    font-family: $font-family;
-}
-
-// ── Card Grid ─────────────────────────────────────────────────────────────────
-.cardGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-    gap: 1.5rem;
-    margin-top: 1.5rem;
-}
-
-// ── Channel Card ──────────────────────────────────────────────────────────────
-.card {
-    background: #fff;
-    border-radius: 20px;
-    border: 1px solid #e2e8f0;
-    padding: 1.5rem;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    transition: box-shadow 0.2s, transform 0.2s;
-
-    &:hover {
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.09);
-        transform: translateY(-2px);
-    }
-}
-
-// ── Top Row ───────────────────────────────────────────────────────────────────
-.cardTop {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.channelInfo {
-    display: flex;
-    align-items: center;
-    gap: 0.875rem;
-}
-
-.iconWrap {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
-}
-
-.waIcon {
-    width: 28px;
-    height: 28px;
-    fill: #fff;
-}
-
-.nameBlock {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.channelName {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #0f172a;
-    line-height: 1.2;
-}
-
-.appName {
-    font-size: 0.78rem;
-    color: #94a3b8;
-    font-weight: 500;
-}
-
-// ── Balance ───────────────────────────────────────────────────────────────────
-.balanceBlock {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-}
-
-.balanceLabel {
-    font-size: 0.72rem;
-    color: #94a3b8;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.balanceAmount {
-    font-size: 1.35rem;
-    font-weight: 800;
-    color: #0f172a;
-    letter-spacing: -0.02em;
-}
-
-// ── Progress Bar ──────────────────────────────────────────────────────────────
-.progressSection {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.progressBar {
-    width: 100%;
-    height: 7px;
-    background: #f1f5f9;
-    border-radius: 99px;
-    overflow: hidden;
-}
-
-.progressFill {
-    height: 100%;
-    background: linear-gradient(90deg, #25d366, #128c7e);
-    border-radius: 99px;
-    transition: width 0.5s ease;
-}
-
-.progressMeta {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.72rem;
-    color: #94a3b8;
-    font-weight: 500;
-}
-
-// ── Divider ───────────────────────────────────────────────────────────────────
-.divider {
-    width: 100%;
-    height: 1px;
-    background: #f1f5f9;
-}
-
-// ── Action Buttons ────────────────────────────────────────────────────────────
-.cardActions {
-    display: flex;
-    gap: 0.75rem;
-}
-
-.actionBtn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.7rem 1rem;
-    border-radius: 12px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    border: 1.5px solid #e2e8f0;
-    background: #f8fafc;
-    color: #374151;
-    transition: all 0.18s;
-
-    &:hover {
-        background: #f1f5f9;
-        border-color: #cbd5e1;
-        color: #0f172a;
-    }
-
-    svg {
-        flex-shrink: 0;
-    }
-}
-
-.walletBtn {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-    color: #fff;
-    border-color: transparent;
-
-    &:hover {
-        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        color: #fff;
-        border-color: transparent;
-    }
-}
-
 // ── Wallet Drawer ─────────────────────────────────────────────────────────────
 .drawerRoot {
     width: 420px;
@@ -226,7 +16,7 @@
     justify-content: space-between;
     padding: 1.25rem 1.5rem;
     background: #fff;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--sidebar-borderColor);
     flex-shrink: 0;
 }
 
@@ -239,21 +29,21 @@
 .drawerTitle {
     font-size: 1.05rem;
     font-weight: 700;
-    color: #0f172a;
-    font-family: 'Inter', sans-serif;
+    color: $titleColor;
+    font-family: $font-family;
 }
 
 .drawerIcon {
-    color: #128c7e;
+    color: var(--success-main);
 }
 
 .drawerClose {
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    background: #f8fafc;
-    color: #64748b;
+    border: 1px solid var(--sidebar-borderColor);
+    background: var(--sidebar-borderColor);
+    color: $text2ndColor;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -261,8 +51,8 @@
     transition: all 0.15s;
 
     &:hover {
-        background: #f1f5f9;
-        color: #0f172a;
+        background: $button-color-hover;
+        color: #fff;
     }
 }
 
@@ -336,22 +126,22 @@
     justify-content: space-between;
     font-size: 0.75rem;
     font-weight: 500;
-    color: #64748b;
+    color: $text2ndColor;
     margin-bottom: 6px;
-    font-family: 'Inter', sans-serif;
+    font-family: $font-family;
 }
 
 .drawerProgressBar {
     width: 100%;
     height: 8px;
-    background: #e2e8f0;
+    background: var(--sidebar-borderColor);
     border-radius: 99px;
     overflow: hidden;
 }
 
 .drawerProgressFill {
     height: 100%;
-    background: linear-gradient(90deg, #25d366, #128c7e);
+    background: linear-gradient(90deg, var(--success-main), #128c7e);
     border-radius: 99px;
     transition: width 0.5s ease;
 }
@@ -382,11 +172,11 @@
 .transactionTitle {
     font-size: 0.82rem;
     font-weight: 700;
-    color: #64748b;
+    color: $text2ndColor;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin: 0 0 0.25rem;
-    font-family: 'Inter', sans-serif;
+    font-family: $font-family;
     padding-top: 0.25rem;
 }
 
@@ -396,7 +186,7 @@
     gap: 0;
     background: #fff;
     border-radius: 16px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--sidebar-borderColor);
     overflow: hidden;
 }
 
@@ -405,7 +195,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.875rem 1rem;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--sidebar-borderColor);
     transition: background 0.15s;
 
     &:last-child {
@@ -413,7 +203,7 @@
     }
 
     &:hover {
-        background: #f8fafc;
+        background: var(--sidebar-borderColor);
     }
 }
 
@@ -444,16 +234,16 @@
     display: block;
     font-size: 0.82rem;
     font-weight: 600;
-    color: #1e293b;
-    font-family: 'Inter', sans-serif;
+    color: $titleColor;
+    font-family: $font-family;
 }
 
 .txnDate {
     display: block;
     font-size: 0.72rem;
-    color: #94a3b8;
+    color: $text2ndColor;
     font-weight: 400;
-    font-family: 'Inter', sans-serif;
+    font-family: $font-family;
     margin-top: 1px;
 }
 
@@ -467,19 +257,19 @@
 .txnAmount {
     font-size: 0.88rem;
     font-weight: 700;
-    font-family: 'Inter', sans-serif;
+    font-family: $font-family;
 }
 
 .txnCredit {
-    color: #16a34a;
+    color: var(--success-main);
 }
 
 .txnDebit {
-    color: #dc2626;
+    color: var(--error-main);
 }
 
 .txnBalance {
     font-size: 0.7rem;
-    color: #94a3b8;
-    font-family: 'Inter', sans-serif;
+    color: $text2ndColor;
+    font-family: $font-family;
 }

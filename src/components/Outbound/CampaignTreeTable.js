@@ -2,8 +2,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import { Box, IconButton, CircularProgress, Chip } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowRight } from '@mui/icons-material';
+import { BarChart2 } from 'lucide-react';
 
-const CampaignTreeTable = ({ data, loading = false, totalRows = 0, onPageChange, onPageSizeChange, onRowClick }) => {
+const CampaignTreeTable = ({ data, loading = false, totalRows = 0, onPageChange, onPageSizeChange, onRowClick, onReport }) => {
     const [paginationModel, setPaginationModel] = useState({
         page: 0,
         pageSize: 15,
@@ -33,6 +34,7 @@ const CampaignTreeTable = ({ data, loading = false, totalRows = 0, onPageChange,
             const campaignId = `campaign-${campaign.CampaignId}`;
             rows.push({
                 id: campaignId,
+                campaignId: campaign.CampaignId, // Keep original ID
                 type: 'campaign',
                 name: campaign.CampaignTitle,
                 lastSent: campaign.LastSentDate,
@@ -233,6 +235,26 @@ const CampaignTreeTable = ({ data, loading = false, totalRows = 0, onPageChange,
                 />
             ),
         },
+        {
+            field: 'actions',
+            headerName: 'Actions',
+            width: 100,
+            renderCell: (params) => {
+                if (params.row.type !== 'campaign') return null;
+                return (
+                    <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onReport?.(params.row);
+                        }}
+                    >
+                        <BarChart2 size={18} />
+                    </IconButton>
+                );
+            }
+        }
     ];
 
     // Track expanded rows

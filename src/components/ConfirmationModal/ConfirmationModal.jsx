@@ -2,7 +2,7 @@ import ReactDOM from 'react-dom';
 import { ExternalLink, X } from 'lucide-react';
 import './ConfimationModal.scss';
 
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, description, icon: Icon, isDanger }) => {
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, description, icon: Icon, isDanger, confirmLabel, cancelLabel }) => {
     if (!isOpen) return null;
 
     return ReactDOM.createPortal(
@@ -17,10 +17,10 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, description, ico
 
                 <div className="modal-actions">
                     <button className="btn-cancel" onClick={onClose}>
-                        Cancel
+                        {cancelLabel || 'Cancel'}
                     </button>
                     <button className={`btn-confirm ${isDanger ? 'btn-danger' : ''}`} onClick={onConfirm}>
-                        {isDanger ? 'Delete' : 'Continue'} {Icon ? <Icon size={16} /> : <ExternalLink size={16} />}
+                        {confirmLabel || (isDanger ? 'Delete' : 'Continue')} {Icon ? <Icon size={16} /> : <ExternalLink size={16} />}
                     </button>
                 </div>
             </div>

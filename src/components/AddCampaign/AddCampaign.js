@@ -1,32 +1,162 @@
-import React, { useState } from 'react';
-import { Info, Plus, User, MessageSquare, FileText, Send, Megaphone, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, User, MessageSquare, FileText, Send, Megaphone, ArrowLeft } from 'lucide-react';
 import { TextField, FormControlLabel, Checkbox, Button, Typography, Paper } from '@mui/material';
 import dayjs from 'dayjs';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './AddCampaign.module.scss';
 import CampaignDetails from './Steps/CampaignDetails';
 import Audience from './Steps/Audience';
 import Message from './Steps/Message';
 import PreviewSave from './Steps/PreviewSave';
+import { createCampaign } from '../../API/AddCampaign/AddCampaign';
+import { useAuthToken } from '../../hooks/useAuthToken';
+import toast from 'react-hot-toast';
+import { normalizePhoneNumber } from '../../utils/globalFunc';
 
 const STEPS = [
-  { id: 'details',  label: 'Campaign Details', icon: FileText,    step: 1 },
-  { id: 'audience', label: 'Audience',          icon: User,        step: 2 },
-  { id: 'message',  label: 'Message',           icon: MessageSquare, step: 3 },
-  { id: 'preview',  label: 'Preview & Save',    icon: Send,        step: 4 },
+  { id: 'details', label: 'Campaign Details', icon: FileText, step: 1 },
+  { id: 'audience', label: 'Audience', icon: User, step: 2 },
+  { id: 'message', label: 'Message', icon: MessageSquare, step: 3 },
+  { id: 'preview', label: 'Preview & Save', icon: Send, step: 4 },
 ];
+
+const RETARGET_STATUS_OPTIONS = ['Overall', 'Sent', 'Delivered', 'Read', 'Failed', 'Replied'];
 
 const AddCampaign = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { userToken } = useAuthToken();
   const [currentStep, setCurrentStep] = useState(1);
   const [campaignType, setCampaignType] = useState('immediate');
   const [repeat, setRepeat] = useState(false);
+  const [campaignId, setCampaignId] = useState(() => {
+    // For edit/clone, use existing campaignId from location state
+    if (location.state?.campaign?.Id) {
+      return location.state.campaign.Id.toString();
+    }
+    // For new campaigns, generate random campaignId
+    return Math.floor(1000000 + Math.random() * 9000000).toString();
+  });
   const [campaignName, setCampaignName] = useState('');
   const [campaignNameError, setCampaignNameError] = useState(false);
   const [scheduledFor, setScheduledFor] = useState(null);
   const [audience, setAudience] = useState([]);
+  const [audienceGridData, setAudienceGridData] = useState([]);
   const [dataSource, setDataSource] = useState('optigo');
+  const [customerFilters, setCustomerFilters] = useState({
+    filters: {
+      companyName: null,
+      companyType: null,
+      state: null,
+      city: null,
+      country: null,
+    },
+    searchTerm: '',
+    selectedBranches: [],
+    selectedGroup: null,
+  });
   const [messageConfigured, setMessageConfigured] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [audienceError, setAudienceError] = useState(false);
+  const [messageError, setMessageError] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [templateData, setTemplateData] = useState(null);
+  const [isRetargetFlow, setIsRetargetFlow] = useState(false);
+  const [retargetSourceCampaignName, setRetargetSourceCampaignName] = useState('');
+  const [retargetStatus, setRetargetStatus] = useState('Overall');
+  const [retargetSourceCampaignId, setRetargetSourceCampaignId] = useState(null);
+  const [retargetChatMsgStatusId, setRetargetChatMsgStatusId] = useState(null);
+
+  const buildRetargetName = (sourceCampaignName, statusLabel) => `retarget-${sourceCampaignName || 'Campaign'}-${statusLabel || 'Overall'}`;
+
+  // Pre-fill form data when cloning or editing
+  useEffect(() => {
+    if (location.state?.campaign) {
+      const campaign = location.state.campaign;
+debugger
+      const isRetarget = !!campaign.isRetarget;
+      setIsRetargetFlow(isRetarget);
+      if (isRetarget) {
+        const sourceCampaignName = campaign.RetargetSourceCampaignName || campaign.CampaignName || campaign.Name || 'Campaign';
+        const statusLabel = campaign.RetargetStatusLabel || 'Overall';
+        setRetargetSourceCampaignName(sourceCampaignName);
+        setRetargetStatus(statusLabel);
+        setRetargetSourceCampaignId(campaign.RetargetSourceCampaignId || null);
+        setRetargetChatMsgStatusId(campaign.Status || null);
+        setCampaignName(buildRetargetName(sourceCampaignName, statusLabel));
+      }
+
+      // Pre-fill campaign details
+      if (campaign.Name && !isRetarget) setCampaignName(campaign.Name);
+      if (campaign.Type) {
+        setCampaignType(campaign.Type === 1 ? 'immediate' : campaign.Type === 2 ? 'scheduled' : 'recurring');
+      }
+      if (campaign.ScheduleTime) setScheduledFor(dayjs(campaign.ScheduleTime));
+
+      // Pre-fill CustomerFilters if exists
+      if (campaign.CustomerFilters) {
+        try {
+          const parsedFilters = typeof campaign.CustomerFilters === 'string'
+            ? JSON.parse(campaign.CustomerFilters)
+            : campaign.CustomerFilters;
+          setCustomerFilters(parsedFilters);
+        } catch (error) {
+          console.error('Error parsing CustomerFilters:', error);
+        }
+      }
+
+      // Pre-fill audience
+      if (campaign.audienceData && Array.isArray(campaign.audienceData)) {
+        const formattedAudience = campaign.audienceData.map(item => ({
+          customerId: item.CustomerId,
+          CustomerPhone: item.PhoneNo,
+          CountryCode: '91',
+          FirstName: item.FirstName,
+          LastName: item.LastName,
+          Source: item.Source
+        }));
+        setAudience(formattedAudience);
+        setAudienceGridData(campaign.audienceData);
+        setDataSource(campaign.audienceData[0]?.Source || 'optigo');
+      }
+
+      // Pre-fill template data
+      if (campaign.templateData) {
+        const template = campaign.templateData;
+        const parsedComponents = typeof template.Components === 'string'
+          ? JSON.parse(template.Components)
+          : template.Components;
+
+        setTemplateData({
+          TemplateId: template.TemplateId,
+          WabaTemplateId: template.WabaTemplateId,
+          TemplateName: template.TemplateName,
+          Components: parsedComponents,
+          Type: template.Type,
+          Channel: template.Channel
+        });
+        setMessageConfigured(true);
+      }
+
+      // Clear session storage drafts
+      sessionStorage.removeItem('audienceSelectionDraft');
+      sessionStorage.removeItem('campaignStepperState');
+    }
+  }, [location.state]);
+
+  const handleRetargetStatusChange = (newStatus) => {
+    if (!newStatus) return;
+    setRetargetStatus(newStatus);
+    setCampaignName(buildRetargetName(retargetSourceCampaignName, newStatus));
+  };
+
+  // Clear session storage drafts when component unmounts
+  useEffect(() => {
+    return () => {
+      sessionStorage.removeItem('audienceSelectionDraft');
+      sessionStorage.removeItem('campaignStepperState');
+    };
+  }, []);
 
   // Recurrence state
   const [recurrenceStartDate, setRecurrenceStartDate] = useState(dayjs());
@@ -42,8 +172,131 @@ const AddCampaign = () => {
 
   const handleNext = () => { if (currentStep < 4) setCurrentStep(currentStep + 1); };
   const handleBack = () => { if (currentStep > 1) setCurrentStep(currentStep - 1); };
-  const handleSave = () => { console.log('Save & Launch campaign'); };
-  const handleStepClick = (step) => { setCurrentStep(step); };
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const customerJson = audience.map(item => {
+        const customerId = item.customerId ?? '';
+        const countryCode = item.CountryCode || item.countryCode || '91';
+        const customerPhone = item.CustomerPhone || item.PhoneNo || item.phone;
+        const fullPhoneNo = normalizePhoneNumber(customerPhone, countryCode) || '';
+
+        return {
+          Source: dataSource,
+          CustomerId: customerId,
+          PhoneNo: fullPhoneNo
+        };
+      });
+
+      let templateJson = [];
+      if (templateData) {
+        const components = templateData.Components || [];
+        const variables = templateData.variables || {};
+
+        // Check if any variable has a non-empty value
+        const hasFilledVariables = Object.values(variables).some(val => val && val.trim() !== '');
+
+        if (hasFilledVariables && components.length > 0) {
+          // Replace VARIABLE_TEXT placeholders with actual variable values
+          const processedComponents = components.map(component => {
+            if (component.type === 'BODY' && component.text) {
+              const parameters = [];
+              const matches = component.text.match(/\{\{\d+\}\}/g);
+              if (matches) {
+                matches.forEach((match, index) => {
+                  const varNum = index + 1;
+                  const varValue = variables[varNum] || '';
+                  parameters.push({
+                    type: 'text',
+                    text: varValue
+                  });
+                });
+              }
+              return {
+                type: component.type,
+                parameters: parameters
+              };
+            }
+            // For non-BODY components (HEADER, FOOTER, BUTTONS), include as-is
+            return component;
+          });
+
+          templateJson = [{
+            TemplateId: templateData.TemplateId || 1,
+            WabaTemplateId: templateData.WabaTemplateId || templateData.id,
+            Components: processedComponents
+          }];
+        } else {
+          // No variables filled, send blank array for Components
+          templateJson = [{
+            TemplateId: templateData.TemplateId || 1,
+            WabaTemplateId: templateData.WabaTemplateId || templateData.id,
+          }];
+        }
+      }
+      const campaignData = {
+        campaignName,
+        wabaNumber: userToken?.whatsappNumber ?? '',
+        templateJson,
+        broadcastCampType: campaignType === 'immediate' ? 1 : 2,
+        scheduleTime: scheduledFor ? scheduledFor.format('YYYY-MM-DD HH:mm:ss') : '',
+        userId: userToken?.id ?? '',
+        customerJson,
+        customerFilters: customerFilters,
+        campaignId: campaignId
+      };
+      const response = await createCampaign(campaignData);
+      if (response.success) {
+        if (response.data?.rd && response.data.rd.length > 0) {
+          const rd = response.data.rd[0];
+          if (rd.stat === 0) {
+            console.error('Campaign creation failed:', rd.stat_msg);
+            toast.error(`Campaign creation failed: ${rd.stat_msg?.replace(/"/g, '')}`);
+            return;
+          }
+        }
+        navigate('/campaigns');
+        sessionStorage.removeItem('audienceSelectionDraft');
+        sessionStorage.removeItem('campaignStepperState');
+      } else {
+        console.error('Campaign creation failed:', response.error);
+        toast.error('Failed to create campaign. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error saving campaign:', error);
+      toast.error('An error occurred while creating the campaign. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleStepClick = (step, errorField = null) => {
+    setShowError(!!errorField);
+    if (errorField === 'campaignName') {
+      setCampaignNameError(true);
+      setAudienceError(false);
+      setMessageError(false);
+    } else if (errorField === 'audience') {
+      setCampaignNameError(false);
+      setAudienceError(true);
+      setMessageError(false);
+    } else if (errorField === 'message') {
+      setCampaignNameError(false);
+      setAudienceError(false);
+      setMessageError(true);
+    } else {
+      setCampaignNameError(false);
+      setAudienceError(false);
+      setMessageError(false);
+    }
+    setCurrentStep(step);
+  };
+
+  const handleNavigate = () => {
+    navigate('/campaigns');
+    sessionStorage.removeItem('audienceSelectionDraft');
+    sessionStorage.removeItem('campaignStepperState');
+  };
 
   return (
     <div className={styles.page}>
@@ -51,7 +304,7 @@ const AddCampaign = () => {
       {/* ── Page Header ── */}
       <div className={styles.topHeader}>
         <div className={styles.headerLeft}>
-          <button className={styles.backBtn} onClick={() => navigate('/campaigns')}>
+          <button className={styles.backBtn} onClick={handleNavigate}>
             <ArrowLeft size={16} />
           </button>
           <div className={styles.headerIconWrap}>
@@ -60,7 +313,7 @@ const AddCampaign = () => {
           <div>
             <h1 className={styles.pageTitle}>Campaign</h1>
             <p className={styles.pageSubtitle}>
-              {campaignName?.trim() ? campaignName : 'New campaign'}
+              <span>{isRetargetFlow && `Retarget from: ${retargetSourceCampaignName || '—'}  || `}</span> {campaignName?.trim() ? campaignName : 'New campaign'}
             </p>
           </div>
         </div>
@@ -110,17 +363,10 @@ const AddCampaign = () => {
               ))}
             </div>
 
-            <button className={styles.addMessageButton}>
+            {/* <button className={styles.addMessageButton} disabled>
               <Plus size={16} />
               Add Message
-            </button>
-
-            <div className={styles.infoCard}>
-              <div className={styles.infoCardContent}>
-                <Info size={14} className={styles.infoIcon} />
-                <span className={styles.infoText}>Total Receivers: 2158</span>
-              </div>
-            </div>
+            </button> */}
           </div>
         </div>
 
@@ -157,13 +403,36 @@ const AddCampaign = () => {
               setRecurrenceYearlyMonth={setRecurrenceYearlyMonth}
               recurrenceYearlyDay={recurrenceYearlyDay}
               setRecurrenceYearlyDay={setRecurrenceYearlyDay}
+              showError={showError}
+              campaignNameError={campaignNameError}
+              setCampaignNameError={setCampaignNameError}
             />
           )}
           {currentStep === 2 && (
-            <Audience onNext={handleNext} onBack={handleBack} onAudienceChange={setAudience} onDataSourceChange={setDataSource} />
+            <Audience
+              onNext={handleNext}
+              onBack={handleBack}
+              onAudienceChange={setAudience}
+              onDataSourceChange={setDataSource}
+              onFilterChange={setCustomerFilters}
+              showError={showError}
+              audienceError={audienceError}
+              customerFilters={customerFilters}
+              audienceData={audience}
+              audienceGridData={audienceGridData}
+              isEditClone={!!location.state?.campaign}
+              campaignId={campaignId}
+              isRetargetFlow={isRetargetFlow}
+              retargetSourceCampaignName={retargetSourceCampaignName}
+              retargetStatus={retargetStatus}
+              retargetStatusOptions={RETARGET_STATUS_OPTIONS}
+              onRetargetStatusChange={handleRetargetStatusChange}
+              retargetSourceCampaignId={retargetSourceCampaignId}
+              retargetChatMsgStatus={retargetChatMsgStatusId}
+            />
           )}
           {currentStep === 3 && (
-            <Message onNext={handleNext} onBack={handleBack} onMessageConfigured={setMessageConfigured} />
+            <Message onNext={handleNext} onBack={handleBack} onMessageConfigured={setMessageConfigured} onTemplateData={setTemplateData} showError={showError} messageError={messageError} />
           )}
           {currentStep === 4 && (
             <PreviewSave
@@ -177,11 +446,13 @@ const AddCampaign = () => {
               repeat={repeat}
               recurrenceFrequency={recurrenceFrequency}
               messageConfigured={messageConfigured}
+              onNavigateToStep={handleStepClick}
+              isSaving={isSaving}
             />
           )}
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
