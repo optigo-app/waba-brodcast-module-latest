@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '@mui/x-data-grid';
-import { Paper, Chip, Box, Typography, Button, ToggleButtonGroup, ToggleButton, Grid, Card, CardContent, Tooltip, Pagination } from '@mui/material';
-import { BarChart3, Copy, Download, Rocket, Edit2, Plus, RefreshCw, Megaphone, LayoutGrid, List, Octagon } from 'lucide-react';
+import { Paper, Chip, Box, Typography, Button, ToggleButtonGroup, ToggleButton, Grid, Card, CardContent, Tooltip, CircularProgress } from '@mui/material';
+import { BarChart3, Copy, Rocket, Edit2, Plus, RefreshCw, Megaphone, LayoutGrid, List, Octagon } from 'lucide-react';
 import FilterBar from '../Common/FilterBar/FilterBar';
 import IconButton from '../Common/IconButton/IconButton';
 import { fetchCampaignLists } from '../../API/CampaignList/CampaignList';
@@ -35,7 +35,7 @@ const getTypeConfig = (type) => {
 };
 
 // ── Stable column definitions ─────────────────────────────────────────────────
-const buildColumns = (onAnalytics, onDuplicate, onDownload, onLaunch, onStop, onEdit, onCopyId, activeTimers) => {
+const buildColumns = (onAnalytics, onDuplicate, onDownload, onLaunch, onStop, onEdit, onCopyId, activeTimers, launchingCampaignIds) => {
   const hasActiveTimer = Object.keys(activeTimers).length > 0;
   return [
     {
@@ -44,15 +44,15 @@ const buildColumns = (onAnalytics, onDuplicate, onDownload, onLaunch, onStop, on
       renderCell: (params) => (
         <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', pl: 1 }}>
           <IconButton icon={Copy} color="secondary" tooltip="Copy Campaign ID" onClick={() => onCopyId(params.row.Id)} />
-          <IconButton 
-            icon={BarChart3} 
-            color="primary" 
-            tooltip={Number(params.row.Status) === 1 ? "Analytics not available for pending campaigns" : "Analytics"} 
+          <IconButton
+            icon={BarChart3}
+            color="primary"
+            tooltip={Number(params.row.Status) === 1 ? "Analytics not available for pending campaigns" : "Analytics"}
             onClick={() => onAnalytics(params.row)}
             disabled={Number(params.row.Status) === 1}
           />
           <IconButton icon={Copy} color="info" tooltip="Quick Clone" onClick={() => onDuplicate(params.row)} />
-          <IconButton icon={Download} color="success" tooltip="Download" onClick={() => onDownload(params.row)} />
+          {/* <IconButton icon={Download} color="success" tooltip="Download" onClick={() => onDownload(params.row)} /> */}
           {(Number(params.row.Type) === 1 && Number(params.row.Status) === 1) && (
             activeTimers[String(params.row.Id)] ? (
               <IconButton
@@ -63,16 +63,29 @@ const buildColumns = (onAnalytics, onDuplicate, onDownload, onLaunch, onStop, on
                 onClick={() => onStop(params.row)}
               />
             ) : (
-              <IconButton
-                icon={Rocket}
-                color="warning"
-                tooltip={hasActiveTimer ? "Another launch in progress" : "Launch"}
-                onClick={() => onLaunch(params.row)}
-                disabled={hasActiveTimer}
-              />
+              launchingCampaignIds.has(String(params.row.Id)) ? (
+                <IconButton
+                  icon={CircularProgress}
+                  color="primary"
+                  tooltip="Launching..."
+                  disabled
+                  className={styles.rocketHighlight}
+                />
+              ) : (
+                <IconButton
+                  icon={Rocket}
+                  color="primary"
+                  tooltip={hasActiveTimer ? "Another launch in progress" : "Launch"}
+                  onClick={() => onLaunch(params.row)}
+                  disabled={hasActiveTimer}
+                  className={styles.rocketHighlight}
+                />
+              )
             )
           )}
-          <IconButton icon={Edit2} color="secondary" tooltip="Edit" onClick={() => onEdit(params.row)} />
+          {Number(params.row.Status) === 1 && (
+            <IconButton icon={Edit2} color="secondary" tooltip="Edit" onClick={() => onEdit(params.row)} />
+          )}
         </Box>
       ),
     },
@@ -174,7 +187,8 @@ const CampaignGrid = () => {
   const [launchConfirmOpen, setLaunchConfirmOpen] = useState(false);
   const [campaignToLaunch, setCampaignToLaunch] = useState(null);
   const [launchingCampaignIds, setLaunchingCampaignIds] = useState(() => new Set());
-  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+  const sendingCampaignIdsRef = useRef(new Set());
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 100 });
   const [activeTimers, setActiveTimers] = useState(() => {
     try {
       const saved = localStorage.getItem('campaignActiveTimers');
@@ -203,24 +217,37 @@ const CampaignGrid = () => {
   useEffect(() => { loadCampaigns(); }, [loadCampaigns]);
 
   const triggerSendBulk = useCallback(async (campaignId) => {
-    if (!campaignId || launchingCampaignIds.has(String(campaignId))) return;
+    const campaignKey = String(campaignId);
+    if (!campaignId || launchingCampaignIds.has(campaignKey) || sendingCampaignIdsRef.current.has(campaignKey)) return;
+
+    sendingCampaignIdsRef.current.add(campaignKey);
 
     setLaunchingCampaignIds(prev => {
       const next = new Set(prev);
-      next.add(String(campaignId));
+      next.add(campaignKey);
       return next;
     });
 
     try {
       const response = await sendBulk({
-        appuserid: userToken?.username,
-        userId: userToken?.userId,
+        appuserid: userToken?.userid,
+        userId: userToken?.id,
         campaignId,
         whatsappNumber: userToken?.whatsappNumber,
       });
 
       if (response?.success || response?.stat === 1 || response?.stat_code === 1000) {
-        toast.success(`Campaign ${campaignId} started sending`);
+        setCampaigns(prev => prev.map(campaign =>
+          Number(campaign?.Id) === Number(campaignId)
+            ? {
+              ...campaign,
+              Status: 3,
+              ComplateTime: campaign.ComplateTime || new Date().toISOString(),
+            }
+            : campaign
+        ));
+        toast.success(`Campaign ${campaignId} completed`);
+        await loadCampaigns();
       } else {
         toast.error(`Failed to send campaign ${campaignId}`);
       }
@@ -230,11 +257,12 @@ const CampaignGrid = () => {
     } finally {
       setLaunchingCampaignIds(prev => {
         const next = new Set(prev);
-        next.delete(String(campaignId));
+        next.delete(campaignKey);
         return next;
       });
+      sendingCampaignIdsRef.current.delete(campaignKey);
     }
-  }, [launchingCampaignIds, userToken?.username, userToken?.userId, userToken?.whatsappNumber]);
+  }, [launchingCampaignIds, userToken?.id, userToken?.userid, userToken?.whatsappNumber, loadCampaigns]);
 
   // Timer logic for stop button with persistence
   useEffect(() => {
@@ -244,18 +272,19 @@ const CampaignGrid = () => {
 
     const interval = setInterval(() => {
       const now = Date.now();
+      const expiredIds = Object.keys(activeTimers).filter(id => activeTimers[id] <= now);
+
       setActiveTimers(prev => {
         const next = { ...prev };
-        let changed = false;
-        Object.keys(next).forEach(id => {
-          if (next[id] <= now) {
-            triggerSendBulk(Number(id));
-            delete next[id];
-            changed = true;
-          }
+        expiredIds.forEach((id) => {
+          delete next[id];
         });
         // Always return a new object if there are active timers to trigger re-render for tooltips
-        return Object.keys(next).length > 0 ? { ...next } : (changed ? {} : prev);
+        return Object.keys(next).length > 0 ? { ...next } : (Object.keys(prev).length > 0 ? {} : prev);
+      });
+
+      expiredIds.forEach((id) => {
+        triggerSendBulk(Number(id));
       });
     }, 1000);
 
@@ -338,13 +367,11 @@ const CampaignGrid = () => {
 
   const handleLaunchConfirm = () => {
     if (campaignToLaunch) {
-      console.log('launch campaign:', campaignToLaunch);
-      // Start 60 second timer (store expiration timestamp)
       setActiveTimers(prev => ({
         ...prev,
-        [campaignToLaunch.Id]: Date.now() + 60000
+        [campaignToLaunch.Id]: Date.now() + 30000
       }));
-      toast.success(`Campaign "${campaignToLaunch.Name}" launched. You have 1 minute to stop it.`);
+      toast.success(`Campaign "${campaignToLaunch.Name}" launched. You have 30 seconds to stop it.`);
       setLaunchConfirmOpen(false);
       setCampaignToLaunch(null);
     }
@@ -364,9 +391,10 @@ const CampaignGrid = () => {
       handlers.onStop,
       handlers.onEdit,
       handlers.onCopyId,
-      activeTimers
+      activeTimers,
+      launchingCampaignIds
     ),
-    [handlers, activeTimers]
+    [handlers, activeTimers, launchingCampaignIds]
   );
 
   const statusCounts = useMemo(() =>
@@ -527,7 +555,9 @@ const CampaignGrid = () => {
                         {campaign.Name || '—'}
                       </Typography>
                       <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <IconButton icon={Edit2} color="secondary" tooltip="Edit" onClick={() => handlers.onEdit(campaign)} />
+                        {Number(campaign.Status) === 1 && (
+                          <IconButton icon={Edit2} color="secondary" tooltip="Edit" onClick={() => handlers.onEdit(campaign)} />
+                        )}
                       </Box>
                     </Box>
 
@@ -558,15 +588,15 @@ const CampaignGrid = () => {
                         const hasActiveTimer = Object.keys(activeTimers).length > 0;
                         return (
                           <>
-                            <IconButton 
-                              icon={BarChart3} 
-                              color="primary" 
-                              tooltip={Number(campaign.Status) === 1 ? "Analytics not available for pending campaigns" : "Analytics"} 
+                            <IconButton
+                              icon={BarChart3}
+                              color="primary"
+                              tooltip={Number(campaign.Status) === 1 ? "Analytics not available for pending campaigns" : "Analytics"}
                               onClick={() => handlers.onAnalytics(campaign)}
                               disabled={Number(campaign.Status) === 1}
                             />
                             <IconButton icon={Copy} color="info" tooltip="Quick Clone" onClick={() => handlers.onDuplicate(campaign)} />
-                            <IconButton icon={Download} color="success" tooltip="Download" onClick={() => handlers.onDownload(campaign)} />
+                            {/* <IconButton icon={Download} color="success" tooltip="Download" onClick={() => handlers.onDownload(campaign)} /> */}
                             {(Number(campaign.Type) === 1 && Number(campaign.Status) === 1) && (
                               activeTimers[String(campaign.Id)] ? (
                                 <IconButton
@@ -579,10 +609,12 @@ const CampaignGrid = () => {
                               ) : (
                                 <IconButton
                                   icon={Rocket}
-                                  color="warning"
+                                  color="primary"
                                   tooltip={hasActiveTimer ? "Another launch in progress" : "Launch"}
                                   onClick={() => handlers.onLaunch(campaign)}
                                   disabled={hasActiveTimer}
+                                  iconClassName={launchingCampaignIds.has(String(campaign.Id)) ? styles.spinning : ''}
+                                  className={styles.rocketHighlight}
                                 />
                               )
                             )}

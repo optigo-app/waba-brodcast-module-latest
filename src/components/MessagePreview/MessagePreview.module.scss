@@ -9,7 +9,7 @@
     margin: 0 auto;
     width: 100%;
     max-width: 380px;
-    height: 100%;
+    // height: 100%;
     max-height: calc(100vh - 140px);
     border: 1px solid #d7dde6;
     border-radius: 16px;
@@ -91,14 +91,8 @@
     display: flex;
 }
 
-.previewBubbleAccent {
-    width: 8px;
-    height: 8px;
-    background: #128c7e;
-    border-radius: 50%;
-    margin-right: -4px;
-    margin-bottom: auto;
-    flex-shrink: 0;
+.previewBubbleWrapCarousel {
+    max-width: 100%;
 }
 
 .previewBubble {
@@ -371,12 +365,17 @@
     background: transparent;
     color: #00a884;
     font-size: 0.85rem;
-    font-weight: 500;
-    padding: 10px;
+    font-weight: 600;
+    padding: 10px 12px;
     text-align: center;
     border: none;
     border-bottom: 1px solid #f1f5f9;
     cursor: default;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
 
     &:last-child {
         border-bottom: none;
@@ -385,4 +384,18 @@
     &:hover {
         background: #f8fafc;
     }
+}
+
+.previewCardBtnIcon {
+    flex-shrink: 0;
+    opacity: 0.9;
+}
+
+.previewCardBtnText {
+    min-width: 0;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
+    text-align: center;
 }

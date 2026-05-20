@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Paper, LinearProgress, Divider } from '@mui/material';
 import { FileText, Wallet } from 'lucide-react';
 import { Whatsapp } from '../../utils/svg';
 import WalletDrawer from './WalletDrawer';
-import styles from './ChannelCard.module.scss';
+import { useAuthToken } from '../../hooks/useAuthToken';
+import { fetchWabaBilling } from '../../API/ChannelBilling/WabaBilling';
 
 // ── Static data (replace with API later) ──────────────────────────────────────
 const CHANNELS = [
@@ -21,8 +22,45 @@ const CHANNELS = [
 
 const ChannelCard = () => {
     const navigate = useNavigate();
+    const { userToken } = useAuthToken();
     const [walletOpen, setWalletOpen] = useState(false);
     const [activeChannel, setActiveChannel] = useState(null);
+    const [billingData, setBillingData] = useState(null);
+
+    const appUserId = useMemo(
+        () => userToken?.userid || userToken?.userId || userToken?.appuserid || '',
+        [userToken]
+    );
+
+    useEffect(() => {
+        const loadWabaBilling = async () => {
+            if (!appUserId) {
+                setBillingData(null);
+                return;
+            }
+
+            const response = await fetchWabaBilling(appUserId);
+            setBillingData(response?.success ? response.data : null);
+        };
+
+        loadWabaBilling();
+    }, [appUserId]);
+
+    const channels = useMemo(() => {
+        const totalCredits = Number(billingData?.BillAmount || 0);
+        const availableAmount = Number(billingData?.CurrentAmount || 0);
+        const used = Math.max(0, totalCredits - availableAmount);
+        const progressPercent = totalCredits > 0 ? Math.min(100, (used / totalCredits) * 100) : 0;
+
+        return CHANNELS.map((channel) => ({
+            ...channel,
+            balance: availableAmount,
+            totalCredits,
+            used,
+            progressPercent,
+            channelId: billingData?.ChannelId || '-',
+        }));
+    }, [billingData]);
 
     const handleWalletOpen = (channel) => {
         setActiveChannel(channel);
@@ -41,7 +79,7 @@ const ChannelCard = () => {
             </Box>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1.5rem', marginTop: '1.5rem' }}>
-                {CHANNELS.map((channel) => (
+                {channels.map((channel) => (
                     <Paper
                         key={channel.id}
                         sx={{
@@ -84,6 +122,9 @@ const ChannelCard = () => {
                                     <Typography variant="caption" sx={{ fontSize: '0.78rem', color: 'var(--text-2nd-color)', fontWeight: 500 }}>
                                         {channel.appName}
                                     </Typography>
+                                    <Typography variant="caption" sx={{ fontSize: '0.72rem', color: 'var(--text-2nd-color)', fontWeight: 500 }}>
+                                        Channel ID: {channel.channelId}
+                                    </Typography>
                                 </Box>
                             </Box>
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
@@ -100,7 +141,7 @@ const ChannelCard = () => {
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             <LinearProgress
                                 variant="determinate"
-                                value={(channel.used / channel.totalCredits) * 100}
+                                value={channel.progressPercent}
                                 sx={{
                                     width: '100%',
                                     height: '7px',

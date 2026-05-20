@@ -107,9 +107,6 @@ const CampaignReport = () => {
         setLoading(true);
         try {
             const quickReportResult = await fetchQuickReport(userToken?.userId, id);
-
-            console.log('Quick Report Result:', quickReportResult);
-
             if (quickReportResult.success && quickReportResult.data) {
                 setQuickReportData(...quickReportResult.data?.rd);
                 console.log('Quick Report Data set:', quickReportResult.data);
@@ -173,12 +170,10 @@ const CampaignReport = () => {
                 getChatMsgStatusFromFilter(statFilter)
             );
 
-            console.log('Template Messages Result:', result);
-
             if (result.success) {
                 setTemplateStats(result.stats);
                 setTemplateMessages(result.messages);
-                setSelectedTemplateRowSelectionModel({ type: 'include', ids: new Set() });
+                setSelectedTemplateRowSelectionModel({ type: 'exclude', ids: new Set() });
             } else {
                 setTemplateStats(null);
                 setTemplateMessages([]);
@@ -318,8 +313,6 @@ const CampaignReport = () => {
         { label: 'Replied', value: '0%', count: 0, icon: MessageCircle, color: '#ff9f43', bg: 'rgba(255, 159, 67, 0.12)' },
         { label: 'Failed', value: quickReportData?.FailedPercentage ? `${quickReportData?.FailedPercentage}%` : '0%', count: quickReportData?.FailedCount || 0, icon: AlertCircle, color: '#ea5455', bg: 'rgba(234, 84, 85, 0.12)' },
     ];
-
-    console.log('Metrics:', metrics);
 
     const configDetails = [
         { label: 'Campaign Status', value: quickReportData?.Status === 3 ? 'COMPLETED' : 'IN PROGRESS', icon: Play, color: '#28c76f', bg: 'rgba(40, 199, 111, 0.12)' },
@@ -544,6 +537,36 @@ const CampaignReport = () => {
                                                     )
                                                 },
                                                 {
+                                                    field: 'CustomerName',
+                                                    headerName: 'CUSTOMER NAME',
+                                                    flex: 1,
+                                                    renderCell: (params) => (
+                                                        <Typography variant="body2">
+                                                            {params.value || `${params.row.FirstName || ''} ${params.row.LastName || ''}`.trim() || '—'}
+                                                        </Typography>
+                                                    )
+                                                },
+                                                {
+                                                    field: 'PhoneNo',
+                                                    headerName: 'PHONE NO',
+                                                    flex: 1,
+                                                    renderCell: (params) => (
+                                                        <Typography variant="body2" className={styles.userPhone}>
+                                                            {params.value || '—'}
+                                                        </Typography>
+                                                    )
+                                                },
+                                                {
+                                                    field: 'DateTime',
+                                                    headerName: 'DATE TIME',
+                                                    width: 180,
+                                                    renderCell: (params) => (
+                                                        <Typography variant="body2">
+                                                            {formatDate(params.value) || '—'}
+                                                        </Typography>
+                                                    )
+                                                },
+                                                {
                                                     field: 'MessageType',
                                                     headerName: 'MESSAGE TYPE',
                                                     width: 120,
@@ -574,36 +597,6 @@ const CampaignReport = () => {
                                                             />
                                                         );
                                                     }
-                                                },
-                                                {
-                                                    field: 'DateTime',
-                                                    headerName: 'DATE TIME',
-                                                    width: 180,
-                                                    renderCell: (params) => (
-                                                        <Typography variant="body2">
-                                                            {formatDate(params.value) || '—'}
-                                                        </Typography>
-                                                    )
-                                                },
-                                                {
-                                                    field: 'PhoneNo',
-                                                    headerName: 'PHONE NO',
-                                                    flex: 1,
-                                                    renderCell: (params) => (
-                                                        <Typography variant="body2" className={styles.userPhone}>
-                                                            {params.value || '—'}
-                                                        </Typography>
-                                                    )
-                                                },
-                                                {
-                                                    field: 'CustomerName',
-                                                    headerName: 'CUSTOMER NAME',
-                                                    flex: 1,
-                                                    renderCell: (params) => (
-                                                        <Typography variant="body2">
-                                                            {params.value || `${params.row.FirstName || ''} ${params.row.LastName || ''}`.trim() || '—'}
-                                                        </Typography>
-                                                    )
                                                 },
                                             ]}
                                             getRowId={(row) => row.MessageId || row.PhoneNo}

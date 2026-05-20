@@ -31,6 +31,17 @@ const HEADER_ICONS = {
     text: { Icon: FileQuestion, label: 'Text', color: 'var(--title-color)', bg: 'rgba(68, 64, 80, 0.16)' },
 };
 
+const canEditTemplate = (template) => {
+    const updatedAt = template?.UpdatedAt;
+    if (!updatedAt) return true;
+
+    const updatedAtMs = new Date(updatedAt).getTime();
+    if (!Number.isFinite(updatedAtMs)) return true;
+
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+    return (Date.now() - updatedAtMs) >= TWENTY_FOUR_HOURS_MS;
+};
+
 const TemplateGrid = ({ items, onView, onSend, onClone, onEdit, onDelete, onPublish, count, page, rowsPerPage, onPageChange, onRowsPerPageChange }) => {
     return (
         <Grid
@@ -66,6 +77,8 @@ const TemplateGrid = ({ items, onView, onSend, onClone, onEdit, onDelete, onPubl
 
                 const isApproved = template.WabaStatus?.toUpperCase() === 'APPROVED';
                 const isDraft = template.WabaStatus?.toUpperCase() === 'DRAFT';
+                const isPending = template.WabaStatus?.toUpperCase() === 'PENDING';
+                const canEdit = canEditTemplate(template);
 
                 return (
                     <Grid size={{ xs: 12, sm: 6, md: 4 }} key={template.Id}>
@@ -150,9 +163,20 @@ const TemplateGrid = ({ items, onView, onSend, onClone, onEdit, onDelete, onPubl
                                         <IconButton icon={Send} color="success" tooltip="Send" onClick={() => onSend(template)} size={20} />
                                     )}
 
-                                    <IconButton icon={Copy} color="info" tooltip="Clone" onClick={() => onClone(template)} size={20} />
+                                    {!isPending && (
+                                        <IconButton icon={Copy} color="info" tooltip="Clone" onClick={() => onClone(template)} size={20} />
+                                    )}
 
-                                    <IconButton icon={Edit2} color="secondary" tooltip="Edit" onClick={() => onEdit(template)} size={20} />
+                                    {!isPending && (
+                                        <IconButton
+                                            icon={Edit2}
+                                            color="secondary"
+                                            tooltip={canEdit ? 'Edit' : 'Editable after 24 hours from last update'}
+                                            onClick={canEdit ? () => onEdit(template) : undefined}
+                                            disabled={!canEdit}
+                                            size={20}
+                                        />
+                                    )}
 
                                     {isDraft && (
                                         <IconButton icon={Rocket} color="primary" tooltip="Submit/Apply" onClick={() => onPublish(template)} size={20} />

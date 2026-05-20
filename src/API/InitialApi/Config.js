@@ -17,6 +17,8 @@ export const MESSAGEAPIURL = `${API_BASE_URL}/whatsapp/chat/send`;
 export const MESSAGEAPIURLBULK = `${API_BASE_URL}/whatsapp/chat/send-bulk`;
 export const GETCONVERSATIONURL = `${API_BASE_URL}/report`;
 export const UPLOADMEDIA = MEDIA_BASE_URL;
+export const UPLOADFILE = isLocal ? 'nxt22.optigoapps.com/api/upload' : `${API_BASE_URL}/upload`;
+export const REMOVE_FILE_URL = isLocal ? 'nxt22.optigoapps.com/api/removefile' : `${API_BASE_URL}/removefile`;
 export const LOGOUTAPI = `${API_BASE_URL}/whatsapp/chat/logout`;
 export const SAVEPLAYERID = `${API_BASE_URL}/report`;
 export const EXCELIMPORT = `${API_BASE_URL}/whatsapp/brodcast/excel-import`;
@@ -35,7 +37,6 @@ export const META_MEDIA_UPLOAD = `${API_BASE_URL}/meta/v19.0`;
 
 export const getHeaders = (whatsappNumber) => {
     const userToken = JSON.parse(sessionStorage.getItem("userToken"));
-
     const version = "v2";
     const headers = {
         Yearcode: userToken?.yc || userToken?.yearcode,
@@ -43,12 +44,10 @@ export const getHeaders = (whatsappNumber) => {
         sv: userToken?.svid || userToken?.sv,
         sp: "16",
     };
-
     const resolvedWhatsappNumber = whatsappNumber || userToken?.whatsappNumber;
     if (resolvedWhatsappNumber) {
         headers.whatsappNumber = resolvedWhatsappNumber;
     }
-
     return headers;
 };
 

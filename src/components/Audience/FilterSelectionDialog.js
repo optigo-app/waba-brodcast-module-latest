@@ -75,8 +75,10 @@ const FilterSelectionDialog = ({
   const [gridData, setGridData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [removeDuplicateMobiles, setRemoveDuplicateMobiles] = useState(true);
   const searchDebounceRef = React.useRef(null);
   const filterDebounceRef = React.useRef(null);
+  const hasAppliedPreselectionRef = React.useRef(false);
 
   // Branch and Group filters
   const [selectedBranches, setSelectedBranches] = useState([]);
@@ -109,6 +111,7 @@ const FilterSelectionDialog = ({
   // Sync localSource with source prop when dialog opens
   useEffect(() => {
     if (open) {
+      hasAppliedPreselectionRef.current = false;
       setLocalSource(source);
       
       // Initialize filters from parent if provided
@@ -312,7 +315,22 @@ const FilterSelectionDialog = ({
     }));
   }, [gridData]);
 
-  const visibleGridData = React.useMemo(() => {
+  const getMobileValue = (row) => {
+    const rawMobile = getFieldValue(row, [
+      'CustomerPhone',
+      'PhoneNo',
+      'MobileNo',
+      'mobileNo',
+      'Mobile',
+      'mobile',
+      'phone',
+      'phoneno',
+    ]);
+
+    return rawMobile.replace(/\D/g, '');
+  };
+
+  const filteredGridData = React.useMemo(() => {
     let rows = Array.isArray(gridData) ? [...gridData] : [];
 
     const q = (searchText || '').trim().toLowerCase();
@@ -368,12 +386,59 @@ const FilterSelectionDialog = ({
     return rows;
   }, [gridData, isLocalFilterMode, searchText, appliedFilters, searchableRows]);
 
+  const dedupeStats = React.useMemo(() => {
+    if (!removeDuplicateMobiles) {
+      return {
+        rows: filteredGridData,
+        duplicateRowsRemoved: 0,
+        duplicateNumbersCount: 0,
+      };
+    }
+
+    const seenMobiles = new Set();
+    const duplicateMobileNumbers = new Set();
+    const uniqueRows = [];
+    let duplicateRowsRemoved = 0;
+
+    filteredGridData.forEach((row) => {
+      const mobile = getMobileValue(row);
+      if (!mobile) {
+        uniqueRows.push(row);
+        return;
+      }
+
+      if (seenMobiles.has(mobile)) {
+        duplicateRowsRemoved += 1;
+        duplicateMobileNumbers.add(mobile);
+        return;
+      }
+
+      seenMobiles.add(mobile);
+      uniqueRows.push(row);
+    });
+
+    return {
+      rows: uniqueRows,
+      duplicateRowsRemoved,
+      duplicateNumbersCount: duplicateMobileNumbers.size,
+    };
+  }, [filteredGridData, removeDuplicateMobiles]);
+
+  const visibleGridData = dedupeStats.rows;
+
   // Apply pre-selected data after grid data is loaded
   useEffect(() => {
-    if (open && preSelectedData && preSelectedData.length > 0 && visibleGridData.length > 0) {
+    if (
+      open
+      && !hasAppliedPreselectionRef.current
+      && preSelectedData
+      && preSelectedData.length > 0
+      && visibleGridData.length > 0
+    ) {
       const preSelectedIds = preSelectedData.map(row => row.CustomerId || row.id);
       setSelectedIds(preSelectedIds);
       setRowSelectionModel({ type: 'include', ids: new Set(preSelectedIds) });
+      hasAppliedPreselectionRef.current = true;
     }
   }, [open, preSelectedData, visibleGridData.length]);
 
@@ -446,13 +511,6 @@ const FilterSelectionDialog = ({
       const result = await fetchGroupFilterList(userToken?.userId, {
         groupFilter,
         branchFilter,
-        companyName: filtersValue.companyName || '',
-        companyType: filtersValue.companyType || '',
-        state: filtersValue.state || '',
-        city: filtersValue.city || '',
-        country: filtersValue.country || '',
-        searchTerm: searchTermValue || '',
-        whereClause: appliedGroup?.WhereClause || '',
       });
 
       if (result && latestSourceRef.current === 'crm') {
@@ -1060,6 +1118,17 @@ const FilterSelectionDialog = ({
               />
             </Box>
 
+            <Box sx={{ ...prioritySectionSx, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: '#334155' }}>
+                Remove duplicate mobile no
+              </Typography>
+              <Checkbox
+                checked={removeDuplicateMobiles}
+                onChange={(e) => setRemoveDuplicateMobiles(e.target.checked)}
+                size="small"
+              />
+            </Box>
+
             {/* Branch Filter - Chip view - Hide for excel source and when no branch data */}
             {localSource !== 'excel' && branchData.length > 0 && (
               <Box sx={prioritySectionSx}>
@@ -1232,6 +1301,11 @@ const FilterSelectionDialog = ({
               Filtered Results ({visibleGridData.length} records)
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {removeDuplicateMobiles && dedupeStats.duplicateRowsRemoved > 0 && (
+                <Typography variant="caption" sx={{ color: 'var(--secondary-color)' }}>
+                  Removed {dedupeStats.duplicateRowsRemoved} duplicate rows ({dedupeStats.duplicateNumbersCount} duplicate numbers)
+                </Typography>
+              )}
               <Button
                 size="small"
                 onClick={() => {
@@ -1268,7 +1342,7 @@ const FilterSelectionDialog = ({
               columns={columns}
               checkboxSelection
               disableSelectionOnClick
-              getRowId={(row) => row?.CustomerId ?? row?.id ?? Math.random().toString(36).substr(2, 9)}
+              getRowId={(row) => row?.CustomerId ?? row?.id ?? row?.PhoneNo ?? row?.CustomerPhone ?? row?.Email ?? row?.CustomerCode}
               loading={loading}
               components={{
                 LoadingOverlay: LinearProgress,
@@ -1283,18 +1357,41 @@ const FilterSelectionDialog = ({
                   selectionModel = { type: 'include', ids: new Set() };
                 }
 
-                let nextSelectedIds = [];
+                const visibleIds = visibleGridData
+                  .map((row) => row?.CustomerId ?? row?.id)
+                  .filter((id) => id !== undefined && id !== null);
+
+                const selectedIdsSet = new Set(selectedIds || []);
+
+                // Preserve previously selected IDs that are not part of current visible rows
+                visibleIds.forEach((id) => {
+                  selectedIdsSet.delete(id);
+                });
+
+                let currentlySelectedVisibleIds = [];
                 if (selectionModel.type === 'exclude') {
                   const excludedIds = selectionModel.ids instanceof Set ? selectionModel.ids : new Set();
-                  nextSelectedIds = visibleGridData
+                  currentlySelectedVisibleIds = visibleGridData
                     .map((row) => row?.CustomerId ?? row?.id)
                     .filter((id) => id !== undefined && id !== null && !excludedIds.has(id));
                 } else {
-                  nextSelectedIds = Array.from(selectionModel.ids || []);
+                  currentlySelectedVisibleIds = Array.from(selectionModel.ids || []);
                 }
 
-                setSelectedIds(nextSelectedIds);
-                setRowSelectionModel(selectionModel);
+                currentlySelectedVisibleIds.forEach((id) => {
+                  selectedIdsSet.add(id);
+                });
+
+                const nextSelectedIds = Array.from(selectedIdsSet);
+                const prevSelectedIds = Array.isArray(selectedIds) ? selectedIds : [];
+                const isSameSelection =
+                  prevSelectedIds.length === nextSelectedIds.length
+                  && prevSelectedIds.every((id) => selectedIdsSet.has(id));
+
+                if (!isSameSelection) {
+                  setSelectedIds(nextSelectedIds);
+                  setRowSelectionModel({ type: 'include', ids: new Set(nextSelectedIds) });
+                }
               }}
               rowSelectionModel={safeRowSelectionModel}
               sx={{

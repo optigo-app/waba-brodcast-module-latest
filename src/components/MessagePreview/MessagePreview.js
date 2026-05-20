@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Typography } from '@mui/material';
-import { ArrowLeft, Users, Phone, MoreVertical, CheckCheck, ChevronLeft, ChevronRight, FileText, Image, Video } from 'lucide-react';
+import { ArrowLeft, Users, Phone, MoreVertical, CheckCheck, ChevronLeft, ChevronRight, FileText, Image, Video, ExternalLink, PhoneCall, Reply } from 'lucide-react';
 import styles from './MessagePreview.module.scss';
 import { previewBg } from '../../utils/globalFunc';
 
@@ -69,8 +69,7 @@ const MessagePreview = ({
                 </div>
                 <div className={styles.previewChatBg} style={previewBg}>
                     {hasPreviewMessage ? (
-                        <div className={styles.previewBubbleWrap}>
-                            <div className={styles.previewBubbleAccent} />
+                        <div className={`${styles.previewBubbleWrap} ${templateType === 'Carousel' ? styles.previewBubbleWrapCarousel : ''}`}>
                             {templateType === 'Carousel' ? (
                                 <div className={styles.previewCarouselWrap}>
                                     {/* Top level body for carousel */}
@@ -98,9 +97,21 @@ const MessagePreview = ({
                                             {carouselCards.map((card, idx) => (
                                                 <div key={card.id || idx} className={styles.previewCardUnit}>
                                                     <div className={styles.previewCard}>
-                                                        {card.header.file ? (
+                                                        {(card.header.file || card.header.mediaUrl || card.header.existingHandle) ? (
                                                             card.header.mediaType === 'image' ? (
-                                                                <img src={URL.createObjectURL(card.header.file)} alt="card" className={styles.previewCardMedia} />
+                                                                <img
+                                                                    src={card.header.file ? URL.createObjectURL(card.header.file) : (card.header.mediaUrl || card.header.existingHandle)}
+                                                                    alt="card"
+                                                                    className={styles.previewCardMedia}
+                                                                />
+                                                            ) : card.header.mediaType === 'video' ? (
+                                                                <video
+                                                                    src={card.header.file ? URL.createObjectURL(card.header.file) : (card.header.mediaUrl || card.header.existingHandle)}
+                                                                    className={styles.previewCardMedia}
+                                                                    controls
+                                                                    playsInline
+                                                                    preload="metadata"
+                                                                />
                                                             ) : (
                                                                 <div className={styles.previewCardMedia} style={{ background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                                     <Video size={24} color="#fff" />
@@ -118,7 +129,12 @@ const MessagePreview = ({
 
                                                         <div className={styles.previewCardButtons}>
                                                             {card.buttons.map((btn, bIdx) => (
-                                                                <div key={btn.id || bIdx} className={styles.previewCardBtn}>{btn.label || 'Button'}</div>
+                                                                <div key={btn.id || bIdx} className={styles.previewCardBtn}>
+                                                                    {btn.type === 'URL' && <ExternalLink size={13} className={styles.previewCardBtnIcon} />}
+                                                                    {btn.type === 'PHONE_NUMBER' && <PhoneCall size={13} className={styles.previewCardBtnIcon} />}
+                                                                    {btn.type === 'QUICK_REPLY' && <Reply size={13} className={styles.previewCardBtnIcon} />}
+                                                                    <span className={styles.previewCardBtnText}>{btn.text || btn.label || 'Button'}</span>
+                                                                </div>
                                                             ))}
                                                         </div>
                                                     </div>
@@ -183,7 +199,7 @@ const MessagePreview = ({
                                         <div className={styles.previewButtons}>
                                             {buttons.map((btn) => (
                                                 <button key={btn.id} type="button" className={styles.previewActionBtn}>
-                                                    {btn.label || 'Button'}
+                                                    {btn.text || btn.label || 'Button'}
                                                 </button>
                                             ))}
                                         </div>

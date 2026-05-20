@@ -73,7 +73,6 @@ const AddCampaign = () => {
   useEffect(() => {
     if (location.state?.campaign) {
       const campaign = location.state.campaign;
-debugger
       const isRetarget = !!campaign.isRetarget;
       setIsRetargetFlow(isRetarget);
       if (isRetarget) {
@@ -110,7 +109,7 @@ debugger
         const formattedAudience = campaign.audienceData.map(item => ({
           customerId: item.CustomerId,
           CustomerPhone: item.PhoneNo,
-          CountryCode: '91',
+          CountryCode: item?.CountryCode || '',
           FirstName: item.FirstName,
           LastName: item.LastName,
           Source: item.Source
@@ -119,7 +118,6 @@ debugger
         setAudienceGridData(campaign.audienceData);
         setDataSource(campaign.audienceData[0]?.Source || 'optigo');
       }
-
       // Pre-fill template data
       if (campaign.templateData) {
         const template = campaign.templateData;
@@ -191,45 +189,166 @@ debugger
       let templateJson = [];
       if (templateData) {
         const components = templateData.Components || [];
+        let templateJsonComponents = [];
+        try {
+          if (typeof templateData.TemplateJson === 'string' && templateData.TemplateJson.trim()) {
+            const parsedTemplateJson = JSON.parse(templateData.TemplateJson);
+            templateJsonComponents = parsedTemplateJson?.template?.components || [];
+          } else if (templateData.TemplateJson?.template?.components) {
+            templateJsonComponents = templateData.TemplateJson.template.components;
+          }
+        } catch (error) {
+          console.error('Error parsing template TemplateJson:', error);
+        }
+
+        const baseComponents = Array.isArray(templateJsonComponents) && templateJsonComponents.length > 0
+          ? templateJsonComponents
+          : components;
         const variables = templateData.variables || {};
+        const mediaUrls = Array.isArray(templateData.MediaUrls) ? templateData.MediaUrls.filter(Boolean) : [];
+        const bodyDefinition = components.find((component) => String(component?.type || '').toUpperCase() === 'BODY');
+        const fallbackBodyValues = bodyDefinition?.example?.body_text?.[0] || [];
+
+        const getVariableValue = (position) => {
+          const variableKey = position + 1;
+          const valueFromVariables = variables[variableKey] ?? variables[String(variableKey)] ?? '';
+          if (String(valueFromVariables).trim() !== '') {
+            return valueFromVariables;
+          }
+          return fallbackBodyValues[position] || '';
+        };
+        let mediaIndex = 0;
+
+        const getMappedHeaderComponent = (headerComponent) => {
+          const headerTypeRaw = headerComponent?.format || headerComponent?.parameters?.[0]?.type || '';
+          const headerFormat = String(headerTypeRaw || '').toUpperCase();
+          if (!['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerFormat)) {
+            return headerComponent;
+          }
+
+          const mediaUrl = mediaUrls[mediaIndex]
+            || headerComponent?.example?.header_handle?.[0]
+            || headerComponent?.parameters?.[0]?.[String(headerTypeRaw || '').toLowerCase()]?.link
+            || null;
+
+          if (mediaUrls[mediaIndex]) {
+            mediaIndex += 1;
+          }
+
+          if (!mediaUrl) {
+            return headerComponent;
+          }
+
+          const typeMap = {
+            IMAGE: 'image',
+            VIDEO: 'video',
+            DOCUMENT: 'document'
+          };
+
+          return {
+            type: 'header',
+            parameters: [
+              {
+                type: typeMap[headerFormat],
+                [typeMap[headerFormat]]: { link: mediaUrl }
+              }
+            ]
+          };
+        };
 
         // Check if any variable has a non-empty value
         const hasFilledVariables = Object.values(variables).some(val => val && val.trim() !== '');
+        const hasBodyParameterComponents = baseComponents.some((component) => {
+          const type = String(component?.type || '').toUpperCase();
+          return type === 'BODY' && Array.isArray(component?.parameters) && component.parameters.length > 0;
+        });
+        const hasMediaComponents = baseComponents.some((component) => {
+          const type = String(component?.type || '').toUpperCase();
+          return type === 'HEADER' || type === 'CAROUSEL';
+        });
+        const shouldProcessComponents = baseComponents.length > 0 && (hasFilledVariables || mediaUrls.length > 0 || hasMediaComponents || hasBodyParameterComponents);
 
-        if (hasFilledVariables && components.length > 0) {
+        if (shouldProcessComponents) {
           // Replace VARIABLE_TEXT placeholders with actual variable values
-          const processedComponents = components.map(component => {
-            if (component.type === 'BODY' && component.text) {
+          const processedComponents = baseComponents.map(component => {
+            const componentType = String(component?.type || '').toUpperCase();
+            if (componentType === 'HEADER') {
+              return getMappedHeaderComponent(component);
+            }
+
+            if (componentType === 'CAROUSEL') {
+              const cards = (component.cards || []).map((card, cardIndex) => {
+                const cardHeader = card.components?.find((c) => String(c?.type || '').toUpperCase() === 'HEADER') || null;
+                const mappedCardHeader = cardHeader ? getMappedHeaderComponent(cardHeader) : null;
+                const mappedCardComponents = mappedCardHeader ? [mappedCardHeader] : [];
+
+                return {
+                  card_index: cardIndex,
+                  components: mappedCardComponents
+                };
+              });
+
+              return {
+                type: 'carousel',
+                cards
+              };
+            }
+
+            if (componentType === 'BODY' && component.text) {
               const parameters = [];
               const matches = component.text.match(/\{\{\d+\}\}/g);
               if (matches) {
                 matches.forEach((match, index) => {
-                  const varNum = index + 1;
-                  const varValue = variables[varNum] || '';
+                  const varNum = Number(String(match).replace(/\D/g, '')) || (index + 1);
+                  const varValue = variables[varNum] ?? variables[String(varNum)] ?? getVariableValue(index);
                   parameters.push({
                     type: 'text',
                     text: varValue
                   });
                 });
               }
+              if (parameters.length === 0) {
+                return null;
+              }
               return {
-                type: component.type,
+                type: 'body',
                 parameters: parameters
+              };
+            }
+
+            if (componentType === 'BODY' && Array.isArray(component.parameters)) {
+              const mappedParameters = component.parameters.map((parameter, index) => {
+                if (String(parameter?.type || '').toUpperCase() !== 'TEXT') {
+                  return parameter;
+                }
+
+                const mappedText = getVariableValue(index);
+                return {
+                  ...parameter,
+                  text: mappedText || parameter.text || ''
+                };
+              });
+
+              return {
+                ...component,
+                type: 'body',
+                parameters: mappedParameters
               };
             }
             // For non-BODY components (HEADER, FOOTER, BUTTONS), include as-is
             return component;
           });
-
+          const resolvedTemplateId = templateData.TemplateId || templateData.Id || templateData.id || '';
           templateJson = [{
-            TemplateId: templateData.TemplateId || 1,
+            TemplateId: resolvedTemplateId,
             WabaTemplateId: templateData.WabaTemplateId || templateData.id,
-            Components: processedComponents
+            Components: processedComponents.filter(Boolean)
           }];
         } else {
-          // No variables filled, send blank array for Components
+          // No variables/media components to map, send without Components
+          const resolvedTemplateId = templateData.TemplateId || templateData.Id || templateData.id || '';
           templateJson = [{
-            TemplateId: templateData.TemplateId || 1,
+            TemplateId: resolvedTemplateId,
             WabaTemplateId: templateData.WabaTemplateId || templateData.id,
           }];
         }

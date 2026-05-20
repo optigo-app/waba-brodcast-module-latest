@@ -34,8 +34,6 @@ const MediaUpload = ({ type, uploadedMedia, setUploadedMedia, onFileSelect }) =>
             size: file.size,
             isDefault: false
         };
-
-        console.log("TCL: handleFileUpload -> fileData", fileData)
         setUploadedMedia(fileData);
 
         // Update the template data with the new media

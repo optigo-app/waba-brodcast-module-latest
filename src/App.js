@@ -1,5 +1,6 @@
 import './App.css';
 import { Route, Routes } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import Home from './components/Home';
 // import Inbound from './components/Inbound/Inbound';
 // import Outbound from './components/Outbound/Outbound';
@@ -13,9 +14,37 @@ import Templates from './components/Templates/Templates';
 import CreateTemplatePage from './components/Templates/CreateTemplatePage';
 import AddCampaign from './components/AddCampaign/AddCampaign';
 import CampaignReport from './components/CampaignReport/CampaignReport';
+import socket from './utils/socket';
 
 function App() {
   const { userToken } = useAuthToken();
+  const [isConnected, setIsConnected] = useState(socket.connected);
+
+  useEffect(() => {
+    function onConnect() {
+      setIsConnected(true);
+      console.log('✅ Socket connected');
+    }
+
+    function onDisconnect() {
+      setIsConnected(false);
+      console.log('❌ Socket disconnected');
+    }
+
+    function onTemplateUpdate(data) {
+      console.log('📨 templateUpdate received:', data);
+    }
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('templateUpdate', onTemplateUpdate);
+
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('templateUpdate', onTemplateUpdate);
+    };
+  }, []);
 
   if (!userToken) {
     return <Unauthenticated />;

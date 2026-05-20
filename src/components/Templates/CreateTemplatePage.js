@@ -1,22 +1,33 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
     X, ChevronLeft, Plus, ArrowLeft, Users, Phone,
-    MoreVertical, Smile, Paperclip, Camera, Mic, CheckCheck, FileText,
-    Image, Video, MapPin, Upload,
+    MoreVertical, Camera, Mic, CheckCheck, FileText,
+    Image,
     ChevronRight, Megaphone, Bell, Key,
-    MessageSquare, Layout, Clock, BookOpen, Package, Save, Slash, Type, Code
+    MessageSquare, Layout, Clock, BookOpen, Package, Save, Slash, Type
 } from 'lucide-react';
-import { Box, Modal, Typography, Button, IconButton, TextField, CircularProgress, LinearProgress, Grid, Paper, Tooltip } from '@mui/material';
+import { Box, Typography, Button, TextField, CircularProgress, Grid, Paper } from '@mui/material';
 import { createTemplate } from '../../API/TemplateList/CreateTemplate';
 import { editTemplate } from '../../API/TemplateList/EditTemplate';
 import { uploadMetaMedia } from '../../API/InitialApi/UploadMetaMedia';
+import { filesUploadApi } from '../../API/InitialApi/filesUploadApi';
 import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './CreateTemplatePage.module.scss';
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal';
 import MessagePreview from '../MessagePreview/MessagePreview';
-import Picker from '@emoji-mart/react';
-import data from '@emoji-mart/data';
+import TemplateButtonSection from './TemplateButtonSection';
+import TemplateCarouselSection from './TemplateCarouselSection';
+import TemplateBodySection from './TemplateBodySection';
+import TemplateHeaderSection from './TemplateHeaderSection';
+import TemplateDetailsStepSection from './TemplateDetailsStepSection';
+import {
+    createButtonConfig,
+    getButtonMenuOptions,
+    mapButtonToApi,
+    mapExistingApiButtonToEditor,
+} from './templateButtonUtils';
+import { normalizeTemplateName, validateMediaFile } from './templateBuilderUtils';
 
 // step 1 = Template Details, step 2 = Builder
 const MEDIA_CONFIG = {
@@ -51,8 +62,8 @@ const CreateTemplatePage = () => {
 
     const [templateDetails, setTemplateDetails] = useState({
         templateName: '',
-        templateLanguage: 'en_US',
-        templateCategory: '',
+        templateLanguage: 'en',
+        templateCategory: 'Utility',
     });
 
     const [builderData, setBuilderData] = useState({
@@ -78,19 +89,41 @@ const CreateTemplatePage = () => {
     const [saveError, setSaveError] = useState('');
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
+    const [saveProcess, setSaveProcess] = useState({ active: false, title: '', message: '', progress: null });
     const [confirmationModal, setConfirmationModal] = useState({ isOpen: false, mode: null });
     const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+    const [templateNameError, setTemplateNameError] = useState('');
+    const [isMainButtonMenuOpen, setIsMainButtonMenuOpen] = useState(false);
+    const [isCardButtonMenuOpen, setIsCardButtonMenuOpen] = useState(false);
 
     const editTemplateData = location.state?.template;
     const isClone = location.state?.isClone || false;
     const isEditMode = !!editTemplateData && !isClone;
+
+    const setProcessStep = (message, progress = null) => {
+        setSaveProcess({
+            active: true,
+            title: isEditMode ? 'Updating Template' : 'Creating Template',
+            message,
+            progress,
+        });
+    };
+
+    const getCategoryLabel = (value) => {
+        const raw = String(value || '').trim();
+        const normalized = raw.toUpperCase();
+        if (normalized === 'MARKETING') return 'Marketing';
+        if (normalized === 'UTILITY') return 'Utility';
+        if (normalized === 'AUTHENTICATION') return 'Authentication';
+        return raw;
+    };
 
     useEffect(() => {
         if (editTemplateData) {
             setTemplateDetails({
                 templateName: isClone ? `${editTemplateData.TemplateName}_clone` : (editTemplateData.TemplateName || ''),
                 templateLanguage: editTemplateData.Language || 'en_US',
-                templateCategory: editTemplateData.TemplateType || '',
+                templateCategory: getCategoryLabel(editTemplateData.TemplateType),
             });
 
             let components = [];
@@ -106,6 +139,8 @@ const CreateTemplatePage = () => {
             const body = components.find(c => c.type === 'BODY');
             const footer = components.find(c => c.type === 'FOOTER');
             const buttons = components.find(c => c.type === 'BUTTONS');
+            const carouselComponent = components.find(c => String(c?.type || '').toUpperCase() === 'CAROUSEL');
+            const isCarouselTemplate = Array.isArray(carouselComponent?.cards);
 
             const initialVars = {};
             if (body?.example?.body_text?.[0]) {
@@ -115,18 +150,67 @@ const CreateTemplatePage = () => {
             }
             setVariableValues(initialVars);
 
-            setBuilderData({
-                templateType: 'Interactive',
-                headerType: header ? (header.format === 'TEXT' ? 'Text' : 'Media') : 'None',
-                headerText: header?.text || '',
-                headerTextExample: header?.example?.header_text?.[0] || '',
-                body: body?.text || '',
-                footer: footer?.text || '',
-                buttons: buttons?.buttons?.map(b => ({ label: b.text || '' })) || [],
-            });
+            if (isCarouselTemplate) {
+                let mediaUrls = [];
+                try {
+                    if (Array.isArray(editTemplateData.MediaData)) {
+                        mediaUrls = editTemplateData.MediaData.filter(Boolean);
+                    } else if (typeof editTemplateData.MediaData === 'string' && editTemplateData.MediaData.trim()) {
+                        const parsedMedia = JSON.parse(editTemplateData.MediaData);
+                        mediaUrls = Array.isArray(parsedMedia) ? parsedMedia.filter(Boolean) : [];
+                    }
+                } catch (error) {
+                    console.error('Error parsing carousel template media:', error);
+                }
 
-            // Restore existing media handle + preview URL for edit mode
-            if (header && header.format !== 'TEXT' && header.example?.header_handle?.[0]) {
+                const mappedCards = carouselComponent.cards.map((card, cardIndex) => {
+                    const cardComponents = card?.components || [];
+                    const cardHeader = cardComponents.find((item) => String(item?.type || '').toUpperCase() === 'HEADER');
+                    const cardBody = cardComponents.find((item) => String(item?.type || '').toUpperCase() === 'BODY');
+                    const cardButtons = cardComponents.find((item) => String(item?.type || '').toUpperCase() === 'BUTTONS');
+                    const existingHandle = cardHeader?.example?.header_handle?.[0] || '';
+                    const mediaUrl = mediaUrls[cardIndex] || existingHandle;
+
+                    return {
+                        id: Date.now() + cardIndex,
+                        header: {
+                            mediaType: (cardHeader?.format || 'IMAGE').toLowerCase(),
+                            file: null,
+                            handle: existingHandle,
+                            existingHandle,
+                            mediaUrl,
+                        },
+                        body: cardBody?.text || '',
+                        buttons: (cardButtons?.buttons || []).map((b, idx) => mapExistingApiButtonToEditor(b, idx)),
+                    };
+                });
+
+                setBuilderData({
+                    templateType: 'Carousel',
+                    headerType: 'Media',
+                    headerText: '',
+                    headerTextExample: '',
+                    body: body?.text || '',
+                    footer: '',
+                    buttons: [],
+                });
+                setCarouselCards(mappedCards);
+                setActiveCardIndex(0);
+                setPreviewCardIndex(0);
+            } else {
+                setBuilderData({
+                    templateType: 'Interactive',
+                    headerType: header ? (header.format === 'TEXT' ? 'Text' : 'Media') : 'None',
+                    headerText: header?.text || '',
+                    headerTextExample: header?.example?.header_text?.[0] || '',
+                    body: body?.text || '',
+                    footer: footer?.text || '',
+                    buttons: buttons?.buttons?.map((b, idx) => mapExistingApiButtonToEditor(b, idx)) || [],
+                });
+            }
+
+            // Restore existing media handle + preview URL for interactive edit mode
+            if (!isCarouselTemplate && header && header.format !== 'TEXT' && header.example?.header_handle?.[0]) {
                 const existingHandle = header.example.header_handle[0];
                 const fmt = header.format?.toLowerCase() || 'image'; // IMAGE → image
                 setHeaderMedia((p) => ({
@@ -178,11 +262,126 @@ const CreateTemplatePage = () => {
         navigate('/templates');
     };
 
+    const validateTemplate = () => {
+        const rawBody = (builderData.body || '').replace(/\\n/g, '\n').trim();
+
+        if (/\{\{\d+\}\}\s*$/.test(rawBody)) {
+            return 'Body cannot end with a variable like {{1}}. Add text after it.';
+        }
+
+        if (!rawBody) {
+            return 'Template body is required.';
+        }
+
+        const missingVar = variableKeys.find((k) => !variableValues[k]?.trim());
+        if (missingVar !== undefined) {
+            return `Provide a sample value for variable {{${missingVar}}}.`;
+        }
+
+        if (builderData.templateType === 'Carousel') {
+            if (carouselCards.length < 2 || carouselCards.length > 10) {
+                return 'Carousel must contain between 2 and 10 cards.';
+            }
+
+            const firstType = carouselCards[0].header.mediaType;
+            for (let i = 0; i < carouselCards.length; i++) {
+                const c = carouselCards[i];
+                if (c.header.mediaType !== firstType) {
+                    return `All cards must have the same media type. Card ${i + 1} is different.`;
+                }
+                if (!c.header.file && !c.header.existingHandle) {
+                    return `Card ${i + 1} is missing a media file.`;
+                }
+                if (!c.body?.trim()) {
+                    return `Card ${i + 1} body is required.`;
+                }
+
+                const quickReplyCount = c.buttons.filter((b) => b.type === 'QUICK_REPLY').length;
+                const ctaCount = c.buttons.filter((b) => b.type === 'PHONE_NUMBER' || b.type === 'URL').length;
+
+                if (c.buttons.length !== 2) {
+                    return `Card ${i + 1} requires exactly 2 buttons (1 Quick Reply and 1 Call-to-action).`;
+                }
+                if (quickReplyCount > 1) {
+                    return `Card ${i + 1} requires at max 1 Quick Reply button.`;
+                }
+                if (ctaCount > 1) {
+                    return `Card ${i + 1} requires at max 1 Call-to-action button (Call or Website).`;
+                }
+                if (c.buttons.some((b) => !(b.text || '').trim())) {
+                    return `Provide button text for all buttons in Card ${i + 1}.`;
+                }
+                const cardButtonError = c.buttons
+                    .map((button) => validateButtonFields(button, { cardIndex: i }))
+                    .find(Boolean);
+                if (cardButtonError) {
+                    return cardButtonError;
+                }
+            }
+
+            const firstCardButtonCount = carouselCards[0].buttons.length;
+            for (let i = 1; i < carouselCards.length; i++) {
+                if (carouselCards[i].buttons.length !== firstCardButtonCount) {
+                    return 'All cards in a carousel must have the same number of buttons.';
+                }
+            }
+
+            const getButtonSignature = (button = {}) => {
+                if (button.type === 'URL') {
+                    return `URL:${button.urlType || 'STATIC'}`;
+                }
+                return button.type || '';
+            };
+            const firstCardButtonStructure = carouselCards[0].buttons.map(getButtonSignature).join('|');
+            for (let i = 1; i < carouselCards.length; i++) {
+                const cardStructure = carouselCards[i].buttons.map(getButtonSignature).join('|');
+                if (cardStructure !== firstCardButtonStructure) {
+                    return 'All carousel cards must use the same button action types in the same order.';
+                }
+            }
+        }
+
+        if (builderData.headerType === 'Media' && headerMedia.mediaType !== 'location') {
+            if (!headerMedia.file && !headerMedia.existingHandle) {
+                return `Please upload a ${headerMedia.mediaType} file for the header.`;
+            }
+        }
+
+        if (builderData.headerType === 'Text' && /\{\{1\}\}/.test(builderData.headerText)) {
+            if (!builderData.headerTextExample?.trim()) {
+                return 'Provide a sample value for the header variable {{1}}.';
+            }
+        }
+
+        if (builderData.buttons.length > 0) {
+            const mainButtonError = builderData.buttons
+                .map((button) => validateButtonFields(button))
+                .find(Boolean);
+            if (mainButtonError) {
+                return mainButtonError;
+            }
+        }
+
+        return null;
+    };
+
     const handleDraftClick = () => {
+        setSaveError('');
+        const validationError = validateTemplate();
+        if (validationError) {
+            setSaveError(validationError);
+            return;
+        }
         setConfirmationModal({ isOpen: true, mode: 'draft' });
     };
 
     const handleCreateClick = () => {
+        setSaveError('');
+        const validationError = validateTemplate();
+        if (validationError) {
+            setSaveError(validationError);
+            return;
+        }
         setConfirmationModal({ isOpen: true, mode: 'create' });
     };
 
@@ -218,18 +417,175 @@ const CreateTemplatePage = () => {
         { key: 'Authentication', description: 'Send codes to verify a transaction or login.', Icon: Key },
     ];
 
-    const canProceedToBuilder =
-        templateDetails.templateName.trim() &&
-        templateDetails.templateLanguage.trim() &&
-        templateDetails.templateCategory;
+    const handleNextFromDetails = () => {
+        if (!templateDetails.templateName.trim()) {
+            setTemplateNameError('Template name is required');
+            return;
+        }
+
+        setTemplateNameError('');
+        setStep(2);
+    };
 
     // Button helpers
-    const addActionButton = () =>
-        setBuilderData((prev) => ({ ...prev, buttons: [...prev.buttons, { id: Date.now(), label: '' }] }));
-    const updateActionButton = (id, label) =>
-        setBuilderData((prev) => ({ ...prev, buttons: prev.buttons.map((b) => (b.id === id ? { ...b, label } : b)) }));
-    const removeActionButton = (id) =>
+    const updateActionButton = (id, patch) => {
+        setBuilderData((prev) => ({
+            ...prev,
+            buttons: prev.buttons.map((b) => (b.id === id ? { ...b, ...patch } : b))
+        }));
+    };
+
+    const removeActionButton = (id) => {
         setBuilderData((prev) => ({ ...prev, buttons: prev.buttons.filter((b) => b.id !== id) }));
+    };
+
+    const handleMainButtonUpdate = (btn, _idx, patch) => {
+        updateActionButton(btn.id, patch);
+    };
+
+    const handleMainButtonRemove = (btn) => {
+        removeActionButton(btn.id);
+    };
+
+    const addMainButton = (type) => {
+        setBuilderData((prev) => ({
+            ...prev,
+            buttons: [...prev.buttons, createButtonConfig(type)]
+        }));
+        setIsMainButtonMenuOpen(false);
+    };
+
+    const addCardButton = (cardIndex, type) => {
+        const sourceButtons = carouselCards[cardIndex]?.buttons || [];
+        if (sourceButtons.length >= 2) {
+            setIsCardButtonMenuOpen(false);
+            return;
+        }
+
+        const nextSourceButtons = [...sourceButtons, createButtonConfig(type)];
+        setCarouselCards((prev) => prev.map((card) => ({
+            ...card,
+            buttons: nextSourceButtons.map((sourceBtn, idx) => {
+                const existing = card.buttons?.[idx];
+
+                if (existing && existing.type === sourceBtn.type) {
+                    if (sourceBtn.type === 'URL') {
+                        return {
+                            ...existing,
+                            urlType: sourceBtn.urlType || existing.urlType || 'STATIC'
+                        };
+                    }
+                    return existing;
+                }
+
+                const fresh = createButtonConfig(sourceBtn.type);
+                if (sourceBtn.type === 'URL') {
+                    fresh.urlType = sourceBtn.urlType || fresh.urlType || 'STATIC';
+                }
+                return fresh;
+            })
+        })));
+        setIsCardButtonMenuOpen(false);
+    };
+
+    const handleCardButtonUpdate = (cardIndex, btn, _idx, patch) => {
+        updateCardButton(cardIndex, btn.id, patch);
+    };
+
+    const handleCardButtonRemove = (cardIndex, _btn, idx) => {
+        removeCardButton(cardIndex, idx);
+    };
+
+    const handleCardHeaderTypeChange = (cardIndex, type) => {
+        const current = carouselCards[cardIndex].header;
+        const newData = {
+            header: {
+                ...current,
+                mediaType: type,
+                file: current.mediaType === type ? current.file : null
+            }
+        };
+        updateCardData(cardIndex, newData);
+    };
+
+    const handleCardFileChange = (cardIndex, e) => {
+        const f = e.target.files?.[0] || null;
+        const currentMediaType = carouselCards[cardIndex].header.mediaType;
+        const validation = validateMediaFile({
+            file: f,
+            mediaType: currentMediaType,
+            mediaConfig: MEDIA_CONFIG,
+            includeMaxSizeLabel: false,
+        });
+        if (!validation.isValid) {
+            toast.error(validation.error);
+            e.target.value = '';
+            return;
+        }
+        updateCardData(cardIndex, {
+            header: { ...carouselCards[cardIndex].header, file: f }
+        });
+    };
+
+    const handleCardBodyChange = (cardIndex, body) => {
+        updateCardData(cardIndex, { body: body.slice(0, 160) });
+        if (saveError.includes('body is required')) setSaveError('');
+    };
+
+    const handleHeaderMediaTypeChange = (type) => {
+        if (type === 'location') {
+            toast('Location coming soon', { icon: '🚧' });
+            return;
+        }
+        setHeaderMedia((p) => ({ ...p, mediaType: type, file: null, mediaUrl: '' }));
+    };
+
+    const handleHeaderMediaFileChange = (e) => {
+        const f = e.target.files?.[0] || null;
+        const validation = validateMediaFile({
+            file: f,
+            mediaType: headerMedia.mediaType,
+            mediaConfig: MEDIA_CONFIG,
+            includeMaxSizeLabel: true,
+        });
+        if (!validation.isValid) {
+            toast.error(validation.error);
+            e.target.value = '';
+            return;
+        }
+        setHeaderMedia((p) => ({ ...p, file: f, mediaUrl: f ? '' : p.existingHandle }));
+    };
+
+    const updateCardButton = (cardIndex, buttonId, patch) => {
+        setCarouselCards((prev) => {
+            const sourceButtons = prev[cardIndex]?.buttons || [];
+            const buttonIndex = sourceButtons.findIndex((btn) => btn.id === buttonId);
+            const shouldSyncStructure = buttonIndex >= 0 && Object.prototype.hasOwnProperty.call(patch, 'urlType');
+
+            return prev.map((card, idx) => {
+                const nextButtons = (card.buttons || []).map((btn, btnIdx) => {
+                    if (idx === cardIndex && btn.id === buttonId) {
+                        return { ...btn, ...patch };
+                    }
+
+                    if (shouldSyncStructure && btnIdx === buttonIndex && btn.type === 'URL') {
+                        return { ...btn, urlType: patch.urlType };
+                    }
+
+                    return btn;
+                });
+
+                return { ...card, buttons: nextButtons };
+            });
+        });
+    };
+
+    const removeCardButton = (cardIndex, buttonIndex) => {
+        setCarouselCards((prev) => prev.map((card) => ({
+            ...card,
+            buttons: (card.buttons || []).filter((_, idx) => idx !== buttonIndex)
+        })));
+    };
 
     // Carousel helpers
     const addCarouselCard = () => {
@@ -238,9 +594,21 @@ const CreateTemplatePage = () => {
             return;
         }
         const firstCardMediaType = carouselCards[0]?.header.mediaType || 'image';
+        const firstCardButtons = carouselCards[0]?.buttons || [];
         setCarouselCards((prev) => [
             ...prev,
-            { id: Date.now(), header: { mediaType: firstCardMediaType, file: null, handle: '' }, body: '', buttons: [] }
+            {
+                id: Date.now(),
+                header: { mediaType: firstCardMediaType, file: null, handle: '' },
+                body: '',
+                buttons: firstCardButtons.map((btn) => {
+                    const fresh = createButtonConfig(btn.type);
+                    if (btn.type === 'URL') {
+                        fresh.urlType = btn.urlType || fresh.urlType || 'STATIC';
+                    }
+                    return fresh;
+                })
+            }
         ]);
         setActiveCardIndex(carouselCards.length);
     };
@@ -347,79 +715,107 @@ const CreateTemplatePage = () => {
         builderData.buttons.length > 0 ||
         (builderData.templateType === 'Carousel' && carouselCards.length > 0);
 
+    const validateButtonFields = (button, { cardIndex = null } = {}) => {
+        const scopePrefix = cardIndex !== null ? `Card ${cardIndex + 1}: ` : '';
+
+        if (!(button.text || '').trim()) {
+            return `${scopePrefix}Provide button text.`;
+        }
+
+        if (button.type === 'PHONE_NUMBER') {
+            const phoneValue = (button.phone_number || '').trim();
+            if (!phoneValue) {
+                return `${scopePrefix}Provide phone number for call button.`;
+            }
+
+            const digitsOnly = phoneValue.replace(/\D/g, '');
+            if (digitsOnly.length < 8 || digitsOnly.length > 15) {
+                return `${scopePrefix}Phone number should contain 8 to 15 digits.`;
+            }
+        }
+
+        if (button.type === 'URL') {
+            const urlValue = (button.url || '').trim();
+            if (!urlValue) {
+                return `${scopePrefix}Provide website URL for visit website button.`;
+            }
+
+            if (!/^https?:\/\//i.test(urlValue)) {
+                return `${scopePrefix}Website URL must start with http:// or https://.`;
+            }
+
+            const hasVariable = /\{\{\d+\}\}/.test(urlValue);
+            if (button.urlType === 'DYNAMIC') {
+                if (!hasVariable) {
+                    return `${scopePrefix}Dynamic URL must include a variable like {{1}}.`;
+                }
+                if (!(button.example || '').trim()) {
+                    return `${scopePrefix}Provide example URL for dynamic website button.`;
+                }
+            }
+
+            if ((button.urlType || 'STATIC') === 'STATIC' && hasVariable) {
+                return `${scopePrefix}Static URL cannot contain variables like {{1}}.`;
+            }
+        }
+
+        return '';
+    };
+
     const handleSave = async (isDraft = false) => {
+        setIsSaving(true);
+        setProcessStep('Validating template details...', 5);
+
         const userToken = JSON.parse(sessionStorage.getItem('userToken'));
         setSaveError('');
 
+        const backgroundUploadFiles = [];
+        const uploadFolderName = `wababroadcast/${templateDetails.templateName
+            .toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[^a-z0-9_]/g, '')
+            .slice(0, 512)}`;
+        const uploadUniqueNo = `${Date.now()}_${Math.floor(100000 + Math.random() * 900000)}`;
+
         // Meta rules
         const rawBody = (builderData.body || '').replace(/\\n/g, '\n').trim();
-
-        if (/\{\{\d+\}\}\s*$/.test(rawBody)) {
-            setSaveError('Body cannot end with a variable like {{1}}. Add text after it.');
-            return;
-        }
-
-        if (!rawBody) {
-            setSaveError('Template body is required.');
-            return;
-        }
-        const missingVar = variableKeys.find((k) => !variableValues[k]?.trim());
-        if (missingVar !== undefined) {
-            setSaveError(`Provide a sample value for variable {{${missingVar}}}.`);
-            return;
-        }
 
         const safeName = templateDetails.templateName
             .toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').slice(0, 512);
 
         const components = [];
 
-        if (builderData.templateType === 'Carousel') {
-            // Validation
-            if (carouselCards.length < 2) {
-                setSaveError('Minimum 2 cards required for a carousel.');
-                return;
-            }
+        try {
+            setProcessStep('Preparing template components...', 15);
 
-            const firstType = carouselCards[0].header.mediaType;
+        if (builderData.templateType === 'Carousel') {
             for (let i = 0; i < carouselCards.length; i++) {
                 const c = carouselCards[i];
-                if (c.header.mediaType !== firstType) {
-                    setSaveError(`All cards must have the same media type. Card ${i + 1} is different.`);
-                    return;
-                }
-                if (!c.header.file) {
-                    setSaveError(`Card ${i + 1} is missing a media file.`);
-                    return;
-                }
-                if (!c.body.trim()) {
-                    setSaveError(`Card ${i + 1} body is required.`);
-                    return;
-                }
-                if (c.buttons.length > 0 && c.buttons.some(b => !b.label.trim())) {
-                    setSaveError(`Provide labels for all buttons in Card ${i + 1}.`);
-                    return;
-                }
-            }
-
-            // Button count consistency check
-            const firstCardButtonCount = carouselCards[0].buttons.length;
-            for (let i = 1; i < carouselCards.length; i++) {
-                if (carouselCards[i].buttons.length !== firstCardButtonCount) {
-                    setSaveError('All cards in a carousel must have the same number of buttons.');
-                    return;
+                if (c.header.file) {
+                    backgroundUploadFiles.push(c.header.file);
                 }
             }
 
             // sequential uploads
             const cardComponents = [];
             try {
+                setProcessStep('Uploading carousel media to WhatsApp...', 30);
                 setIsUploading(true);
                 for (let i = 0; i < carouselCards.length; i++) {
                     const c = carouselCards[i];
-                    setUploadProgress(0);
-                    toast(`Uploading Card ${i + 1} media...`, { icon: '☁️' });
-                    const handle = await uploadMetaMedia(c.header.file, setUploadProgress);
+                    let handle = c.header.existingHandle || '';
+                    if (c.header.file) {
+                        setProcessStep(`Uploading card ${i + 1} media to WhatsApp...`, 30 + Math.round(((i + 1) / carouselCards.length) * 25));
+                        setUploadProgress(0);
+                        toast(`Uploading Card ${i + 1} media...`, { icon: '☁️' });
+                        handle = await uploadMetaMedia(c.header.file, setUploadProgress);
+                    }
+
+                    if (!handle) {
+                        setSaveError(`Card ${i + 1} is missing a media handle.`);
+                        setIsUploading(false);
+                        return;
+                    }
 
                     const cardComps = [
                         {
@@ -434,7 +830,7 @@ const CreateTemplatePage = () => {
                     if (c.buttons.length > 0) {
                         cardComps.push({
                             type: 'BUTTONS',
-                            buttons: c.buttons.map(b => ({ type: 'QUICK_REPLY', text: b.label.trim() }))
+                            buttons: c.buttons.map((b) => mapButtonToApi(b))
                         });
                     }
                     cardComponents.push({ components: cardComps });
@@ -468,10 +864,6 @@ const CreateTemplatePage = () => {
             if (builderData.headerType === 'Text') {
                 const hComp = { type: 'HEADER', format: 'TEXT', text: builderData.headerText || '' };
                 if (/\{\{1\}\}/.test(builderData.headerText)) {
-                    if (!builderData.headerTextExample?.trim()) {
-                        setSaveError('Provide a sample value for the header variable {{1}}.');
-                        return;
-                    }
                     hComp.example = { header_text: [builderData.headerTextExample.trim()] };
                 }
                 components.push(hComp);
@@ -482,15 +874,13 @@ const CreateTemplatePage = () => {
                 if (fmt === 'LOCATION') {
                     components.push({ type: 'HEADER', format: 'LOCATION' });
                 } else {
-                    if (!headerMedia.file && !headerMedia.existingHandle) {
-                        setSaveError(`Please upload a ${headerMedia.mediaType} file for the header.`);
-                        return;
-                    }
-
                     let mediaHandle;
                     if (headerMedia.file) {
+                        backgroundUploadFiles.push(headerMedia.file);
+
                         // New file picked — upload to Meta
                         try {
+                            setProcessStep('Uploading header media to WhatsApp...', 40);
                             setIsUploading(true);
                             setUploadProgress(0);
                             mediaHandle = await uploadMetaMedia(headerMedia.file, setUploadProgress);
@@ -532,8 +922,37 @@ const CreateTemplatePage = () => {
             if (builderData.buttons.length > 0) {
                 components.push({
                     type: 'BUTTONS',
-                    buttons: builderData.buttons.map((b) => ({ type: 'QUICK_REPLY', text: b.label || '' })),
+                    buttons: builderData.buttons.map((b) => mapButtonToApi(b)),
                 });
+            }
+        }
+
+        let uploadedMediaUrls = [];
+        if (backgroundUploadFiles.length > 0) {
+            const attachments = backgroundUploadFiles.map((file) => ({ file }));
+            try {
+                setProcessStep('Uploading media files to server...', 70);
+                const uploadResult = await filesUploadApi({
+                    attachments,
+                    folderName: uploadFolderName,
+                    uniqueNo: uploadUniqueNo,
+                });
+
+                uploadedMediaUrls = (uploadResult?.files || [])
+                    .map((fileObj) => fileObj?.url)
+                    .filter(Boolean);
+
+                if (!uploadResult?.success || uploadedMediaUrls.length === 0) {
+                    const msg = uploadResult?.message || 'File upload failed before template save.';
+                    setSaveError(msg);
+                    toast.error(msg);
+                    return;
+                }
+            } catch (error) {
+                const msg = error?.response?.data?.message || error?.message || 'File upload failed before template save.';
+                setSaveError(msg);
+                toast.error(msg);
+                return;
             }
         }
 
@@ -544,6 +963,7 @@ const CreateTemplatePage = () => {
             UserId: userToken?.userId || '',
             Language: templateDetails.templateLanguage,
             Components: components,
+            MediaData: JSON.stringify(uploadedMediaUrls),
             IsDraft: isDraft ? 1 : 0,
         };
 
@@ -551,9 +971,8 @@ const CreateTemplatePage = () => {
             payload.TemplateId = editTemplateData.Id;
         }
 
-        setIsSaving(true);
+        setProcessStep(isEditMode ? 'Updating template details...' : 'Creating template...', 90);
         const result = isEditMode ? await editTemplate(payload) : await createTemplate(payload);
-        setIsSaving(false);
 
         if (!result.success) {
             const msg = result.error?.message || 'Failed to save template.';
@@ -566,12 +985,18 @@ const CreateTemplatePage = () => {
         const isSuccess = result.data?.success === true || rd?.stat === 1 || rd?.stat_code === 1000;
 
         if (isSuccess) {
+            setProcessStep(isEditMode ? 'Template updated successfully.' : 'Template created successfully.', 100);
             toast.success(isDraft ? 'Template saved as draft' : 'Template created successfully');
             handleClose();
         } else {
             const msg = rd?.stat_msg || result.data?.message || 'Failed to save template.';
             setSaveError(msg);
             toast.error(msg);
+        }
+        } finally {
+            setIsUploading(false);
+            setIsSaving(false);
+            setSaveProcess({ active: false, title: '', message: '', progress: null });
         }
     };
 
@@ -629,98 +1054,21 @@ const CreateTemplatePage = () => {
 
                 {/* ── Step 1: Template Details ── */}
                 {step === 1 && (
-                    <Box className={styles.stepPanel}>
-                        <div className={styles.inputSection}>
-                            <Typography className={styles.fieldLabel}>Template Name</Typography>
-                            <TextField
-                                fullWidth
-                                placeholder="e.g. summer_sale_offer"
-                                value={templateDetails.templateName}
-                                onChange={(e) =>
-                                    setTemplateDetails((p) => ({ ...p, templateName: e.target.value.replace(/ /g, '_') }))
-                                }
-                            />
-                        </div>
-
-                        <div className={styles.inputSection}>
-                            <Typography className={styles.fieldLabel}>Template Language</Typography>
-                            <TextField
-                                select fullWidth
-                                value={templateDetails.templateLanguage}
-                                onChange={(e) => setTemplateDetails((p) => ({ ...p, templateLanguage: e.target.value }))}
-                                SelectProps={{ native: true }}
-                            >
-                                <option value="en_US">English (US)</option>
-                                <option value="en_GB">English (UK)</option>
-                                <option value="hi">Hindi</option>
-                                <option value="ar">Arabic</option>
-                                <option value="es">Spanish</option>
-                                <option value="pt_BR">Portuguese (BR)</option>
-                            </TextField>
-                        </div>
-
-                        <div className={styles.inputSection}>
-                            <Typography className={styles.fieldLabel}>Template Category</Typography>
-                            <div className={styles.categoryList} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {categoryCards.map((card) => {
-                                    const { Icon } = card;
-                                    return (
-                                        <button
-                                            key={card.key}
-                                            type="button"
-                                            className={`${styles.categoryCardFull} ${templateDetails.templateCategory === card.key ? styles.selectedCategoryFull : ''}`}
-                                            onClick={() => setTemplateDetails((p) => ({ ...p, templateCategory: card.key }))}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '16px',
-                                                padding: '16px',
-                                                border: '1px solid #e2e8f0',
-                                                borderRadius: '8px',
-                                                backgroundColor: templateDetails.templateCategory === card.key ? 'rgba(115, 103, 240, 0.06)' : '#ffffff',
-                                                cursor: 'pointer',
-                                                textAlign: 'left',
-                                                transition: 'all 0.2s',
-                                                width: '100%',
-                                                borderColor: templateDetails.templateCategory === card.key ? '#7367f0' : '#e2e8f0'
-                                            }}
-                                        >
-                                            <div style={{
-                                                width: '40px',
-                                                height: '40px',
-                                                borderRadius: '50%',
-                                                backgroundColor: templateDetails.templateCategory === card.key ? 'rgba(115, 103, 240, 0.16)' : '#f1f5f9',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                color: templateDetails.templateCategory === card.key ? '#7367f0' : 'var(--secondary-color)'
-                                            }}>
-                                                <Icon size={20} />
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <Typography sx={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>{card.key}</Typography>
-                                                <Typography sx={{ color: 'var(--secondary-color)', fontSize: '0.875rem' }}>{card.description}</Typography>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        <div className={styles.stepFooter}>
-                            <Button variant="outlined" onClick={handleClose} className={styles.cancelBtn}>
-                                Cancel
-                            </Button>
-                            <Button
-                                variant="contained"
-                                className="buttonClassname"
-                                onClick={() => setStep(2)}
-                                disabled={!canProceedToBuilder}
-                            >
-                                Next
-                            </Button>
-                        </div>
-                    </Box>
+                    <TemplateDetailsStepSection
+                        styles={styles}
+                        templateDetails={templateDetails}
+                        templateNameError={templateNameError}
+                        categoryCards={categoryCards}
+                        onTemplateNameChange={(value) => {
+                            const normalized = normalizeTemplateName(value);
+                            setTemplateDetails((p) => ({ ...p, templateName: normalized }));
+                            if (normalized.trim()) setTemplateNameError('');
+                        }}
+                        onTemplateLanguageChange={(value) => setTemplateDetails((p) => ({ ...p, templateLanguage: value }))}
+                        onTemplateCategoryChange={(value) => setTemplateDetails((p) => ({ ...p, templateCategory: value }))}
+                        onClose={handleClose}
+                        onNext={handleNextFromDetails}
+                    />
                 )}
 
                 {/* ── Step 2: Builder ── */}
@@ -779,7 +1127,7 @@ const CreateTemplatePage = () => {
                                                     type="button"
                                                     className={`${styles.choiceChip} ${isSelected ? styles.activeChip : ''}`}
                                                     onClick={() => {
-                                                        if (['Carousel', 'LTO', 'Catalog', 'MPM'].includes(key)) {
+                                                        if (['LTO', 'Catalog', 'MPM'].includes(key)) {
                                                             toast('Coming soon', { icon: '🚧' });
                                                             return;
                                                         }
@@ -803,541 +1151,67 @@ const CreateTemplatePage = () => {
 
                                 {/* Header */}
                                 {builderData.templateType !== 'Carousel' && (
-                                    <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-                                        <Typography className={styles.sectionTitle}>Header</Typography>
-                                        <Typography className={styles.sectionSubtitle}>Add a title or choose which type of media you'll use for this header.</Typography>
-                                        {/* None / Text / Media chips */}
-                                        <div className={styles.chipRow}>
-                                            {headerOptions.map((opt) => {
-                                                const { icon: Icon, label, key } = opt;
-                                                const isSelected = builderData.headerType === key;
-                                                return (
-                                                    <button
-                                                        key={key}
-                                                        type="button"
-                                                        className={`${styles.choiceChip} ${isSelected ? styles.activeChip : ''}`}
-                                                        onClick={() => setBuilderData((p) => ({ ...p, headerType: key }))}
-                                                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                                                    >
-                                                        <Icon size={16} />
-                                                        {label}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {/* Text header */}
-                                        {builderData.headerType === 'Text' && (
-                                            <div className={styles.headerTextWrap}>
-                                                <div className={styles.sectionHeaderRow}>
-                                                    <Typography className={styles.variableTitle}>Header Text</Typography>
-                                                    <Typography className={styles.charCounter}>{builderData.headerText.length}/60</Typography>
-                                                </div>
-                                                <TextField
-                                                    fullWidth size="small"
-                                                    placeholder="e.g. Our {{1}} is on!"
-                                                    value={builderData.headerText}
-                                                    onChange={(e) => setBuilderData((p) => ({ ...p, headerText: e.target.value.slice(0, 60) }))}
-                                                />
-                                                {/\{\{1\}\}/.test(builderData.headerText) && (
-                                                    <TextField
-                                                        fullWidth size="small"
-                                                        label="Sample value for {{1}}"
-                                                        value={builderData.headerTextExample}
-                                                        onChange={(e) => setBuilderData((p) => ({ ...p, headerTextExample: e.target.value }))}
-                                                        placeholder="e.g. Summer Sale"
-                                                        style={{ marginTop: 8 }}
-                                                    />
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Media header — icon card picker */}
-                                        {builderData.headerType === 'Media' && (
-                                            <div className={styles.mediaPickerWrap}>
-                                                <div className={styles.mediaIconGrid}>
-                                                    {[
-                                                        { type: 'image', Icon: Image, label: 'Image' },
-                                                        { type: 'video', Icon: Video, label: 'Video' },
-                                                        { type: 'document', Icon: FileText, label: 'Document' },
-                                                        { type: 'location', Icon: MapPin, label: 'Location' },
-                                                    ].map(({ type, Icon, label }) => (
-                                                        <button
-                                                            key={type}
-                                                            type="button"
-                                                            className={`${styles.mediaIconCard} ${headerMedia.mediaType === type ? styles.mediaIconCardActive : ''}`}
-                                                            onClick={() => {
-                                                                if (type === 'location') { toast('Location coming soon', { icon: '🚧' }); return; }
-                                                                setHeaderMedia((p) => ({ ...p, mediaType: type, file: null, mediaUrl: '' }));
-                                                            }}
-                                                        >
-                                                            {headerMedia.mediaType === type && (
-                                                                <span className={styles.mediaIconCheck}>✓</span>
-                                                            )}
-                                                            <Icon size={28} className={styles.mediaIconSvg} />
-                                                            <span className={styles.mediaIconLabel}>{label}</span>
-                                                            {type === 'location' && <span className={styles.mediaIconSoon}>soon</span>}
-                                                        </button>
-                                                    ))}
-                                                </div>
-
-                                                {/* Sample upload box */}
-                                                {headerMedia.mediaType !== 'location' && (
-                                                    <div className={styles.mediaSampleBox}>
-                                                        <Typography className={styles.mediaSampleTitle}>Sample for header content</Typography>
-                                                        <Typography className={styles.mediaSampleDesc}>
-                                                            To help Meta review your content, provide examples of the variables or media in the header.
-                                                            Do not include any customer information.
-                                                        </Typography>
-
-                                                        {/* Existing media preview (edit mode) */}
-                                                        {!headerMedia.file && headerMedia.existingHandle && (
-                                                            <div className={styles.existingMediaRow}>
-                                                                {headerMedia.mediaType === 'image' && (
-                                                                    <img
-                                                                        src={headerMedia.existingHandle}
-                                                                        alt="Current header"
-                                                                        className={styles.existingMediaThumb}
-                                                                    />
-                                                                )}
-                                                                {headerMedia.mediaType === 'video' && (
-                                                                    <div className={styles.existingMediaVideo}>
-                                                                        <Video size={18} />
-                                                                        <span>Current video</span>
-                                                                    </div>
-                                                                )}
-                                                                {headerMedia.mediaType === 'document' && (
-                                                                    <div className={styles.existingMediaVideo}>
-                                                                        <FileText size={18} />
-                                                                        <span>Current document</span>
-                                                                    </div>
-                                                                )}
-                                                                <Typography className={styles.existingMediaLabel}>
-                                                                    Current file will be kept. Upload a new file to replace it.
-                                                                </Typography>
-                                                            </div>
-                                                        )}
-
-                                                        <div className={styles.mediaSampleActions}>
-                                                            <Button
-                                                                component="label"
-                                                                className={styles.mediaUploadBtn}
-                                                                startIcon={<Paperclip size={14} />}
-                                                            >
-                                                                {headerMedia.existingHandle && !headerMedia.file ? 'Replace file' : `Choose ${headerMedia.mediaType === 'image' ? 'JPG or PNG' : headerMedia.mediaType === 'video' ? 'MP4' : 'PDF'} file`}
-                                                                <input
-                                                                    hidden type="file"
-                                                                    accept={MEDIA_CONFIG[headerMedia.mediaType]?.mimes.join(',')}
-                                                                    onChange={(e) => {
-                                                                        const f = e.target.files?.[0] || null;
-                                                                        if (f) {
-                                                                            const config = MEDIA_CONFIG[headerMedia.mediaType];
-                                                                            if (config) {
-                                                                                if (!config.mimes.includes(f.type)) {
-                                                                                    toast.error(`Unsupported file type. Please upload a valid ${config.extensions}.`);
-                                                                                    e.target.value = '';
-                                                                                    return;
-                                                                                }
-                                                                                if (f.size > config.maxSize) {
-                                                                                    toast.error(`File is too large. Max size is ${config.maxSizeLabel}.`);
-                                                                                    e.target.value = '';
-                                                                                    return;
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                        setHeaderMedia((p) => ({ ...p, file: f, mediaUrl: f ? '' : p.existingHandle }));
-                                                                    }}
-                                                                />
-                                                            </Button>
-                                                            {headerMedia.file && (
-                                                                <Typography className={styles.mediaFileName}>{headerMedia.file.name}</Typography>
-                                                            )}
-                                                        </div>
-                                                        <div className={styles.mediaHint}>
-                                                            <Typography variant="caption" color="textSecondary">
-                                                                Supported: {MEDIA_CONFIG[headerMedia.mediaType]?.extensions} (Max {MEDIA_CONFIG[headerMedia.mediaType]?.maxSizeLabel})
-                                                            </Typography>
-                                                            {MEDIA_CONFIG[headerMedia.mediaType]?.extraNote && (
-                                                                <Typography variant="caption" color="textSecondary" style={{ display: 'block', fontStyle: 'italic' }}>
-                                                                    {MEDIA_CONFIG[headerMedia.mediaType].extraNote}
-                                                                </Typography>
-                                                            )}
-                                                        </div>
-                                                        {isUploading && (
-                                                            <div className={styles.uploadProgressBox}>
-                                                                <div className={styles.uploadProgressMeta}>
-                                                                    <span>Uploading to Meta...</span>
-                                                                    <span>{uploadProgress}%</span>
-                                                                </div>
-                                                                <LinearProgress
-                                                                    variant="determinate"
-                                                                    value={uploadProgress}
-                                                                    sx={{
-                                                                        height: 6,
-                                                                        borderRadius: 3,
-                                                                        backgroundColor: 'rgba(115, 103, 240, 0.1)',
-                                                                        '& .MuiLinearProgress-bar': {
-                                                                            borderRadius: 3,
-                                                                            backgroundColor: '#7367f0'
-                                                                        }
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </Paper>
+                                    <TemplateHeaderSection
+                                        styles={styles}
+                                        builderData={builderData}
+                                        headerMedia={headerMedia}
+                                        headerOptions={headerOptions}
+                                        mediaConfig={MEDIA_CONFIG}
+                                        isUploading={isUploading}
+                                        uploadProgress={uploadProgress}
+                                        onHeaderTypeChange={(key) => setBuilderData((p) => ({ ...p, headerType: key }))}
+                                        onHeaderTextChange={(value) => setBuilderData((p) => ({ ...p, headerText: value }))}
+                                        onHeaderTextExampleChange={(value) => setBuilderData((p) => ({ ...p, headerTextExample: value }))}
+                                        onHeaderMediaTypeChange={handleHeaderMediaTypeChange}
+                                        onHeaderMediaFileChange={handleHeaderMediaFileChange}
+                                    />
                                 )}
 
                                 {/* Body */}
-                                <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-                                    <Typography className={styles.sectionTitle}>Body</Typography>
-                                    <Typography className={styles.sectionSubtitle}>Enter the text for your message in the language that you've selected.</Typography>
-                                    <TextField
-                                        multiline minRows={6} fullWidth
-                                        placeholder="Enter body text"
-                                        value={builderData.body}
-                                        onChange={(e) => {
-                                            setBuilderData((p) => ({ ...p, body: e.target.value.slice(0, 1024) }));
-                                            if (saveError === 'Template body is required.') setSaveError('');
-                                        }}
-                                        error={saveError === 'Template body is required.'}
-                                        helperText={saveError === 'Template body is required.' ? 'This field is required' : (builderData.templateType === 'Carousel' ? 'Introductory text for the carousel.' : '')}
-                                    />
-                                    <div className={styles.bodyFooterRow} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', position: 'relative' }}>
-                                        <Typography className={styles.charCounter} sx={{ color: 'var(--secondary-color)', fontSize: '0.75rem' }}>
-                                            Characters: {bodyCharCount}/1024
-                                        </Typography>
-                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                            <Tooltip title="Add Emoji">
-                                                <IconButton
-                                                    size="small"
-                                                    sx={{
-                                                        color: 'var(--secondary-color)',
-                                                        padding: '6px',
-                                                        borderRadius: '8px',
-                                                        transition: 'all 0.2s ease-in-out',
-                                                        '&:hover': {
-                                                            background: 'rgba(115, 103, 240, 0.15)',
-                                                            color: 'var(--primary-main)',
-                                                            borderRadius: '8px'
-                                                        }
-                                                    }}
-                                                    onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}
-                                                >
-                                                    <Smile size={18} />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Bold">
-                                                <IconButton
-                                                    size="small"
-                                                    sx={{
-                                                        color: 'var(--secondary-color)',
-                                                        fontWeight: 'bold',
-                                                        padding: '6px',
-                                                        borderRadius: '8px',
-                                                        transition: 'all 0.2s ease-in-out',
-                                                        '&:hover': {
-                                                            background: 'rgba(115, 103, 240, 0.15)',
-                                                            color: 'var(--primary-main)',
-                                                            borderRadius: '8px'
-                                                        }
-                                                    }}
-                                                    onClick={handleBold}
-                                                >
-                                                    B
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Italic">
-                                                <IconButton
-                                                    size="small"
-                                                    sx={{
-                                                        color: 'var(--secondary-color)',
-                                                        fontStyle: 'italic',
-                                                        padding: '6px',
-                                                        borderRadius: '8px',
-                                                        transition: 'all 0.2s ease-in-out',
-                                                        '&:hover': {
-                                                            background: 'rgba(115, 103, 240, 0.15)',
-                                                            color: 'var(--primary-main)',
-                                                            borderRadius: '8px'
-                                                        }
-                                                    }}
-                                                    onClick={handleItalic}
-                                                >
-                                                    I
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Strikethrough">
-                                                <IconButton
-                                                    size="small"
-                                                    sx={{
-                                                        color: 'var(--secondary-color)',
-                                                        textDecoration: 'line-through',
-                                                        padding: '6px',
-                                                        borderRadius: '8px',
-                                                        transition: 'all 0.2s ease-in-out',
-                                                        '&:hover': {
-                                                            background: 'rgba(115, 103, 240, 0.15)',
-                                                            color: 'var(--primary-main)',
-                                                            borderRadius: '8px'
-                                                        }
-                                                    }}
-                                                    onClick={handleStrikethrough}
-                                                >
-                                                    S
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Code">
-                                                <IconButton
-                                                    size="small"
-                                                    sx={{
-                                                        color: 'var(--secondary-color)',
-                                                        padding: '6px',
-                                                        borderRadius: '8px',
-                                                        transition: 'all 0.2s ease-in-out',
-                                                        '&:hover': {
-                                                            background: 'rgba(115, 103, 240, 0.15)',
-                                                            color: 'var(--primary-main)',
-                                                            borderRadius: '8px'
-                                                        }
-                                                    }}
-                                                    onClick={handleCode}
-                                                >
-                                                    <Code size={18} />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Add Variable Placeholder">
-                                                <IconButton
-                                                    size="small"
-                                                    sx={{
-                                                        color: 'var(--secondary-color)',
-                                                        padding: '6px',
-                                                        borderRadius: '8px',
-                                                        transition: 'all 0.2s ease-in-out',
-                                                        '&:hover': {
-                                                            background: 'rgba(115, 103, 240, 0.15)',
-                                                            color: 'var(--primary-main)',
-                                                            borderRadius: '8px'
-                                                        }
-                                                    }}
-                                                    onClick={addVariablePlaceholder}
-                                                >
-                                                    <Typography sx={{ fontSize: '1rem', fontWeight: 600 }}>{`{ }`}</Typography>
-                                                </IconButton>
-                                            </Tooltip>
-                                        </div>
-                                        {emojiPickerOpen && (
-                                            <div style={{ position: 'absolute', right: 0, bottom: '100%', marginBottom: '8px', zIndex: 9999 }}>
-                                                <Picker
-                                                    data={data}
-                                                    onEmojiSelect={handleEmojiSelect}
-                                                    theme="light"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                    {variableKeys.length > 0 && (
-                                        <div className={styles.variableSection}>
-                                            <Typography className={styles.variableTitle} style={{ marginBottom: 8 }}>Sample variable values</Typography>
-                                            <div className={styles.variableInputList}>
-                                                {variableKeys.map((key) => (
-                                                    <TextField
-                                                        key={key} fullWidth size="small"
-                                                        label={`{{${key}}} sample`}
-                                                        value={variableValues[key] || ''}
-                                                        onChange={(e) => setVariableValues((p) => ({ ...p, [key]: e.target.value }))}
-                                                        placeholder="e.g. John"
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </Paper>
+                                <TemplateBodySection
+                                    styles={styles}
+                                    body={builderData.body}
+                                    templateType={builderData.templateType}
+                                    saveError={saveError}
+                                    bodyCharCount={bodyCharCount}
+                                    emojiPickerOpen={emojiPickerOpen}
+                                    variableKeys={variableKeys}
+                                    variableValues={variableValues}
+                                    onBodyChange={(value) => {
+                                        setBuilderData((p) => ({ ...p, body: value.slice(0, 1024) }));
+                                        if (saveError === 'Template body is required.') setSaveError('');
+                                    }}
+                                    onToggleEmoji={() => setEmojiPickerOpen(!emojiPickerOpen)}
+                                    onEmojiSelect={handleEmojiSelect}
+                                    onBold={handleBold}
+                                    onItalic={handleItalic}
+                                    onStrikethrough={handleStrikethrough}
+                                    onCode={handleCode}
+                                    onAddVariablePlaceholder={addVariablePlaceholder}
+                                    onVariableValueChange={(key, value) => setVariableValues((p) => ({ ...p, [key]: value }))}
+                                />
 
                                 {/* Carousel Cards Section */}
                                 {builderData.templateType === 'Carousel' && (
-                                    <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-                                        <div className={styles.sectionHeaderRow}>
-                                            <Typography className={styles.sectionTitle}>Carousel Cards</Typography>
-                                            <Typography className={styles.charCounter}>{carouselCards.length}/10 Cards</Typography>
-                                        </div>
-                                        <Typography className={styles.sectionSubtitle}>Add 2 to 10 cards. All cards must have the same media format and button structure.</Typography>
-
-                                        <div className={styles.carouselCardsSection}>
-                                            <div className={styles.cardNavWrap}>
-                                                {carouselCards.map((card, idx) => (
-                                                    <button
-                                                        key={card.id}
-                                                        type="button"
-                                                        className={`${styles.cardTab} ${activeCardIndex === idx ? styles.cardTabActive : ''}`}
-                                                        onClick={() => setActiveCardIndex(idx)}
-                                                    >
-                                                        Card {idx + 1}
-                                                    </button>
-                                                ))}
-                                                {carouselCards.length < 10 && (
-                                                    <button type="button" className={styles.addCardTab} onClick={addCarouselCard}>
-                                                        <Plus size={14} /> Add Card
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            {carouselCards[activeCardIndex] && (
-                                                <div className={styles.cardEditorPanel}>
-                                                    <div className={styles.cardEditorHeader}>
-                                                        <Typography className={styles.cardTitle}>Card {activeCardIndex + 1} Settings</Typography>
-                                                        <Button
-                                                            size="small"
-                                                            className={styles.cardDeleteBtn}
-                                                            onClick={() => removeCarouselCard(activeCardIndex)}
-                                                            disabled={carouselCards.length <= 2}
-                                                        >
-                                                            Delete Card
-                                                        </Button>
-                                                    </div>
-
-                                                    {/* Card Header Media */}
-                                                    <div className={styles.mediaPickerWrap}>
-                                                        <Typography className={styles.fieldLabel}>Card Header Media</Typography>
-                                                        <div className={styles.mediaIconGrid}>
-                                                            {[
-                                                                { type: 'image', Icon: Image, label: 'Image' },
-                                                                { type: 'video', Icon: Video, label: 'Video' },
-                                                            ].map(({ type, Icon, label }) => (
-                                                                <button
-                                                                    key={type}
-                                                                    type="button"
-                                                                    className={`${styles.mediaIconCard} ${carouselCards[activeCardIndex].header.mediaType === type ? styles.mediaIconCardActive : ''}`}
-                                                                    onClick={() => {
-                                                                        const current = carouselCards[activeCardIndex].header;
-                                                                        // Only reset file if the type actually changed to avoid losing current card's data
-                                                                        const newData = {
-                                                                            header: {
-                                                                                ...current,
-                                                                                mediaType: type,
-                                                                                file: current.mediaType === type ? current.file : null
-                                                                            }
-                                                                        };
-                                                                        updateCardData(activeCardIndex, newData);
-                                                                    }}
-                                                                >
-                                                                    <Icon size={24} className={styles.mediaIconSvg} />
-                                                                    <span className={styles.mediaIconLabel}>{label}</span>
-                                                                </button>
-                                                            ))}
-                                                        </div>
-
-                                                        <div className={styles.mediaSampleBox}>
-                                                            <div className={styles.mediaSampleActions}>
-                                                                <Button
-                                                                    component="label"
-                                                                    className={styles.mediaUploadBtn}
-                                                                    startIcon={<Paperclip size={14} />}
-                                                                >
-                                                                    Choose {carouselCards[activeCardIndex].header.mediaType === 'image' ? 'JPG/PNG' : 'MP4'} file
-                                                                    <input
-                                                                        hidden type="file"
-                                                                        accept={MEDIA_CONFIG[carouselCards[activeCardIndex].header.mediaType]?.mimes.join(',')}
-                                                                        onChange={(e) => {
-                                                                            const f = e.target.files?.[0] || null;
-                                                                            if (f) {
-                                                                                const config = MEDIA_CONFIG[carouselCards[activeCardIndex].header.mediaType];
-                                                                                if (config) {
-                                                                                    if (!config.mimes.includes(f.type)) {
-                                                                                        toast.error(`Unsupported file type. Please upload a valid ${config.extensions}.`);
-                                                                                        e.target.value = '';
-                                                                                        return;
-                                                                                    }
-                                                                                    if (f.size > (carouselCards[activeCardIndex].header.mediaType === 'video' ? 16 * 1024 * 1024 : 5 * 1024 * 1024)) {
-                                                                                        toast.error(`File is too large.`);
-                                                                                        e.target.value = '';
-                                                                                        return;
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                            updateCardData(activeCardIndex, {
-                                                                                header: { ...carouselCards[activeCardIndex].header, file: f }
-                                                                            });
-                                                                        }}
-                                                                    />
-                                                                </Button>
-                                                                {carouselCards[activeCardIndex].header.file && (
-                                                                    <Typography className={styles.mediaFileName}>{carouselCards[activeCardIndex].header.file.name}</Typography>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Card Body */}
-                                                    <div className={styles.cardBodySection}>
-                                                        <div className={styles.sectionHeaderRow}>
-                                                            <Typography className={styles.variableTitle}>Card Body</Typography>
-                                                            <Typography className={styles.charCounter}>{carouselCards[activeCardIndex].body.length}/160</Typography>
-                                                        </div>
-                                                        <TextField
-                                                            fullWidth multiline rows={2} size="small"
-                                                            placeholder="Enter card description..."
-                                                            value={carouselCards[activeCardIndex].body}
-                                                            onChange={(e) => {
-                                                                updateCardData(activeCardIndex, { body: e.target.value.slice(0, 160) });
-                                                                if (saveError.includes('body is required')) setSaveError('');
-                                                            }}
-                                                            error={saveError === `Card ${activeCardIndex + 1} body is required.`}
-                                                            helperText={saveError === `Card ${activeCardIndex + 1} body is required.` ? 'This field is required' : ''}
-                                                        />
-                                                    </div>
-
-                                                    {/* Card Buttons */}
-                                                    <div className={styles.cardButtonsSection}>
-                                                        <div className={styles.sectionHeaderRow}>
-                                                            <Typography className={styles.variableTitle}>Card Buttons (Max 2)</Typography>
-                                                        </div>
-                                                        <div className={styles.buttonList}>
-                                                            {(carouselCards[activeCardIndex].buttons || []).map((btn, bIdx) => (
-                                                                <div className={styles.buttonItem} key={btn.id || bIdx}>
-                                                                    <TextField
-                                                                        fullWidth size="small"
-                                                                        value={btn.label}
-                                                                        onChange={(e) => {
-                                                                            const newButtons = [...carouselCards[activeCardIndex].buttons];
-                                                                            newButtons[bIdx].label = e.target.value;
-                                                                            updateCardData(activeCardIndex, { buttons: newButtons });
-                                                                        }}
-                                                                        placeholder="Button Label"
-                                                                    />
-                                                                    <Button
-                                                                        className={styles.removeBtn}
-                                                                        onClick={() => {
-                                                                            const newButtons = carouselCards[activeCardIndex].buttons.filter((_, i) => i !== bIdx);
-                                                                            updateCardData(activeCardIndex, { buttons: newButtons });
-                                                                        }}
-                                                                    >
-                                                                        Remove
-                                                                    </Button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                        {carouselCards[activeCardIndex].buttons.length < 2 && (
-                                                            <Button
-                                                                className={styles.addBtn}
-                                                                fullWidth
-                                                                onClick={() => {
-                                                                    const newButtons = [...(carouselCards[activeCardIndex].buttons || []), { id: Date.now(), label: '' }];
-                                                                    updateCardData(activeCardIndex, { buttons: newButtons });
-                                                                }}
-                                                                startIcon={<Plus size={14} />}
-                                                            >
-                                                                Add Card Button
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </Paper>
+                                    <TemplateCarouselSection
+                                        styles={styles}
+                                        mediaConfig={MEDIA_CONFIG}
+                                        carouselCards={carouselCards}
+                                        activeCardIndex={activeCardIndex}
+                                        saveError={saveError}
+                                        isCardButtonMenuOpen={isCardButtonMenuOpen}
+                                        getButtonMenuOptions={getButtonMenuOptions}
+                                        onSetActiveCardIndex={setActiveCardIndex}
+                                        onAddCarouselCard={addCarouselCard}
+                                        onRemoveCarouselCard={removeCarouselCard}
+                                        onCardHeaderTypeChange={handleCardHeaderTypeChange}
+                                        onCardFileChange={handleCardFileChange}
+                                        onCardBodyChange={handleCardBodyChange}
+                                        onToggleCardButtonMenu={() => setIsCardButtonMenuOpen((prev) => !prev)}
+                                        onAddCardButton={addCardButton}
+                                        onUpdateCardButton={handleCardButtonUpdate}
+                                        onRemoveCardButton={handleCardButtonRemove}
+                                    />
                                 )}
 
                                 {/* Footer */}
@@ -1364,28 +1238,20 @@ const CreateTemplatePage = () => {
                                 {/* Buttons */}
                                 {builderData.templateType !== 'Carousel' && (
                                     <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-                                        <Typography className={styles.sectionTitle}>
-                                            Buttons <span className={styles.optionalBadge}>Optional</span>
-                                        </Typography>
-                                        <Typography className={styles.sectionSubtitle}>Create buttons that let customers respond to your message or take action.</Typography>
-                                        <div className={styles.buttonList}>
-                                            {builderData.buttons.map((btn) => (
-                                                <div className={styles.buttonItem} key={btn.id}>
-                                                    <TextField
-                                                        fullWidth size="small"
-                                                        value={btn.label}
-                                                        onChange={(e) => updateActionButton(btn.id, e.target.value)}
-                                                        placeholder="Button Label"
-                                                    />
-                                                    <Button className={styles.removeBtn} onClick={() => removeActionButton(btn.id)}>
-                                                        Remove
-                                                    </Button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <Button className={styles.addBtn} onClick={addActionButton} startIcon={<Plus size={14} />}>
-                                            Add Button
-                                        </Button>
+                                        <TemplateButtonSection
+                                            title={<>
+                                                Buttons <span className={styles.optionalBadge}>Optional</span>
+                                            </>}
+                                            subtitle="Create buttons that let customers respond to your message or take action."
+                                            buttons={builderData.buttons}
+                                            styles={styles}
+                                            isMenuOpen={isMainButtonMenuOpen}
+                                            menuOptions={getButtonMenuOptions(builderData.buttons)}
+                                            onToggleMenu={() => setIsMainButtonMenuOpen((prev) => !prev)}
+                                            onAddButton={addMainButton}
+                                            onUpdateButton={handleMainButtonUpdate}
+                                            onRemoveButton={handleMainButtonRemove}
+                                        />
                                     </Paper>
                                 )}
                             </Grid>
@@ -1425,6 +1291,24 @@ const CreateTemplatePage = () => {
                             : (isEditMode ? 'This will update your template. Make sure all details are correct.' : 'This will create and submit your template to WhatsApp. Make sure all details are correct.')
                     }
                 />
+
+                {saveProcess.active && (
+                    <div className={styles.saveOverlay}>
+                        <div className={styles.saveOverlayCard}>
+                            <CircularProgress size={30} thickness={4.4} />
+                            <Typography className={styles.saveOverlayTitle}>{saveProcess.title}</Typography>
+                            <Typography className={styles.saveOverlayMessage}>{saveProcess.message || 'Please wait...'}</Typography>
+                            {typeof saveProcess.progress === 'number' && (
+                                <>
+                                    <div className={styles.saveOverlayProgressTrack}>
+                                        <div className={styles.saveOverlayProgressBar} style={{ width: `${Math.max(0, Math.min(100, saveProcess.progress))}%` }} />
+                                    </div>
+                                    <Typography className={styles.saveOverlayProgressText}>{Math.max(0, Math.min(100, saveProcess.progress))}% completed</Typography>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
             </Box>
         </Box>
     );

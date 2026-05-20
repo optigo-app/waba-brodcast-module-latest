@@ -31,6 +31,17 @@ const HEADER_ICONS = {
     text: { Icon: FileQuestion, label: 'Text', color: 'var(--title-color)', bg: 'rgba(68, 64, 80, 0.16)' },
 };
 
+const canEditTemplate = (template) => {
+    const updatedAt = template?.UpdatedAt;
+    if (!updatedAt) return true;
+
+    const updatedAtMs = new Date(updatedAt).getTime();
+    if (!Number.isFinite(updatedAtMs)) return true;
+
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+    return (Date.now() - updatedAtMs) >= TWENTY_FOUR_HOURS_MS;
+};
+
 const TemplateTable = ({ items, onView, onSend, onClone, onEdit, onDelete, onPublish, count, page, rowsPerPage, onPageChange, onRowsPerPageChange }) => {
     const rows = items.map((template) => {
         const status = getStatusConfig(template.WabaStatus);
@@ -53,6 +64,8 @@ const TemplateTable = ({ items, onView, onSend, onClone, onEdit, onDelete, onPub
             formattedDate,
             isApproved: template.WabaStatus?.toUpperCase() === 'APPROVED',
             isDraft: template.WabaStatus?.toUpperCase() === 'DRAFT',
+            isPending: template.WabaStatus?.toUpperCase() === 'PENDING',
+            canEdit: canEditTemplate(template),
         };
     });
 
@@ -178,8 +191,18 @@ const TemplateTable = ({ items, onView, onSend, onClone, onEdit, onDelete, onPub
                     {params.row.isApproved && (
                         <IconButton icon={Send} color="success" tooltip="Send" onClick={() => onSend(params.row)} />
                     )}
-                    <IconButton icon={Copy} color="info" tooltip="Clone" onClick={() => onClone(params.row)} />
-                    <IconButton icon={Edit2} color="secondary" tooltip="Edit" onClick={() => onEdit(params.row)} />
+                    {!params.row.isPending && (
+                        <IconButton icon={Copy} color="info" tooltip="Clone" onClick={() => onClone(params.row)} />
+                    )}
+                    {!params.row.isPending && (
+                        <IconButton
+                            icon={Edit2}
+                            color="secondary"
+                            tooltip={params.row.canEdit ? 'Edit' : 'Editable after 24 hours from last update'}
+                            onClick={params.row.canEdit ? () => onEdit(params.row) : undefined}
+                            disabled={!params.row.canEdit}
+                        />
+                    )}
                     {params.row.isDraft && (
                         <IconButton icon={Rocket} color="primary" tooltip="Submit/Apply" onClick={() => onPublish(params.row)} />
                     )}

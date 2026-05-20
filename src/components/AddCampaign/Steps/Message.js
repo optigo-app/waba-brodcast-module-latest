@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Typography, TextField, Button, RadioGroup, Radio, FormControlLabel, Select, MenuItem, Box, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Grid, Menu, ListItemText, ListItemIcon, Popover } from '@mui/material';
+import { Typography, TextField, Button, RadioGroup, Radio, FormControlLabel, Select, MenuItem, Box, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Grid, Menu, ListItemText, ListItemIcon, Popover, Skeleton } from '@mui/material';
 import { Smile, Code, Send, Info, ChevronDown, User } from 'lucide-react';
 import SelectAutocomplete from '../../Audience/SelectAutocomplete';
 import { fetchTemplateLists } from '../../../API/TemplateList/TemplateList';
@@ -9,6 +9,7 @@ import data from '@emoji-mart/data';
 import MessagePreview from '../../MessagePreview/MessagePreview';
 import TemplateVariableInput from '../../Common/TemplateVariableInput/TemplateVariableInput';
 import DynamicVariableMenu from '../../Common/DynamicVariableMenu/DynamicVariableMenu';
+import SendTemplateDialog from '../../Common/SendTemplateDialog/SendTemplateDialog';
 import toast from 'react-hot-toast';
 import styles from '../AddCampaign.module.scss';
 
@@ -64,6 +65,7 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
   const [regularMessageText, setRegularMessageText] = useState('');
   const [variableMenuAnchor, setVariableMenuAnchor] = useState(null);
   const [selectedVariableIndex, setSelectedVariableIndex] = useState(null);
+  const [sendTestDialogOpen, setSendTestDialogOpen] = useState(false);
 
   const handleVariableMenuOpen = (event, index) => {
     setVariableMenuAnchor(event.currentTarget);
@@ -116,6 +118,18 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
     try {
       // Parse Components to extract variable count
       const components = JSON.parse(template.Components);
+      let mediaUrls = [];
+      try {
+        if (Array.isArray(template.MediaData)) {
+          mediaUrls = template.MediaData.filter(Boolean);
+        } else if (typeof template.MediaData === 'string' && template.MediaData.trim()) {
+          const parsedMedia = JSON.parse(template.MediaData);
+          mediaUrls = Array.isArray(parsedMedia) ? parsedMedia.filter(Boolean) : [];
+        }
+      } catch (mediaError) {
+        console.error('Error parsing template media data:', mediaError);
+      }
+
       if (components && components.length > 0) {
         const bodyComponent = components.find(c => c.type === 'BODY');
         if (bodyComponent && bodyComponent.text) {
@@ -131,21 +145,28 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
             newVars[i] = bodyExample[i - 1] || '';
           }
           setVariables(newVars);
-          console.log('Initialized variables with samples:', newVars);
 
           // Pass template data to parent
           const templateData = {
-            TemplateId: template.TemplateId,
+            TemplateId: template.TemplateId || template.Id,
             WabaTemplateId: template.WabaTemplateId,
-            Components: count > 0 ? components : [], // Send blank array if no variables
+            TemplateJson: template.TemplateJson,
+            Components: components,
+            MediaUrls: mediaUrls,
             variables: newVars
           };
-          console.log('Initial template data:', templateData);
           onTemplateData?.(templateData);
         } else {
           setVariableCount(0);
           setVariables({});
-          onTemplateData?.(null);
+          onTemplateData?.({
+            TemplateId: template.TemplateId || template.Id,
+            WabaTemplateId: template.WabaTemplateId,
+            TemplateJson: template.TemplateJson,
+            Components: components,
+            MediaUrls: mediaUrls,
+            variables: {}
+          });
         }
       } else {
         setVariableCount(0);
@@ -225,10 +246,24 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
       const timer = setTimeout(() => {
         try {
           const components = JSON.parse(template.Components);
+          let mediaUrls = [];
+          try {
+            if (Array.isArray(template.MediaData)) {
+              mediaUrls = template.MediaData.filter(Boolean);
+            } else if (typeof template.MediaData === 'string' && template.MediaData.trim()) {
+              const parsedMedia = JSON.parse(template.MediaData);
+              mediaUrls = Array.isArray(parsedMedia) ? parsedMedia.filter(Boolean) : [];
+            }
+          } catch (mediaError) {
+            console.error('Error parsing template media data:', mediaError);
+          }
+
           onTemplateData?.({
-            TemplateId: template.TemplateId,
+            TemplateId: template.TemplateId || template.Id,
             WabaTemplateId: template.WabaTemplateId,
+            TemplateJson: template.TemplateJson,
             Components: components,
+            MediaUrls: mediaUrls,
             variables
           });
         } catch (error) {
@@ -296,14 +331,18 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
           {messageType === 'preApprovedTemplate' && (
             <div className={styles.formField} style={{ marginBottom: '1rem' }}>
               <label className={styles.label}>Template</label>
-              <SelectAutocomplete
-                value={template}
-                onChange={(e, newValue) => setTemplate(newValue)}
-                options={templates}
-                placeholder="Select a template"
-                getOptionLabel={getTemplateLabel}
-                disabled={templatesLoading}
-              />
+              {templatesLoading ? (
+                <Skeleton variant="rectangular" width="100%" height={56} sx={{ borderRadius: '8px' }} />
+              ) : (
+                <SelectAutocomplete
+                  value={template}
+                  onChange={(e, newValue) => setTemplate(newValue)}
+                  options={templates}
+                  placeholder="Select a template"
+                  getOptionLabel={getTemplateLabel}
+                  disabled={templatesLoading}
+                />
+              )}
             </div>
           )}
 
@@ -408,6 +447,7 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
                 variant="contained"
                 className='secondaryBtnClassname'
                 startIcon={<Send size={18} />}
+                onClick={() => setSendTestDialogOpen(true)}
               >
                 Send Test Message
               </Button>
@@ -547,6 +587,14 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
           theme="light"
         />
       </Popover>
+
+      {/* Send Test Message Dialog */}
+      <SendTemplateDialog
+        open={sendTestDialogOpen}
+        onClose={() => setSendTestDialogOpen(false)}
+        template={template}
+        userToken={userToken}
+      />
     </div>
   );
 };

@@ -17,12 +17,6 @@ export const fetchGroupFilterList = async (
         const payload = {
             GroupFilter: groupFilter,
             Branch: branchFilter,
-            CustomerName: customerName,
-            CompanyType: companyType,
-            State: state,
-            City: city,
-            Country: country,
-            Search: searchTerm, 
         };
 
         const body = {

@@ -6,15 +6,13 @@ import {
     Trash2, Image, Video, FileType, FileQuestion, BookOpen,
     X, ArrowLeft
 } from 'lucide-react';
-import { Tooltip, Drawer, Dialog, DialogTitle, DialogContent, DialogActions, Button, ToggleButtonGroup, ToggleButton, Grid, CardContent, Stack, Skeleton, Card, Paper, Menu, ListItemText, ListItemIcon, Popover } from '@mui/material';
-import PhoneInput from 'react-phone-input-2';
-import 'react-phone-input-2/lib/style.css';
+import { Tooltip, Drawer, Button, ToggleButtonGroup, ToggleButton, Grid, CardContent, Stack, Skeleton, Card, Paper, Menu, ListItemText, ListItemIcon, Popover } from '@mui/material';
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 import { fetchCrmTemplates } from '../../API/TemplateList/FetchCrmTemplates';
 import { syncTemplates } from '../../API/TemplateList/SyncTemplates';
 import { deleteTemplate } from '../../API/TemplateList/DeleteTemplate';
-import { sendTemplate } from '../../API/TemplateList/SendTemplate';
+import { removeFileApi } from '../../API/InitialApi/filesRemoveApi';
 import { publishTemplate } from '../../API/TemplateList/PublishTemplate';
 import { useAuthToken } from '../../hooks/useAuthToken';
 import TemplateGrid from './TemplateGrid';
@@ -23,10 +21,13 @@ import TemplateVariableInput from '../Common/TemplateVariableInput/TemplateVaria
 import DynamicVariableMenu from '../Common/DynamicVariableMenu/DynamicVariableMenu';
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal';
 import FilterBar from '../Common/FilterBar/FilterBar';
+import SendTemplateDialog from '../Common/SendTemplateDialog/SendTemplateDialog';
 import toast from 'react-hot-toast';
 import styles from './Templates.module.scss';
 import { previewBg } from '../../utils/globalFunc';
 import TemplateSkelton from './TemplateSkelton';
+import socket from '../../utils/socket';
+import MessagePreview from '../MessagePreview/MessagePreview';
 
 // ── Status Config ─────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -69,6 +70,7 @@ const HEADER_ICONS = {
 const ActionButtons = ({ template, status, onView, onSend, onClone, onEdit, onDelete }) => {
     const isApproved = status?.toUpperCase() === 'APPROVED';
     const isDraft = status?.toUpperCase() === 'DRAFT';
+    const isPending = status?.toUpperCase() === 'PENDING';
 
     return (
         <div className={styles.actionGroup}>
@@ -94,17 +96,21 @@ const ActionButtons = ({ template, status, onView, onSend, onClone, onEdit, onDe
                 </Tooltip>
             )}
 
-            <Tooltip title="Clone" arrow>
-                <button className={styles.iconBtn} onClick={() => onClone?.(template)}>
-                    <Copy size={15} />
-                </button>
-            </Tooltip>
+            {!isPending && (
+                <Tooltip title="Clone" arrow>
+                    <button className={styles.iconBtn} onClick={() => onClone?.(template)}>
+                        <Copy size={15} />
+                    </button>
+                </Tooltip>
+            )}
 
-            <Tooltip title="Edit" arrow>
-                <button className={styles.iconBtn} onClick={() => onEdit?.(template)}>
-                    <Edit2 size={15} />
-                </button>
-            </Tooltip>
+            {!isPending && (
+                <Tooltip title="Edit" arrow>
+                    <button className={styles.iconBtn} onClick={() => onEdit?.(template)}>
+                        <Edit2 size={15} />
+                    </button>
+                </Tooltip>
+            )}
 
             <Tooltip title="Delete" arrow>
                 <button className={`${styles.iconBtn} ${styles.iconBtnDelete}`} onClick={() => onDelete?.(template)}>
@@ -124,6 +130,7 @@ const Templates = () => {
     const navigate = useNavigate();
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [syncLoading, setSyncLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState('ALL');
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
@@ -142,9 +149,11 @@ const Templates = () => {
     const [emojiPickerOpen, setEmojiPickerOpen] = useState(null);
     const [deleteTemplateData, setDeleteTemplateData] = useState(null);
     const [templateVariables, setTemplateVariables] = useState({});
+    const [variableErrors, setVariableErrors] = useState({});
     const [menuAnchor, setMenuAnchor] = useState(null);
     const [selectedVariableIndex, setSelectedVariableIndex] = useState(null);
     const [publishTemplateData, setPublishTemplateData] = useState(null);
+    const [sendLoading, setSendLoading] = useState(false);
 
     // Initialize template variables with sample values when a template is selected for sending
     useEffect(() => {
@@ -341,28 +350,77 @@ const Templates = () => {
         }
     }, [selectedTemplateForSend]);
 
-    const loadTemplates = async () => {
+    const loadTemplates = async (showLoader = true) => {
         if (!userToken?.username) return;
-        setLoading(true);
-        const result = await fetchCrmTemplates(userToken.username);
-        setTemplates(result.data);
-        setLoading(false);
+        if (showLoader) setLoading(true);
+        try {
+            const result = await fetchCrmTemplates(userToken.username);
+            setTemplates(result.data || []);
+        } finally {
+            if (showLoader) setLoading(false);
+        }
     };
 
     useEffect(() => { loadTemplates(); /* eslint-disable-next-line */ }, [userToken?.username]);
 
+    useEffect(() => {
+        const onTemplateUpdate = (eventData) => {
+            const updateData = Array.isArray(eventData) ? eventData[1] : eventData;
+            if (!updateData || typeof updateData !== 'object' || !updateData.Id) return;
+
+            setTemplates((prevTemplates) =>
+                prevTemplates.map((template) =>
+                    Number(template?.Id) === Number(updateData.Id)
+                        ? {
+                            ...template,
+                            TemplateType: updateData.TemplateType ?? template.TemplateType,
+                            WabaStatus: updateData.WabaStatus ?? template.WabaStatus,
+                            TemplateJson: updateData.TemplateJson ?? template.TemplateJson,
+                        }
+                        : template
+                )
+            );
+
+            setPreviewTemplate((prevTemplate) => {
+                if (!prevTemplate || Number(prevTemplate?.Id) !== Number(updateData.Id)) return prevTemplate;
+                return {
+                    ...prevTemplate,
+                    TemplateType: updateData.TemplateType ?? prevTemplate.TemplateType,
+                    WabaStatus: updateData.WabaStatus ?? prevTemplate.WabaStatus,
+                    TemplateJson: updateData.TemplateJson ?? prevTemplate.TemplateJson,
+                };
+            });
+
+            setSelectedTemplateForSend((prevTemplate) => {
+                if (!prevTemplate || Number(prevTemplate?.Id) !== Number(updateData.Id)) return prevTemplate;
+                return {
+                    ...prevTemplate,
+                    TemplateType: updateData.TemplateType ?? prevTemplate.TemplateType,
+                    WabaStatus: updateData.WabaStatus ?? prevTemplate.WabaStatus,
+                    TemplateJson: updateData.TemplateJson ?? prevTemplate.TemplateJson,
+                };
+            });
+        };
+
+        socket.on('templateUpdate', onTemplateUpdate);
+
+        return () => {
+            socket.off('templateUpdate', onTemplateUpdate);
+        };
+    }, []);
+
     const handleSync = async () => {
         if (!userToken?.username) return;
-        setLoading(true);
+        setSyncLoading(true);
         const payload = {
             CreatedBy: userToken?.id || 4,
             UserId: userToken?.username || 'admin@orail.co.in'
         };
 
         toast.promise(
-            syncTemplates(payload).then((result) => {
+            syncTemplates(payload).then(async (result) => {
                 if (result.success) {
-                    loadTemplates();
+                    await loadTemplates(false);
                     return 'Templates synced successfully';
                 } else {
                     throw new Error('Failed to sync templates');
@@ -374,7 +432,7 @@ const Templates = () => {
                 error: (err) => err.message,
             }
         ).finally(() => {
-            setLoading(false);
+            setSyncLoading(false);
         });
     };
 
@@ -382,8 +440,31 @@ const Templates = () => {
         if (!deleteTemplateData) return;
 
         toast.promise(
-            deleteTemplate({ TemplateId: deleteTemplateData.Id }).then((result) => {
+            deleteTemplate({ TemplateId: deleteTemplateData.Id }).then(async (result) => {
                 if (result.success) {
+                    const mediaUrls = (() => {
+                        try {
+                            if (Array.isArray(deleteTemplateData.MediaData)) {
+                                return deleteTemplateData.MediaData.filter(Boolean);
+                            }
+                            if (typeof deleteTemplateData.MediaData === 'string' && deleteTemplateData.MediaData.trim()) {
+                                const parsed = JSON.parse(deleteTemplateData.MediaData);
+                                return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+                            }
+                        } catch (error) {
+                            console.error('Error parsing template media data for delete:', error);
+                        }
+                        return [];
+                    })();
+
+                    if (mediaUrls.length > 0) {
+                        try {
+                            await removeFileApi({ attachments: mediaUrls });
+                        } catch (error) {
+                            console.error('Error removing template files:', error);
+                        }
+                    }
+
                     loadTemplates();
                     return 'Template deleted successfully';
                 } else {
@@ -451,9 +532,19 @@ const Templates = () => {
         return matchStatus;
     });
 
+    const getSortTime = (item) => {
+        const updatedAtMs = new Date(item?.UpdatedAt).getTime();
+        if (Number.isFinite(updatedAtMs)) return updatedAtMs;
+
+        const entryDateMs = new Date(item?.EntryDate).getTime();
+        if (Number.isFinite(entryDateMs)) return entryDateMs;
+
+        return 0;
+    };
+
     const sorted = [...filtered].sort((a, b) => {
-        if (sortBy === 'newest') return new Date(b.EntryDate) - new Date(a.EntryDate);
-        if (sortBy === 'oldest') return new Date(a.EntryDate) - new Date(b.EntryDate);
+        if (sortBy === 'newest') return getSortTime(b) - getSortTime(a);
+        if (sortBy === 'oldest') return getSortTime(a) - getSortTime(b);
         if (sortBy === 'name') return (a.TemplateName || '').localeCompare(b.TemplateName || '');
         return 0;
     });
@@ -488,51 +579,89 @@ const Templates = () => {
         let components = [];
         try { components = JSON.parse(previewTemplate.Components || '[]'); } catch { components = []; }
 
-        const body = components.find(c => c.type === 'BODY');
-        const footer = components.find(c => c.type === 'FOOTER');
-        const buttons = components.find(c => c.type === 'BUTTONS');
+        let mediaUrls = [];
+        try {
+            if (Array.isArray(previewTemplate.MediaData)) {
+                mediaUrls = previewTemplate.MediaData.filter(Boolean);
+            } else if (typeof previewTemplate.MediaData === 'string' && previewTemplate.MediaData.trim()) {
+                const parsedMedia = JSON.parse(previewTemplate.MediaData);
+                mediaUrls = Array.isArray(parsedMedia) ? parsedMedia.filter(Boolean) : [];
+            }
+        } catch (error) {
+            console.error('Error parsing preview template media:', error);
+        }
 
-        const headerType = getHeaderType(components);
+        const body = components.find((c) => String(c?.type || '').toUpperCase() === 'BODY');
+        const footer = components.find((c) => String(c?.type || '').toUpperCase() === 'FOOTER');
+        const buttons = components.find((c) => String(c?.type || '').toUpperCase() === 'BUTTONS');
+        const header = components.find((c) => String(c?.type || '').toUpperCase() === 'HEADER');
+        const carousel = components.find((c) => String(c?.type || '').toUpperCase() === 'CAROUSEL');
+
+        if (Array.isArray(carousel?.cards)) {
+            const carouselCards = carousel.cards.map((card, idx) => {
+                const cardComponents = card?.components || [];
+                const cardHeader = cardComponents.find((item) => String(item?.type || '').toUpperCase() === 'HEADER');
+                const cardBody = cardComponents.find((item) => String(item?.type || '').toUpperCase() === 'BODY');
+                const cardButtons = cardComponents.find((item) => String(item?.type || '').toUpperCase() === 'BUTTONS');
+                const existingHandle = cardHeader?.example?.header_handle?.[0] || '';
+
+                return {
+                    id: idx,
+                    header: {
+                        mediaType: (cardHeader?.format || 'IMAGE').toLowerCase(),
+                        file: null,
+                        mediaUrl: mediaUrls[idx] || existingHandle,
+                        existingHandle: existingHandle,
+                    },
+                    body: cardBody?.text || '',
+                    buttons: (cardButtons?.buttons || []).map((btn, btnIdx) => ({
+                        id: `${idx}-${btnIdx}`,
+                        type: btn?.type,
+                        text: btn?.text || '',
+                    })),
+                };
+            });
+
+            return (
+                <MessagePreview
+                    templateType="Carousel"
+                    body={body?.text || ''}
+                    carouselCards={carouselCards}
+                    variableValues={{}}
+                    showEmptyHint={false}
+                />
+            );
+        }
+
+        const mediaType = (header?.format || '').toLowerCase();
+        const existingHandle = header?.example?.header_handle?.[0] || '';
+        const mediaUrl = mediaUrls[0] || existingHandle;
+
+        const headerType = header
+            ? (mediaType === 'text' ? 'Text' : 'Media')
+            : 'None';
 
         return (
-            <div className={styles.whatsappCard}>
-                {/* Header */}
-                {headerType === 'image' && (
-                    <div className={styles.waHeaderImage}>
-                        <Image size={40} color="#94a3b8" />
-                        <span>Image Preview</span>
-                    </div>
-                )}
-                {headerType === 'video' && (
-                    <div className={styles.waHeaderVideo}>
-                        <Video size={40} color="#94a3b8" />
-                        <span>Video Preview</span>
-                    </div>
-                )}
-
-                {/* Body */}
-                {body?.text && (
-                    <div className={styles.waBody}>
-                        <p>{body.text}</p>
-                    </div>
-                )}
-
-                {/* Footer */}
-                {footer?.text && (
-                    <div className={styles.waFooter}>
-                        {footer.text}
-                    </div>
-                )}
-
-                {/* Buttons */}
-                {buttons?.buttons?.length > 0 && (
-                    <div className={styles.waButtons}>
-                        {buttons.buttons.map((btn, i) => (
-                            <button key={i} className={styles.waBtn}>{btn.text}</button>
-                        ))}
-                    </div>
-                )}
-            </div>
+            <MessagePreview
+                headerType={headerType}
+                headerText={header?.text || ''}
+                headerTextExample={header?.example?.header_text?.[0] || ''}
+                headerMedia={{
+                    mediaType: mediaType || 'image',
+                    file: null,
+                    mediaUrl,
+                    existingHandle,
+                }}
+                body={body?.text || ''}
+                footer={footer?.text || ''}
+                buttons={(buttons?.buttons || []).map((btn, idx) => ({
+                    id: idx,
+                    type: btn?.type,
+                    text: btn?.text || '',
+                }))}
+                variableValues={{}}
+                showEmptyHint={false}
+            />
         );
     };
 
@@ -567,10 +696,10 @@ const Templates = () => {
                             <ToggleButton value="list"><List size={16} /></ToggleButton>
                         </Tooltip>
                     </ToggleButtonGroup>
-                    <Button variant="outlined" className='varientOutlinedBtn' startIcon={<RefreshCw size={15} className={loading ? styles.spinning : ''} />} onClick={loadTemplates} disabled={loading}>
+                    <Button variant="outlined" className='varientOutlinedBtn' startIcon={<RefreshCw size={15} className={loading ? styles.spinning : ''} />} onClick={() => loadTemplates(true)} disabled={loading || syncLoading}>
                         Refresh
                     </Button>
-                    <Button variant="outlined" className='secondaryBtnClassname' startIcon={<RefreshCw size={15} className={loading ? styles.spinning : ''} />} onClick={handleSync} disabled={loading}>
+                    <Button variant="outlined" className='secondaryBtnClassname' startIcon={<RefreshCw size={15} className={syncLoading ? styles.spinning : ''} />} onClick={handleSync} disabled={loading || syncLoading}>
                         Sync
                     </Button>
                     <Button variant="contained" className='buttonClassname' startIcon={<Plus size={16} />} onClick={() => navigate('/templates/create')}>
@@ -635,7 +764,7 @@ const Templates = () => {
                 onClose={() => setOpenPreview(false)}
                 PaperProps={{ sx: { width: 420, background: '#f8fafc' } }}
             >
-                <div className={styles.drawerRoot} style={previewBg}>
+                <div className={styles.drawerRoot}>
                     <div className={styles.drawerHeader}>
                         <h3 className={styles.drawerTitle}>{previewTemplate?.TemplateName}</h3>
                         <button className={styles.drawerClose} onClick={() => setOpenPreview(false)}>
@@ -650,201 +779,12 @@ const Templates = () => {
             </Drawer>
 
             {/* Send Template Dialog */}
-            <Dialog
+            <SendTemplateDialog
                 open={openSendDialog}
-                onClose={() => {
-                    setOpenSendDialog(false);
-                    setPhoneNumber('');
-                    setPhoneError('');
-                    setTemplateVariables({});
-                }}
-                PaperProps={{
-                    sx: {
-                        borderRadius: '16px',
-                        padding: '8px',
-                        width: '100%',
-                        maxWidth: '500px'
-                    }
-                }}
-            >
-                <DialogTitle style={{ fontWeight: 700, color: '#0f172a', paddingBottom: '8px' }}>Send Template</DialogTitle>
-                <DialogContent>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--secondary-color)', marginBottom: '1.5rem', marginTop: 0 }}>
-                        Enter the recipient's mobile number to send the template <strong>{selectedTemplateForSend?.TemplateName}</strong>.
-                    </p>
-
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <label style={{ fontSize: '0.85rem', fontWeight: 500, color: '#334155', marginBottom: '0.5rem', display: 'block' }}>
-                            Mobile Number
-                        </label>
-                        <PhoneInput
-                            country={'in'}
-                            value={phoneNumber}
-                            onChange={handlePhoneChange}
-                            enableSearch={true}
-                            countryCodeEditable={true}
-                            inputStyle={{
-                                ...phoneInputStyles.input,
-                                borderColor: phoneError ? '#ef4444' : '#e2e8f0',
-                                boxShadow: phoneError ? '0 0 0 1px #ef4444' : 'none'
-                            }}
-                            buttonStyle={phoneInputStyles.button}
-                            dropdownStyle={phoneInputStyles.dropdown}
-                            searchStyle={phoneInputStyles.search}
-                            containerStyle={phoneInputStyles.container}
-                        />
-                        {phoneError && (
-                            <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>
-                                {phoneError}
-                            </span>
-                        )}
-                    </div>
-
-                    {/* Template Variables */}
-                    {extractTemplateVariables(selectedTemplateForSend).length > 0 && (
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ fontSize: '0.85rem', fontWeight: 500, color: '#334155', marginBottom: '0.75rem', display: 'block' }}>
-                                Template Variables
-                            </label>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {extractTemplateVariables(selectedTemplateForSend).map(varNum => (
-                                    <TemplateVariableInput
-                                        key={varNum}
-                                        label={`Variable {{${varNum}}}`}
-                                        value={templateVariables[varNum] || ''}
-                                        onChange={(val) => setTemplateVariables(prev => ({ ...prev, [varNum]: val }))}
-                                        onEmojiClick={(e) => handleEmojiPickerOpen(e, varNum)}
-                                        onVariableClick={(e) => handleVariableMenuOpen(e, varNum)}
-                                        showDynamic={false}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </DialogContent>
-
-                {/* Dynamic Variables Menu */}
-                <DynamicVariableMenu
-                    anchorEl={menuAnchor}
-                    open={Boolean(menuAnchor)}
-                    onClose={handleVariableMenuClose}
-                    onSelect={handleVariableSelect}
-                />
-
-                <DialogActions style={{ padding: '12px 24px 16px' }}>
-                    <Button
-                        onClick={() => {
-                            setOpenSendDialog(false);
-                            setPhoneNumber('');
-                            setPhoneError('');
-                            setTemplateVariables({});
-                        }}
-                        color="inherit"
-                        className='secondaryBtnClassname'
-                    >
-                        Close
-                    </Button>
-                    <Button
-                        onClick={async () => {
-                            if (!selectedTemplateForSend || !phoneNumber) return;
-
-                            // Parse phone number - PhoneInput returns full number with country code
-                            // Extract just the number without country code for the API
-                            const phoneNo = phoneNumber.replace(/\D/g, '');
-
-                            // Build components with parameters
-                            let components = [];
-                            try { components = JSON.parse(selectedTemplateForSend.Components || '[]'); } catch { components = []; }
-
-                            // Build components array for API
-                            const templateComponents = [];
-                            const headerType = getHeaderType(selectedTemplateForSend);
-                            const templateImageUrl = getTemplateImageUrl(selectedTemplateForSend);
-
-                            // Add header component if it's an image template with existing image URL
-                            if (headerType === 'IMAGE' && templateImageUrl) {
-                                templateComponents.push({
-                                    type: 'header',
-                                    parameters: [
-                                        {
-                                            type: 'image',
-                                            image: {
-                                                link: templateImageUrl
-                                            }
-                                        }
-                                    ]
-                                });
-                            }
-
-                            // Build parameters from templateVariables
-                            const bodyComponent = components.find(c => c.type === 'BODY');
-                            const parameters = [];
-
-                            // Get all variable numbers and sort them
-                            const varNumbers = Object.keys(templateVariables).sort((a, b) => parseInt(a) - parseInt(b));
-                            varNumbers.forEach(varNum => {
-                                parameters.push({
-                                    type: 'text',
-                                    text: templateVariables[varNum] || ''
-                                });
-                            });
-
-                            // Add body component if there are parameters
-                            if (parameters.length > 0) {
-                                templateComponents.push({
-                                    type: 'body',
-                                    parameters: parameters
-                                });
-                            }
-
-                            // Build the API payload
-                            const payload = {
-                                phoneNo: phoneNo,
-                                appuserid: userToken?.userId || '',
-                                customerId: '',
-                                type: 'template',
-                                template: {
-                                    name: selectedTemplateForSend.TemplateName,
-                                    language: {
-                                        code: selectedTemplateForSend?.Language || 'en'
-                                    }
-                                }
-                            };
-
-                            // Only add components if there are any
-                            if (templateComponents.length > 0) {
-                                payload.template.components = templateComponents;
-                            }
-
-                            // Call the API
-                            toast.promise(
-                                sendTemplate(payload).then((result) => {
-                                    if (result.success) {
-                                        setOpenSendDialog(false);
-                                        setPhoneNumber('');
-                                        setPhoneError('');
-                                        setTemplateVariables({});
-                                        return 'Template sent successfully';
-                                    } else {
-                                        throw new Error(result.error || 'Failed to send template');
-                                    }
-                                }),
-                                {
-                                    loading: 'Sending template...',
-                                    success: 'Template sent successfully',
-                                    error: (err) => err.message || 'Failed to send template'
-                                }
-                            );
-                        }}
-                        variant="contained"
-                        color="primary"
-                        disabled={!phoneNumber || !!phoneError || phoneNumber.length < 7}
-                        className='buttonClassname'
-                    >
-                        Send
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                onClose={() => setOpenSendDialog(false)}
+                template={selectedTemplateForSend}
+                userToken={userToken}
+            />
 
             <ConfirmationModal
                 isOpen={!!deleteTemplateData}
