@@ -8,9 +8,9 @@ export const createButtonConfig = (type) => {
     if (type === 'URL') {
         return {
             ...base,
-            text: 'Visit Shop',
+            text: 'Visit Website',
             urlType: 'STATIC',
-            url: 'https://business.whatsapp.com/products/{{1}}',
+            url: '',
             example: ''
         };
     }
@@ -28,9 +28,14 @@ export const getButtonTypeCounts = (buttons = []) => {
     };
 };
 
-export const getButtonMenuOptions = (buttons = [], maxButtons = Infinity) => {
+export const getButtonMenuOptions = (buttons = [], maxButtons = Infinity, limits = {}) => {
     const counts = getButtonTypeCounts(buttons);
     const hasReachedMax = counts.total >= maxButtons;
+    const {
+        maxQuickReply = 6,
+        maxPhone = 1,
+        maxUrl = 2,
+    } = limits;
 
     return [
         {
@@ -39,7 +44,7 @@ export const getButtonMenuOptions = (buttons = [], maxButtons = Infinity) => {
                 {
                     key: 'QUICK_REPLY',
                     label: 'Custom',
-                    disabled: hasReachedMax || counts.quickReply >= 6,
+                    disabled: hasReachedMax || counts.quickReply >= maxQuickReply,
                 },
             ],
         },
@@ -49,12 +54,12 @@ export const getButtonMenuOptions = (buttons = [], maxButtons = Infinity) => {
                 {
                     key: 'PHONE_NUMBER',
                     label: 'Call Phone number',
-                    disabled: hasReachedMax || counts.phone >= 1,
+                    disabled: hasReachedMax || counts.phone >= maxPhone,
                 },
                 {
                     key: 'URL',
                     label: 'Visit website',
-                    disabled: hasReachedMax || counts.url >= 1,
+                    disabled: hasReachedMax || counts.url >= maxUrl,
                 },
             ],
         },

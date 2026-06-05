@@ -4,16 +4,14 @@ import { Box, Typography, Button, Paper, LinearProgress, Divider } from '@mui/ma
 import { FileText, Wallet } from 'lucide-react';
 import { Whatsapp } from '../../utils/svg';
 import WalletDrawer from './WalletDrawer';
+import ChannelCardSkeleton from './ChannelCardSkeleton';
 import { useAuthToken } from '../../hooks/useAuthToken';
-import { fetchWabaBilling } from '../../API/ChannelBilling/WabaBilling';
+import { useWallet } from '../../contexts/WalletContext';
 
 // ── Static data (replace with API later) ──────────────────────────────────────
 const CHANNELS = [
     {
         id: 'whatsapp',
-        name: 'WhatsApp',
-        appName: 'Meta Apps',
-        description: 'Send messages via Template notification',
         balance: 1250,
         totalCredits: 5000,
         used: 3750,
@@ -23,9 +21,9 @@ const CHANNELS = [
 const ChannelCard = () => {
     const navigate = useNavigate();
     const { userToken } = useAuthToken();
+    const { walletInfo, isLoading, loadWalletData } = useWallet();
     const [walletOpen, setWalletOpen] = useState(false);
     const [activeChannel, setActiveChannel] = useState(null);
-    const [billingData, setBillingData] = useState(null);
 
     const appUserId = useMemo(
         () => userToken?.userid || userToken?.userId || userToken?.appuserid || '',
@@ -33,34 +31,25 @@ const ChannelCard = () => {
     );
 
     useEffect(() => {
-        const loadWabaBilling = async () => {
-            if (!appUserId) {
-                setBillingData(null);
-                return;
-            }
-
-            const response = await fetchWabaBilling(appUserId);
-            setBillingData(response?.success ? response.data : null);
-        };
-
-        loadWabaBilling();
-    }, [appUserId]);
+        loadWalletData(appUserId);
+    }, [appUserId, loadWalletData]);
 
     const channels = useMemo(() => {
-        const totalCredits = Number(billingData?.BillAmount || 0);
-        const availableAmount = Number(billingData?.CurrentAmount || 0);
-        const used = Math.max(0, totalCredits - availableAmount);
-        const progressPercent = totalCredits > 0 ? Math.min(100, (used / totalCredits) * 100) : 0;
+        if (!walletInfo) return [];
 
         return CHANNELS.map((channel) => ({
             ...channel,
-            balance: availableAmount,
-            totalCredits,
-            used,
-            progressPercent,
-            channelId: billingData?.ChannelId || '-',
+            balance: walletInfo.availableBalance,
+            totalCredits: walletInfo.totalCredits,
+            used: walletInfo.used,
+            progressPercent: walletInfo.progressPercent,
+            companyCode: walletInfo.companyCode || '-',
+            mobileNumber: walletInfo.mobileNumber || '-',
+            wabaId: walletInfo.wabaId || '-',
+            wabaPhoneNo: walletInfo.wabaPhoneNo || '-',
+            refundBalance: walletInfo.refundBalance,
         }));
-    }, [billingData]);
+    }, [walletInfo]);
 
     const handleWalletOpen = (channel) => {
         setActiveChannel(channel);
@@ -78,8 +67,12 @@ const ChannelCard = () => {
                 </Typography>
             </Box>
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1.5rem', marginTop: '1.5rem' }}>
-                {channels.map((channel) => (
+            <Box sx={{ marginTop: '1.5rem' }}>
+                {isLoading ? (
+                    <ChannelCardSkeleton count={1} />
+                ) : (
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1.5rem' }}>
+                        {channels.map((channel) => (
                     <Paper
                         key={channel.id}
                         sx={{
@@ -117,14 +110,17 @@ const ChannelCard = () => {
                                 </Box>
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                     <Typography variant="body1" sx={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--title-color)', lineHeight: 1.2 }}>
-                                        {channel.name}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ fontSize: '0.78rem', color: 'var(--text-2nd-color)', fontWeight: 500 }}>
-                                        {channel.appName}
+                                        {channel.companyCode}
                                     </Typography>
                                     <Typography variant="caption" sx={{ fontSize: '0.72rem', color: 'var(--text-2nd-color)', fontWeight: 500 }}>
-                                        Channel ID: {channel.channelId}
+                                        Mobile No: {channel.mobileNumber}
                                     </Typography>
+                                    <Typography variant="caption" sx={{ fontSize: '0.72rem', color: 'var(--text-2nd-color)', fontWeight: 500 }}>
+                                        WABA ID: {channel.wabaId}
+                                    </Typography>
+                                    {/* <Typography variant="caption" sx={{ fontSize: '0.72rem', color: 'var(--text-2nd-color)', fontWeight: 500 }}>
+                                        WABA Phone No: {channel.wabaPhoneNo}
+                                    </Typography> */}
                                 </Box>
                             </Box>
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
@@ -133,6 +129,9 @@ const ChannelCard = () => {
                                 </Typography>
                                 <Typography variant="h5" sx={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--title-color)', letterSpacing: '-0.02em' }}>
                                     ₹{channel.balance.toLocaleString('en-IN')}
+                                </Typography>
+                                <Typography variant="caption" sx={{ fontSize: '0.74rem', color: '#0ea5a4', fontWeight: 700, mt: 0.25 }}>
+                                    Refund: ₹{channel.refundBalance.toLocaleString('en-IN')}
                                 </Typography>
                             </Box>
                         </Box>
@@ -187,6 +186,8 @@ const ChannelCard = () => {
                         </Box>
                     </Paper>
                 ))}
+                    </Box>
+                )}
             </Box>
 
             {/* Wallet Drawer */}

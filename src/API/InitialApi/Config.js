@@ -1,7 +1,7 @@
 
 const MEDIA_BASE_URL = process.env.REACT_APP_MEDIA_BASE_URL;
 
-const isLocal = ["localhost", '5dmjw0dg-2000.inc1.devtunnels.ms'].includes(window.location.hostname);
+const isLocal = ['5dmjw0dg-2000.inc1.devtunnels.ms'].includes(window.location.hostname);
 const isNxt = ['nxtwababroadcast.optigoapps.com'].includes(window.location.hostname);
 const isLocalWeb = ["wababroadcast.web"].includes(window.location.hostname);
 
@@ -11,14 +11,16 @@ const API_BASE_URL = isLocal ?
         isNxt ? process.env.REACT_APP_API_NXT_URL :
             process.env.REACT_APP_API_PRODUCTION_URL;
 
+const Image_upload_url  = process.env.REACT_APP_IMAGE_UPLOAD;
+
 export const APIURL = `${API_BASE_URL}/report`;
 export const MEDIAAPIURL = MEDIA_BASE_URL;
 export const MESSAGEAPIURL = `${API_BASE_URL}/whatsapp/chat/send`;
 export const MESSAGEAPIURLBULK = `${API_BASE_URL}/whatsapp/chat/send-bulk`;
 export const GETCONVERSATIONURL = `${API_BASE_URL}/report`;
 export const UPLOADMEDIA = MEDIA_BASE_URL;
-export const UPLOADFILE = isLocal ? 'nxt22.optigoapps.com/api/upload' : `${API_BASE_URL}/upload`;
-export const REMOVE_FILE_URL = isLocal ? 'nxt22.optigoapps.com/api/removefile' : `${API_BASE_URL}/removefile`;
+export const UPLOADFILE = isLocal ? 'https://nxt22.optigoapps.com/api/upload' : `${Image_upload_url}/upload`;
+export const REMOVE_FILE_URL = isLocal ? 'nxt22.optigoapps.com/api/removefile' : `${Image_upload_url}/removefile`;
 export const LOGOUTAPI = `${API_BASE_URL}/whatsapp/chat/logout`;
 export const SAVEPLAYERID = `${API_BASE_URL}/report`;
 export const EXCELIMPORT = `${API_BASE_URL}/whatsapp/brodcast/excel-import`;
@@ -60,11 +62,9 @@ export const getHeaders1 = () => {
 };
 
 export const getLoginHeaders = (init = {}) => {
-
     const { version = "v2" } = init;
 
     return {
-        // Authorization: `Bearer ${token}`,
         Yearcode: "",
         Version: version,
         sv: "",

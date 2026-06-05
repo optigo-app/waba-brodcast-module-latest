@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Typography, TextField, Button, RadioGroup, Radio, FormControlLabel, Select, MenuItem, Box, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Grid, Menu, ListItemText, ListItemIcon, Popover, Skeleton } from '@mui/material';
-import { Smile, Code, Send, Info, ChevronDown, User } from 'lucide-react';
+import { Typography, TextField, Button, RadioGroup, Radio, FormControlLabel, Select, MenuItem, Box, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Grid, Menu, ListItemText, ListItemIcon, Popover, Skeleton, Alert } from '@mui/material';
+import { Smile, Code, Send, Info, ChevronDown, User, AlertTriangle, ExternalLink } from 'lucide-react';
 import SelectAutocomplete from '../../Audience/SelectAutocomplete';
 import { fetchTemplateLists } from '../../../API/TemplateList/TemplateList';
 import { useAuthToken } from '../../../hooks/useAuthToken';
@@ -11,6 +11,7 @@ import TemplateVariableInput from '../../Common/TemplateVariableInput/TemplateVa
 import DynamicVariableMenu from '../../Common/DynamicVariableMenu/DynamicVariableMenu';
 import SendTemplateDialog from '../../Common/SendTemplateDialog/SendTemplateDialog';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import styles from '../AddCampaign.module.scss';
 
 // ── Local Input Wrapper for General Performance ──────────────────────────────
@@ -50,6 +51,7 @@ const LocalTextField = React.memo(({ value, onChange, ...props }) => {
 
 const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError, onTemplateData }) => {
   const { userToken } = useAuthToken();
+  const navigate = useNavigate();
   const [messageType, setMessageType] = useState('preApprovedTemplate');
   const [template, setTemplate] = useState(null);
   const [deleteTemplate, setDeleteTemplate] = useState(false);
@@ -66,6 +68,8 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
   const [variableMenuAnchor, setVariableMenuAnchor] = useState(null);
   const [selectedVariableIndex, setSelectedVariableIndex] = useState(null);
   const [sendTestDialogOpen, setSendTestDialogOpen] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [mediaDataMissing, setMediaDataMissing] = useState(false);
 
   const handleVariableMenuOpen = (event, index) => {
     setVariableMenuAnchor(event.currentTarget);
@@ -112,6 +116,8 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
       setVariableCount(0);
       setVariables({});
       onTemplateData?.(null);
+      setPreviewData(null);
+      setMediaDataMissing(false);
       return;
     }
 
@@ -129,6 +135,112 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
       } catch (mediaError) {
         console.error('Error parsing template media data:', mediaError);
       }
+
+      // Extract header, footer, buttons, carousel for preview
+      const header = components.find(c => c.type === 'HEADER');
+      const body = components.find(c => c.type === 'BODY');
+      const footer = components.find(c => c.type === 'FOOTER');
+      const buttons = components.find(c => c.type === 'BUTTONS');
+      const carousel = components.find(c => String(c?.type || '').toUpperCase() === 'CAROUSEL');
+      const isCarousel = Array.isArray(carousel?.cards);
+
+      // Check if MediaData is missing for image or carousel templates
+      const hasMediaHeader = header && header.format !== 'TEXT';
+      const isMediaTemplate = hasMediaHeader || isCarousel;
+      const hasValidMediaData = mediaUrls.length > 0;
+      
+      if (isMediaTemplate && !hasValidMediaData) {
+        setMediaDataMissing(true);
+      } else {
+        setMediaDataMissing(false);
+      }
+
+      // Build preview data
+      let previewHeaderType = 'None';
+      let previewHeaderText = '';
+      let previewHeaderTextExample = '';
+      let previewHeaderMedia = null;
+      let previewFooter = '';
+      let previewButtons = [];
+      let previewCarouselCards = [];
+      let previewTemplateType = 'Interactive';
+
+      if (isCarousel) {
+        previewTemplateType = 'Carousel';
+        previewCarouselCards = carousel.cards.map((card, idx) => {
+          const cardComps = card.components || [];
+          const cardHeader = cardComps.find(c => String(c?.type || '').toUpperCase() === 'HEADER');
+          const cardBody = cardComps.find(c => String(c?.type || '').toUpperCase() === 'BODY');
+          const cardButtons = cardComps.find(c => String(c?.type || '').toUpperCase() === 'BUTTONS');
+          const cardHandle = cardHeader?.example?.header_handle?.[0] || '';
+          const cardMediaUrl = mediaUrls[idx] || cardHandle;
+          const cardFormat = (cardHeader?.format || 'IMAGE').toLowerCase();
+
+          return {
+            id: card.id || idx,
+            header: {
+              mediaType: cardFormat,
+              file: null,
+              existingHandle: cardHandle,
+              mediaUrl: cardMediaUrl,
+            },
+            body: cardBody?.text || '',
+            buttons: (cardButtons?.buttons || []).map((b, bIdx) => ({
+              id: b.id || bIdx,
+              type: b.type,
+              text: b.text,
+              phone_number: b.phone_number,
+              url: b.url,
+              urlType: b.url_type === 'DYNAMIC' ? 'DYNAMIC' : 'STATIC',
+              example: b.example,
+            })),
+          };
+        });
+      } else {
+        // Non-carousel template
+        if (header) {
+          if (header.format === 'TEXT') {
+            previewHeaderType = 'Text';
+            previewHeaderText = header.text || '';
+            previewHeaderTextExample = header.example?.header_text?.[0] || '';
+          } else {
+            previewHeaderType = 'Media';
+            const headerHandle = header.example?.header_handle?.[0] || '';
+            const headerFormat = (header.format || 'IMAGE').toLowerCase();
+            // Use MediaData URL if available, otherwise fall back to header_handle
+            const mediaUrl = mediaUrls.length > 0 ? mediaUrls[0] : headerHandle;
+            previewHeaderMedia = {
+              mediaType: headerFormat,
+              file: null,
+              existingHandle: headerHandle,
+              mediaUrl: mediaUrl,
+            };
+          }
+        }
+
+        previewFooter = footer?.text || '';
+        previewButtons = (buttons?.buttons || []).map((b, idx) => ({
+          id: b.id || idx,
+          type: b.type,
+          text: b.text,
+          phone_number: b.phone_number,
+          url: b.url,
+          urlType: b.url_type === 'DYNAMIC' ? 'DYNAMIC' : 'STATIC',
+          example: b.example,
+        }));
+      }
+
+      setPreviewData({
+        headerType: previewHeaderType,
+        headerText: previewHeaderText,
+        headerTextExample: previewHeaderTextExample,
+        headerMedia: previewHeaderMedia,
+        footer: previewFooter,
+        buttons: previewButtons,
+        templateType: previewTemplateType,
+        carouselCards: previewCarouselCards,
+        body: body?.text || '',
+      });
 
       if (components && components.length > 0) {
         const bodyComponent = components.find(c => c.type === 'BODY');
@@ -153,7 +265,8 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
             TemplateJson: template.TemplateJson,
             Components: components,
             MediaUrls: mediaUrls,
-            variables: newVars
+            variables: newVars,
+            mediaDataMissing: false
           };
           onTemplateData?.(templateData);
         } else {
@@ -165,7 +278,8 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
             TemplateJson: template.TemplateJson,
             Components: components,
             MediaUrls: mediaUrls,
-            variables: {}
+            variables: {},
+            mediaDataMissing: false
           });
         }
       } else {
@@ -178,6 +292,7 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
       setVariableCount(0);
       setVariables({});
       onTemplateData?.(null);
+      setPreviewData(null);
     }
   }, [template, onTemplateData]);
 
@@ -227,8 +342,8 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
     let isConfigured = false;
 
     if (messageType === 'preApprovedTemplate') {
-      // Check if template is selected and all variables are filled
-      if (template) {
+      // Check if template is selected, has valid media (if required), and all variables are filled
+      if (template && !mediaDataMissing) {
         const allVarsFilled = Object.values(variables).every(val => val && val.trim() !== '');
         isConfigured = variableCount === 0 || allVarsFilled;
       }
@@ -238,7 +353,7 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
     }
 
     onMessageConfigured?.(isConfigured);
-  }, [messageType, template, variables, variableCount, regularMessageText, onMessageConfigured]);
+  }, [messageType, template, variables, variableCount, regularMessageText, onMessageConfigured, mediaDataMissing]);
 
   // Update template data when variables change - Debounced
   useEffect(() => {
@@ -264,7 +379,8 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
             TemplateJson: template.TemplateJson,
             Components: components,
             MediaUrls: mediaUrls,
-            variables
+            variables,
+            mediaDataMissing
           });
         } catch (error) {
           console.error('Error parsing template components:', error);
@@ -344,6 +460,49 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
                 />
               )}
             </div>
+          )}
+
+          {/* MediaData Missing Alert */}
+          {mediaDataMissing && template && (
+            <Alert 
+              severity="warning" 
+              sx={{ 
+                mb: 2, 
+                borderRadius: '8px',
+                '& .MuiAlert-icon': {
+                  fontSize: '24px'
+                }
+              }}
+              action={
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => navigate(`/templates?search=${encodeURIComponent(template.TemplateName)}`)}
+                  sx={{ 
+                    minWidth:'200px',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                    '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.1)'
+                    }
+                  }}
+                >
+                  Update Template
+                </Button>
+              }
+            >
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                    Template has no valid image
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                    This template requires media but has no valid image. Please update the template with a valid image before using it in your campaign.
+                  </Typography>
+                </Box>
+              </Box>
+            </Alert>
           )}
 
           {/* Regular Message Section - Only show for Regular Message */}
@@ -529,15 +688,15 @@ const Message = ({ onNext, onBack, onMessageConfigured, showError, messageError,
           <Grid size={{ lg: 4, md: 4, sm: 12, xs: 12 }}>
             {messageType === 'preApprovedTemplate' && template ? (
               <MessagePreview
-                headerType="None"
-                headerText=""
-                headerTextExample=""
-                headerMedia={null}
-                body={template.Components ? JSON.parse(template.Components).find(c => c.type === 'BODY')?.text || '' : ''}
-                footer=""
-                buttons={[]}
-                templateType="Interactive"
-                carouselCards={[]}
+                headerType={previewData?.headerType || 'None'}
+                headerText={previewData?.headerText || ''}
+                headerTextExample={previewData?.headerTextExample || ''}
+                headerMedia={previewData?.headerMedia || null}
+                body={previewData?.body || ''}
+                footer={previewData?.footer || ''}
+                buttons={previewData?.buttons || []}
+                templateType={previewData?.templateType || 'Interactive'}
+                carouselCards={previewData?.carouselCards || []}
                 variableValues={variables}
                 showEmptyHint={false}
               />

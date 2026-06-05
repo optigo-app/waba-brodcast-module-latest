@@ -7,6 +7,7 @@ const WalletDrawer = ({ open, onClose, channel }) => {
     const totalCredits = Number(channel?.totalCredits || 0);
     const usedAmount = Number(channel?.used || 0);
     const remainingAmount = Number(channel?.balance || 0);
+    const refundAmount = Number(channel?.refundBalance || 0);
     const usedPercent = totalCredits > 0 ? Math.round((usedAmount / totalCredits) * 100) : 0;
 
     return (
@@ -14,7 +15,7 @@ const WalletDrawer = ({ open, onClose, channel }) => {
             anchor="right"
             open={open}
             onClose={onClose}
-            PaperProps={{ sx: { width: 420, background: 'transparent', boxShadow: 'none' } }}
+            PaperProps={{ sx: { width: 480, background: 'transparent', boxShadow: 'none' } }}
         >
             <div className={styles.drawerRoot}>
                 {/* Drawer Header */}
@@ -44,6 +45,11 @@ const WalletDrawer = ({ open, onClose, channel }) => {
                         <span className={styles.summaryLabel}>Remaining</span>
                         <span className={styles.summaryValue}>₹{remainingAmount.toLocaleString('en-IN')}</span>
                         <Wallet size={14} className={styles.summaryIcon} />
+                    </div>
+                    <div className={`${styles.summaryCard} ${styles.summaryRefund}`}>
+                        <span className={styles.summaryLabel}>Refund</span>
+                        <span className={styles.summaryValue}>₹{refundAmount.toLocaleString('en-IN')}</span>
+                        <TrendingUp size={14} className={styles.summaryIcon} />
                     </div>
                 </div>
 

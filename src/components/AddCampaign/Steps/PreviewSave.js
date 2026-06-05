@@ -3,9 +3,134 @@ import { Typography, Button, Grid, Box, Paper } from '@mui/material';
 import { Send, ChevronLeft, CheckCircle, AlertCircle, Megaphone, Clock, Filter, Users, MessageSquare } from 'lucide-react';
 import styles from '../AddCampaign.module.scss';
 import ConfirmationModal from '../../ConfirmationModal/ConfirmationModal';
+import MessagePreview from '../../MessagePreview/MessagePreview';
 
-const PreviewSave = ({ onBack, onSave, campaignName, campaignType, scheduledFor, audience, dataSource, repeat, recurrenceFrequency, messageConfigured, onNavigateToStep, isSaving }) => {
+const PreviewSave = ({ onBack, onSave, campaignName, campaignType, scheduledFor, audience, dataSource, repeat, recurrenceFrequency, messageConfigured, onNavigateToStep, isSaving, templateData }) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // Extract preview data from templateData
+  const previewData = React.useMemo(() => {
+    if (!templateData?.Components) return null;
+
+    try {
+      const components = templateData.Components;
+      let mediaUrls = [];
+      if (Array.isArray(templateData.MediaUrls)) {
+        mediaUrls = templateData.MediaUrls.filter(Boolean);
+      } else if (typeof templateData.MediaUrls === 'string' && templateData.MediaUrls.trim()) {
+        try {
+          const parsedMediaUrls = JSON.parse(templateData.MediaUrls);
+          mediaUrls = Array.isArray(parsedMediaUrls) ? parsedMediaUrls.filter(Boolean) : [];
+        } catch {
+          mediaUrls = [];
+        }
+      } else if (Array.isArray(templateData.MediaData)) {
+        mediaUrls = templateData.MediaData.filter(Boolean);
+      } else if (typeof templateData.MediaData === 'string' && templateData.MediaData.trim()) {
+        try {
+          const parsedMediaData = JSON.parse(templateData.MediaData);
+          mediaUrls = Array.isArray(parsedMediaData) ? parsedMediaData.filter(Boolean) : [];
+        } catch {
+          mediaUrls = [];
+        }
+      }
+      const variables = templateData.variables || {};
+
+      const header = components.find(c => c.type === 'HEADER');
+      const body = components.find(c => c.type === 'BODY');
+      const footer = components.find(c => c.type === 'FOOTER');
+      const buttons = components.find(c => c.type === 'BUTTONS');
+      const carousel = components.find(c => String(c?.type || '').toUpperCase() === 'CAROUSEL');
+      const isCarousel = Array.isArray(carousel?.cards);
+
+      let previewHeaderType = 'None';
+      let previewHeaderText = '';
+      let previewHeaderTextExample = '';
+      let previewHeaderMedia = null;
+      let previewFooter = '';
+      let previewButtons = [];
+      let previewCarouselCards = [];
+      let previewTemplateType = 'Interactive';
+
+      if (isCarousel) {
+        previewTemplateType = 'Carousel';
+        previewCarouselCards = carousel.cards.map((card, idx) => {
+          const cardComps = card.components || [];
+          const cardHeader = cardComps.find(c => String(c?.type || '').toUpperCase() === 'HEADER');
+          const cardBody = cardComps.find(c => String(c?.type || '').toUpperCase() === 'BODY');
+          const cardButtons = cardComps.find(c => String(c?.type || '').toUpperCase() === 'BUTTONS');
+          const cardHandle = cardHeader?.example?.header_handle?.[0] || '';
+          const cardMediaUrl = mediaUrls[idx] || cardHandle;
+          const cardFormat = (cardHeader?.format || 'IMAGE').toLowerCase();
+
+          return {
+            id: card.id || idx,
+            header: {
+              mediaType: cardFormat,
+              file: null,
+              existingHandle: cardHandle,
+              mediaUrl: cardMediaUrl,
+            },
+            body: cardBody?.text || '',
+            buttons: (cardButtons?.buttons || []).map((b, bIdx) => ({
+              id: b.id || bIdx,
+              type: b.type,
+              text: b.text,
+              phone_number: b.phone_number,
+              url: b.url,
+              urlType: b.url_type === 'DYNAMIC' ? 'DYNAMIC' : 'STATIC',
+              example: b.example,
+            })),
+          };
+        });
+      } else {
+        if (header) {
+          if (header.format === 'TEXT') {
+            previewHeaderType = 'Text';
+            previewHeaderText = header.text || '';
+            previewHeaderTextExample = header.example?.header_text?.[0] || '';
+          } else {
+            previewHeaderType = 'Media';
+            const headerHandle = header.example?.header_handle?.[0] || '';
+            const headerFormat = (header.format || 'IMAGE').toLowerCase();
+            previewHeaderMedia = {
+              mediaType: headerFormat,
+              file: null,
+              existingHandle: headerHandle,
+              mediaUrl: mediaUrls[0] || headerHandle,
+            };
+          }
+        }
+
+        previewFooter = footer?.text || '';
+        previewButtons = (buttons?.buttons || []).map((b, idx) => ({
+          id: b.id || idx,
+          type: b.type,
+          text: b.text,
+          phone_number: b.phone_number,
+          url: b.url,
+          urlType: b.url_type === 'DYNAMIC' ? 'DYNAMIC' : 'STATIC',
+          example: b.example,
+        }));
+      }
+
+      return {
+        headerType: previewHeaderType,
+        headerText: previewHeaderText,
+        headerTextExample: previewHeaderTextExample,
+        headerMedia: previewHeaderMedia,
+        footer: previewFooter,
+        buttons: previewButtons,
+        templateType: previewTemplateType,
+        carouselCards: previewCarouselCards,
+        body: body?.text || '',
+        variableValues: variables,
+      };
+    } catch (error) {
+      console.error('Error extracting preview data:', error);
+      return null;
+    }
+  }, [templateData]);
 
   const handleSaveClick = () => {
     // Check validation before showing confirmation modal
@@ -71,6 +196,30 @@ const PreviewSave = ({ onBack, onSave, campaignName, campaignType, scheduledFor,
 
       {/* Summary Cards Grid */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12 }}>
+          <Paper className={styles.summaryCard} elevation={0}>
+            <Box className={styles.summaryCardContent}>
+              {previewData ? (
+                <MessagePreview
+                  headerType={previewData.headerType}
+                  headerText={previewData.headerText}
+                  headerTextExample={previewData.headerTextExample}
+                  headerMedia={previewData.headerMedia}
+                  body={previewData.body}
+                  footer={previewData.footer}
+                  buttons={previewData.buttons}
+                  templateType={previewData.templateType}
+                  carouselCards={previewData.carouselCards}
+                  variableValues={previewData.variableValues}
+                  showEmptyHint={false}
+                />
+              ) : (
+                <Typography className={styles.emptyMessageText}>No message configured</Typography>
+              )}
+            </Box>
+          </Paper>
+        </Grid>
+
         {summaryCards.map((card, index) => (
           <Grid
             key={index}

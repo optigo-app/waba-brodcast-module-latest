@@ -2,7 +2,7 @@
 
 // ── Wallet Drawer ─────────────────────────────────────────────────────────────
 .drawerRoot {
-    width: 420px;
+    width: 480px;
     height: 100%;
     background: #fff;
     display: flex;
@@ -113,6 +113,11 @@
 .summaryRemaining {
     background: linear-gradient(135deg, #f0fdf4, #dcfce7);
     color: #166534;
+}
+
+.summaryRefund {
+    background: linear-gradient(135deg, #ecfeff, #cffafe);
+    color: #0f766e;
 }
 
 // ── Drawer Progress ───────────────────────────────────────────────────────────

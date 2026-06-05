@@ -38,6 +38,115 @@ const EXCEL_COLUMNS = [
   { field: 'State',        headerName: 'State',         width: 120, headerClassName: 'data-grid-header' },
 ];
 
+// Unified columns for mixed Excel and CRM data
+const UNIFIED_COLUMNS = [
+  { field: 'SrNo', headerName: '#', width: 60, type: 'number', headerClassName: 'data-grid-header' },
+  { 
+    field: 'CustomerName', 
+    headerName: 'Customer Name', 
+    width: 200, 
+    headerClassName: 'data-grid-header',
+    renderCell: (params) => params.row.CustomerName || '—'
+  },
+  { 
+    field: 'CountryCode', 
+    headerName: 'Country Code', 
+    width: 120, 
+    headerClassName: 'data-grid-header',
+    renderCell: (params) => params.row.Source === 'Excel' ? '—' : (params.row.CountryCode || '—')
+  },
+  { 
+    field: 'Phone', 
+    headerName: 'Phone', 
+    width: 160, 
+    headerClassName: 'data-grid-header',
+    renderCell: (params) => {
+      if (params.row.Source === 'Excel') {
+        return params.row.PhoneNo || '—';
+      }
+      return params.row.CustomerPhone || '—';
+    }
+  },
+  { 
+    field: 'Email', 
+    headerName: 'Email', 
+    width: 220, 
+    headerClassName: 'data-grid-header',
+    renderCell: (params) => {
+      if (params.row.Source === 'Excel') {
+        return params.row.Email || '—';
+      }
+      return params.row.CustomerEmail || '—';
+    }
+  },
+  { 
+    field: 'Company', 
+    headerName: 'Company', 
+    width: 220, 
+    headerClassName: 'data-grid-header',
+    renderCell: (params) => {
+      if (params.row.Source === 'Excel') {
+        return params.row.Company || '—';
+      }
+      return params.row.CustomerCode || '—';
+    }
+  },
+  { 
+    field: 'Type', 
+    headerName: 'Type', 
+    width: 140, 
+    headerClassName: 'data-grid-header',
+    renderCell: (params) => {
+      if (params.row.Source === 'Excel') {
+        return params.row.CustomerType || '—';
+      }
+      return params.row.CompanyType || '—';
+    }
+  },
+  { 
+    field: 'Source', 
+    headerName: 'Source', 
+    width: 100, 
+    headerClassName: 'data-grid-header',
+    renderCell: (params) => params.row.Source || 'CRM'
+  },
+  { 
+    field: 'Category', 
+    headerName: 'Category', 
+    width: 160, 
+    headerClassName: 'data-grid-header',
+    renderCell: (params) => params.row.Source === 'Excel' ? (params.row.Category || '—') : '—'
+  },
+  { 
+    field: 'City', 
+    headerName: 'City', 
+    width: 120, 
+    headerClassName: 'data-grid-header',
+    renderCell: (params) => params.row.City || '—'
+  },
+  { 
+    field: 'State', 
+    headerName: 'State', 
+    width: 120, 
+    headerClassName: 'data-grid-header',
+    renderCell: (params) => params.row.State || '—'
+  },
+  { 
+    field: 'Country', 
+    headerName: 'Country', 
+    width: 120, 
+    headerClassName: 'data-grid-header',
+    renderCell: (params) => params.row.Source === 'Excel' ? '—' : (params.row.Country || '—')
+  },
+  { 
+    field: 'PinCode', 
+    headerName: 'Pin Code', 
+    width: 120, 
+    headerClassName: 'data-grid-header',
+    renderCell: (params) => params.row.Source === 'Excel' ? (params.row.PinCode || '—') : '—'
+  },
+];
+
 // ── Stable sx object (never recreated) ───────────────────────────────────────
 const GRID_SX = {
   border: '1px solid var(--sidebar-borderColor)',
@@ -177,7 +286,15 @@ const AudienceGrid = ({
     },
   }), [onFilterClick, handleSearchInputChange, searchText, selectedCount]);
 
-  const columns = source === 'crm' ? CRM_COLUMNS : EXCEL_COLUMNS;
+  // Detect if data is mixed (has both Excel and CRM sources)
+  const hasMixedData = useMemo(() => {
+    if (!processedRows.length) return false;
+    const hasExcel = processedRows.some(row => row.Source === 'Excel');
+    const hasCRM = processedRows.some(row => !row.Source || row.Source !== 'Excel');
+    return hasExcel && hasCRM;
+  }, [processedRows]);
+
+  const columns = hasMixedData ? UNIFIED_COLUMNS : (source === 'crm' ? CRM_COLUMNS : EXCEL_COLUMNS);
 
   return (
     <Box sx={{ width: '100%', height: '98%', overflowX: 'auto' }}>

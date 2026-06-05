@@ -1,0 +1,24 @@
+.bodyFooterRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    position: relative;
+}
+
+.formattingButtons {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: nowrap !important;
+    width: fit-content;
+}
+
+.emojiPickerWrapper {
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    margin-bottom: 8px;
+    z-index: 9999;
+}

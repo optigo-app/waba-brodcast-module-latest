@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Plus, RefreshCw, FileText, CheckCircle, XCircle, Clock,
     AlertCircle, LayoutGrid, List, Eye, Send, Copy, Edit2,
     Trash2, Image, Video, FileType, FileQuestion, BookOpen,
-    X, ArrowLeft
+    X, ArrowLeft, AlertTriangle
 } from 'lucide-react';
 import { Tooltip, Drawer, Button, ToggleButtonGroup, ToggleButton, Grid, CardContent, Stack, Skeleton, Card, Paper, Menu, ListItemText, ListItemIcon, Popover } from '@mui/material';
 import Picker from '@emoji-mart/react';
@@ -15,19 +15,20 @@ import { deleteTemplate } from '../../API/TemplateList/DeleteTemplate';
 import { removeFileApi } from '../../API/InitialApi/filesRemoveApi';
 import { publishTemplate } from '../../API/TemplateList/PublishTemplate';
 import { useAuthToken } from '../../hooks/useAuthToken';
+import { useWallet } from '../../contexts/WalletContext';
 import TemplateGrid from './TemplateGrid';
 import TemplateTable from './TemplateTable';
-import TemplateVariableInput from '../Common/TemplateVariableInput/TemplateVariableInput';
-import DynamicVariableMenu from '../Common/DynamicVariableMenu/DynamicVariableMenu';
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal';
 import FilterBar from '../Common/FilterBar/FilterBar';
 import SendTemplateDialog from '../Common/SendTemplateDialog/SendTemplateDialog';
 import toast from 'react-hot-toast';
 import styles from './Templates.module.scss';
-import { previewBg } from '../../utils/globalFunc';
 import TemplateSkelton from './TemplateSkelton';
 import socket from '../../utils/socket';
 import MessagePreview from '../MessagePreview/MessagePreview';
+import { extractTemplatePreviewData } from '../../utils/templatePreviewUtils';
+import { checkImageUrlValid, checkVideoUrlValid } from '../../utils/globalFunc';
+import imagePlaceholder from '../../assets/imagePlaceholder.png';
 
 // ── Status Config ─────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -128,6 +129,7 @@ const ActionButtons = ({ template, status, onView, onSend, onClone, onEdit, onDe
 const Templates = () => {
     const { userToken } = useAuthToken();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(false);
     const [syncLoading, setSyncLoading] = useState(false);
@@ -139,9 +141,83 @@ const Templates = () => {
     const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'oldest' | 'name'
     const [previewTemplate, setPreviewTemplate] = useState(null);
     const [openPreview, setOpenPreview] = useState(false);
+    const [validatedPreviewData, setValidatedPreviewData] = useState(null);
+
+    // Validate image URLs in preview data and set fallback for invalid ones
+    useEffect(() => {
+        const validatePreviewImages = async () => {
+            if (!previewTemplate) {
+                setValidatedPreviewData(null);
+                return;
+            }
+
+            const previewData = extractTemplatePreviewData(previewTemplate);
+            if (!previewData) {
+                setValidatedPreviewData(null);
+                return;
+            }
+
+            const validated = { ...previewData };
+
+            // Validate header media URL (images and videos)
+            if (validated.headerMedia?.mediaUrl) {
+                if (validated.headerMedia?.mediaType === 'image') {
+                    const isValid = await checkImageUrlValid(validated.headerMedia.mediaUrl);
+                    if (!isValid) {
+                        validated.headerMedia = { ...validated.headerMedia, mediaUrl: imagePlaceholder };
+                    }
+                } else if (validated.headerMedia?.mediaType === 'video') {
+                    const isValid = await checkVideoUrlValid(validated.headerMedia.mediaUrl);
+                    if (!isValid) {
+                        validated.headerMedia = { ...validated.headerMedia, mediaUrl: '', isInvalid: true };
+                    }
+                }
+            }
+
+            // Validate carousel card media URLs (images and videos)
+            if (validated.carouselCards && Array.isArray(validated.carouselCards)) {
+                validated.carouselCards = await Promise.all(
+                    validated.carouselCards.map(async (card) => {
+                        if (card.header?.mediaUrl) {
+                            if (card.header?.mediaType === 'image') {
+                                const isValid = await checkImageUrlValid(card.header.mediaUrl);
+                                if (!isValid) {
+                                    return {
+                                        ...card,
+                                        header: { ...card.header, mediaUrl: imagePlaceholder }
+                                    };
+                                }
+                            } else if (card.header?.mediaType === 'video') {
+                                const isValid = await checkVideoUrlValid(card.header.mediaUrl);
+                                if (!isValid) {
+                                    return {
+                                        ...card,
+                                        header: { ...card.header, mediaUrl: '', isInvalid: true }
+                                    };
+                                }
+                            }
+                        }
+                        return card;
+                    })
+                );
+            }
+
+            setValidatedPreviewData(validated);
+        };
+
+        validatePreviewImages();
+    }, [previewTemplate]);
 
     const [openSendDialog, setOpenSendDialog] = useState(false);
     const [phoneNumber, setPhoneNumber] = useState('');
+
+    // Apply search filter from URL parameter
+    useEffect(() => {
+        const searchParam = searchParams.get('search');
+        if (searchParam) {
+            setSearch(decodeURIComponent(searchParam));
+        }
+    }, [searchParams]);
     const [phoneData, setPhoneData] = useState({});
     const [phoneError, setPhoneError] = useState('');
     const [selectedTemplateForSend, setSelectedTemplateForSend] = useState(null);
@@ -153,7 +229,11 @@ const Templates = () => {
     const [menuAnchor, setMenuAnchor] = useState(null);
     const [selectedVariableIndex, setSelectedVariableIndex] = useState(null);
     const [publishTemplateData, setPublishTemplateData] = useState(null);
+    const [isPublishing, setIsPublishing] = useState(false);
     const [sendLoading, setSendLoading] = useState(false);
+    const [showInsufficientBalanceDialog, setShowInsufficientBalanceDialog] = useState(false);
+    
+    const { hasSufficientBalance, walletInfo } = useWallet();
 
     // Initialize template variables with sample values when a template is selected for sending
     useEffect(() => {
@@ -414,7 +494,7 @@ const Templates = () => {
         setSyncLoading(true);
         const payload = {
             CreatedBy: userToken?.id || 4,
-            UserId: userToken?.username || 'admin@orail.co.in'
+            UserId: userToken?.userId || ''
         };
 
         toast.promise(
@@ -484,27 +564,26 @@ const Templates = () => {
     const handleConfirmPublish = async () => {
         if (!publishTemplateData) return;
 
-        toast.promise(
-            publishTemplate({
+        setIsPublishing(true);
+        try {
+            const result = await publishTemplate({
                 TemplateId: publishTemplateData.Id,
                 CreatedBy: userToken?.id || 4,
-                UserId: userToken?.username || 'admin@orail.co.in'
-            }).then((result) => {
-                if (result.success) {
-                    loadTemplates();
-                    return 'Template published successfully';
-                } else {
-                    throw new Error(result.error?.message || 'Failed to publish template');
-                }
-            }),
-            {
-                loading: 'Publishing template...',
-                success: (msg) => msg,
-                error: (err) => err.message,
+                UserId: userToken?.userId || ''
+            });
+
+            if (result.success) {
+                toast.success('Template published successfully');
+                loadTemplates();
+            } else {
+                toast.error(result.error?.message || 'Failed to publish template');
             }
-        ).finally(() => {
+        } catch (error) {
+            toast.error(error.message || 'Failed to publish template');
+        } finally {
+            setIsPublishing(false);
             setPublishTemplateData(null);
-        });
+        }
     };
 
     // Reset to page 1 when search or filter changes
@@ -528,7 +607,8 @@ const Templates = () => {
             if (!matchSearch) return false;
         }
 
-        const matchStatus = filterStatus === 'ALL' || t.WabaStatus?.toUpperCase() === filterStatus;
+        const matchStatus = filterStatus === 'ALL'
+            || (filterStatus === 'OTHERS' ? !t.WabaStatus : t.WabaStatus?.toUpperCase() === filterStatus);
         return matchStatus;
     });
 
@@ -553,7 +633,7 @@ const Templates = () => {
     const paginatedItems = sorted.slice(startIndex, startIndex + itemsPerPage);
 
     const statusCounts = templates.reduce((acc, t) => {
-        const s = t.WabaStatus?.toUpperCase() || 'UNKNOWN';
+        const s = t.WabaStatus?.toUpperCase() || 'OTHERS';
         acc[s] = (acc[s] || 0) + 1;
         return acc;
     }, {});
@@ -565,6 +645,12 @@ const Templates = () => {
             setOpenPreview(true);
         },
         onSend: (t) => {
+            // Check balance first
+            if (!hasSufficientBalance) {
+                setShowInsufficientBalanceDialog(true);
+                return;
+            }
+            
             setSelectedTemplateForSend(t);
             setOpenSendDialog(true);
         },
@@ -575,91 +661,20 @@ const Templates = () => {
     };
 
     const renderPreviewContent = () => {
-        if (!previewTemplate) return null;
-        let components = [];
-        try { components = JSON.parse(previewTemplate.Components || '[]'); } catch { components = []; }
-
-        let mediaUrls = [];
-        try {
-            if (Array.isArray(previewTemplate.MediaData)) {
-                mediaUrls = previewTemplate.MediaData.filter(Boolean);
-            } else if (typeof previewTemplate.MediaData === 'string' && previewTemplate.MediaData.trim()) {
-                const parsedMedia = JSON.parse(previewTemplate.MediaData);
-                mediaUrls = Array.isArray(parsedMedia) ? parsedMedia.filter(Boolean) : [];
-            }
-        } catch (error) {
-            console.error('Error parsing preview template media:', error);
-        }
-
-        const body = components.find((c) => String(c?.type || '').toUpperCase() === 'BODY');
-        const footer = components.find((c) => String(c?.type || '').toUpperCase() === 'FOOTER');
-        const buttons = components.find((c) => String(c?.type || '').toUpperCase() === 'BUTTONS');
-        const header = components.find((c) => String(c?.type || '').toUpperCase() === 'HEADER');
-        const carousel = components.find((c) => String(c?.type || '').toUpperCase() === 'CAROUSEL');
-
-        if (Array.isArray(carousel?.cards)) {
-            const carouselCards = carousel.cards.map((card, idx) => {
-                const cardComponents = card?.components || [];
-                const cardHeader = cardComponents.find((item) => String(item?.type || '').toUpperCase() === 'HEADER');
-                const cardBody = cardComponents.find((item) => String(item?.type || '').toUpperCase() === 'BODY');
-                const cardButtons = cardComponents.find((item) => String(item?.type || '').toUpperCase() === 'BUTTONS');
-                const existingHandle = cardHeader?.example?.header_handle?.[0] || '';
-
-                return {
-                    id: idx,
-                    header: {
-                        mediaType: (cardHeader?.format || 'IMAGE').toLowerCase(),
-                        file: null,
-                        mediaUrl: mediaUrls[idx] || existingHandle,
-                        existingHandle: existingHandle,
-                    },
-                    body: cardBody?.text || '',
-                    buttons: (cardButtons?.buttons || []).map((btn, btnIdx) => ({
-                        id: `${idx}-${btnIdx}`,
-                        type: btn?.type,
-                        text: btn?.text || '',
-                    })),
-                };
-            });
-
-            return (
-                <MessagePreview
-                    templateType="Carousel"
-                    body={body?.text || ''}
-                    carouselCards={carouselCards}
-                    variableValues={{}}
-                    showEmptyHint={false}
-                />
-            );
-        }
-
-        const mediaType = (header?.format || '').toLowerCase();
-        const existingHandle = header?.example?.header_handle?.[0] || '';
-        const mediaUrl = mediaUrls[0] || existingHandle;
-
-        const headerType = header
-            ? (mediaType === 'text' ? 'Text' : 'Media')
-            : 'None';
+        if (!validatedPreviewData) return null;
 
         return (
             <MessagePreview
-                headerType={headerType}
-                headerText={header?.text || ''}
-                headerTextExample={header?.example?.header_text?.[0] || ''}
-                headerMedia={{
-                    mediaType: mediaType || 'image',
-                    file: null,
-                    mediaUrl,
-                    existingHandle,
-                }}
-                body={body?.text || ''}
-                footer={footer?.text || ''}
-                buttons={(buttons?.buttons || []).map((btn, idx) => ({
-                    id: idx,
-                    type: btn?.type,
-                    text: btn?.text || '',
-                }))}
-                variableValues={{}}
+                headerType={validatedPreviewData.headerType}
+                headerText={validatedPreviewData.headerText}
+                headerTextExample={validatedPreviewData.headerTextExample}
+                headerMedia={validatedPreviewData.headerMedia}
+                body={validatedPreviewData.body}
+                footer={validatedPreviewData.footer}
+                buttons={validatedPreviewData.buttons}
+                templateType={validatedPreviewData.templateType}
+                carouselCards={validatedPreviewData.carouselCards}
+                variableValues={validatedPreviewData.variableValues}
                 showEmptyHint={false}
             />
         );
@@ -715,9 +730,13 @@ const Templates = () => {
                 searchPlaceholder="Search templates..."
                 sortBy={sortBy}
                 onSortChange={setSortBy}
-                filterChips={['ALL', 'APPROVED', 'PENDING', 'REJECTED', 'DRAFT'].map((s) => ({
+                filterChips={['ALL', 'APPROVED', 'PENDING', 'REJECTED', 'DRAFT', 'OTHERS'].map((s) => ({
                     value: s,
-                    label: s === 'ALL' ? `All (${templates.length})` : `${s.charAt(0) + s.slice(1).toLowerCase()} (${statusCounts[s] || 0})`,
+                    label: s === 'ALL'
+                        ? `All (${templates.length})`
+                        : s === 'OTHERS'
+                            ? `Others (${statusCounts[s] || 0})`
+                            : `${s.charAt(0) + s.slice(1).toLowerCase()} (${statusCounts[s] || 0})`,
                 }))}
                 activeFilter={filterStatus}
                 onFilterChange={setFilterStatus}
@@ -802,6 +821,21 @@ const Templates = () => {
                 title="Publish Template"
                 description={`Are you sure you want to publish the template "${publishTemplateData?.TemplateName}"? This will submit it to WhatsApp for approval.`}
                 isDanger={false}
+                isLoading={isPublishing}
+            />
+
+            {/* Insufficient Balance Dialog */}
+            <ConfirmationModal
+                isOpen={showInsufficientBalanceDialog}
+                onClose={() => setShowInsufficientBalanceDialog(false)}
+                onConfirm={() => setShowInsufficientBalanceDialog(false)}
+                title="Insufficient Balance"
+                description={`Your available balance is ₹${walletInfo?.availableBalance?.toLocaleString('en-IN') || 0}. You need at least ₹1 to send templates. Please recharge your wallet to continue.`}
+                icon={AlertTriangle}
+                isDanger={false}
+                confirmLabel="OK"
+                hideCancel={true}
+                maxWidth="400px"
             />
 
             {/* Emoji Picker Popover */}

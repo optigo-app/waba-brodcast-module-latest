@@ -44,6 +44,7 @@ const TemplateButtonSection = ({
     styles,
     isMenuOpen,
     menuOptions = [],
+    buttonLimits = {},
     addButtonDisabled = false,
     addButtonFullWidth = false,
     isCarouselContext = false,
@@ -55,10 +56,16 @@ const TemplateButtonSection = ({
     const addButtonRef = React.useRef(null);
     const quickReplyButtons = buttons.filter((btn) => btn.type === 'QUICK_REPLY');
     const otherButtons = buttons.filter((btn) => btn.type !== 'QUICK_REPLY');
+    const {
+        maxQuickReply = isCarouselContext ? 1 : 6,
+        maxPhone = 1,
+        maxUrl = isCarouselContext ? 1 : 2,
+    } = buttonLimits;
 
-    const hasQuickReply = quickReplyButtons.length > 0;
-    const hasPhone = buttons.some((btn) => btn.type === 'PHONE_NUMBER');
-    const hasUrl = buttons.some((btn) => btn.type === 'URL');
+    const hasQuickReply = quickReplyButtons.length >= maxQuickReply;
+    const hasPhone = buttons.filter((btn) => btn.type === 'PHONE_NUMBER').length >= maxPhone;
+    const hasUrl = buttons.filter((btn) => btn.type === 'URL').length >= maxUrl;
+    const hasCallToAction = hasPhone || hasUrl;
 
     const handleCloseMenu = () => {
         if (isMenuOpen && onToggleMenu) {
@@ -91,21 +98,21 @@ const TemplateButtonSection = ({
                             Quick Reply
                         </Button>
                     </Tooltip>
-                    <Tooltip title={hasPhone ? "Call button already added" : "Add Call Phone Number Button"} arrow>
+                    <Tooltip title={isCarouselContext && hasUrl ? "Website button already added (only 1 Call-to-action allowed)" : (hasPhone ? "Call button already added" : "Add Call Phone Number Button")} arrow>
                         <Button
                             className={styles.quickAddBtn}
                             onClick={() => handleAddButton('PHONE_NUMBER')}
-                            disabled={addButtonDisabled || hasPhone}
+                            disabled={addButtonDisabled || hasPhone || (isCarouselContext && hasUrl)}
                             startIcon={<Phone size={14} />}
                         >
                             Call
                         </Button>
                     </Tooltip>
-                    <Tooltip title={hasUrl ? "Website button already added" : "Add Visit Website Button"} arrow>
+                    <Tooltip title={isCarouselContext && hasPhone ? "Call button already added (only 1 Call-to-action allowed)" : (hasUrl ? "Website button already added" : "Add Visit Website Button")} arrow>
                         <Button
                             className={styles.quickAddBtn}
                             onClick={() => handleAddButton('URL')}
-                            disabled={addButtonDisabled || hasUrl}
+                            disabled={addButtonDisabled || hasUrl || (isCarouselContext && hasPhone)}
                             startIcon={<Globe size={14} />}
                         >
                             Website
@@ -147,9 +154,13 @@ const TemplateButtonSection = ({
                             </ListSubheader>
                             {section.items.map((item) => {
                                 let itemDisabled = item.disabled;
-                                if (item.key === 'QUICK_REPLY' && hasQuickReply) itemDisabled = true;
-                                if (item.key === 'PHONE_NUMBER' && hasPhone) itemDisabled = true;
-                                if (item.key === 'URL' && hasUrl) itemDisabled = true;
+                                if (item.key === 'QUICK_REPLY' && quickReplyButtons.length >= maxQuickReply) itemDisabled = true;
+                                if (item.key === 'PHONE_NUMBER' && buttons.filter((btn) => btn.type === 'PHONE_NUMBER').length >= maxPhone) itemDisabled = true;
+                                if (item.key === 'URL' && buttons.filter((btn) => btn.type === 'URL').length >= maxUrl) itemDisabled = true;
+                                if (isCarouselContext) {
+                                    if (item.key === 'PHONE_NUMBER' && buttons.some((btn) => btn.type === 'URL')) itemDisabled = true;
+                                    if (item.key === 'URL' && buttons.some((btn) => btn.type === 'PHONE_NUMBER')) itemDisabled = true;
+                                }
                                 return (
                                     <MenuItem
                                         key={item.key}
@@ -291,7 +302,7 @@ const TemplateButtonSection = ({
                                         fullWidth
                                         size="small"
                                         value={btn.text || ''}
-                                        placeholder={btn.type === 'URL' ? 'Visit Shop' : btn.type === 'PHONE_NUMBER' ? 'Call Now' : 'Custom'}
+                                        placeholder={btn.type === 'URL' ? 'Visit Website' : btn.type === 'PHONE_NUMBER' ? 'Call Now' : 'Custom'}
                                         onChange={(e) => onUpdateButton(btn, idx, { text: e.target.value.slice(0, 25) })}
                                         InputProps={{
                                             endAdornment: (
@@ -334,7 +345,7 @@ const TemplateButtonSection = ({
                                             size="small"
                                             value={btn.url || ''}
                                             onChange={(e) => onUpdateButton(btn, idx, { url: e.target.value.slice(0, 2000) })}
-                                            placeholder="https://business.whatsapp.com/products/{{1}}"
+                                            placeholder="https://example.com"
                                             InputProps={{
                                                 endAdornment: (
                                                     <InputAdornment position="end">

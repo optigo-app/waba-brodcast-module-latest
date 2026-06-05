@@ -3,6 +3,8 @@ import { Typography } from '@mui/material';
 import { ArrowLeft, Users, Phone, MoreVertical, CheckCheck, ChevronLeft, ChevronRight, FileText, Image, Video, ExternalLink, PhoneCall, Reply } from 'lucide-react';
 import styles from './MessagePreview.module.scss';
 import { previewBg } from '../../utils/globalFunc';
+import { isOwnServerUrl } from '../../utils/mediaUtils';
+import imagePlaceholder from '../../assets/imagePlaceholder.png';
 
 const MessagePreview = ({
     headerType = 'None',
@@ -25,14 +27,35 @@ const MessagePreview = ({
     );
 
     const [previewCardIndex, setPreviewCardIndex] = React.useState(0);
+    const [videoError, setVideoError] = React.useState(false);
+
+    // Reset video error when URL changes
+    React.useEffect(() => {
+        setVideoError(false);
+    }, [previewVideoUrl, headerMedia?.mediaUrl]);
+
+    const handleImageFallback = (event) => {
+        const img = event?.currentTarget;
+        if (!img) return;
+        img.onerror = null;
+        img.src = imagePlaceholder;
+    };
+
+    const handleVideoError = () => {
+        setVideoError(true);
+    };
 
     const previewBody = useMemo(() =>
-        (body || '').replace(/\{\{(\d+)\}\}/g, (_, k) =>
-            variableValues[k]?.trim() ? variableValues[k] : `{{${k}}}`
-        ), [body, variableValues]);
+        (body || '').replace(/\{\{(\d+)\}\}/g, (_, k) => {
+            const value = variableValues[k]?.trim();
+            if (value) {
+                return `<span style="color: #000; font-weight: 600; background: rgba(0, 0, 0, 0.05); padding: 0 2px; border-radius: 2px;">${value}</span>`;
+            }
+            return `{{${k}}}`;
+        }), [body, variableValues]);
 
-    const finalPreviewImageUrl = previewImageUrl || (headerMedia?.mediaType === 'image' ? (headerMedia.file ? URL.createObjectURL(headerMedia.file) : headerMedia.mediaUrl) : '');
-    const finalPreviewVideoUrl = previewVideoUrl || (headerMedia?.mediaType === 'video' ? (headerMedia.file ? URL.createObjectURL(headerMedia.file) : headerMedia.mediaUrl) : '');
+    const finalPreviewImageUrl = previewImageUrl || (headerType === 'Media' && headerMedia?.mediaType === 'image' ? (headerMedia.file ? URL.createObjectURL(headerMedia.file) : (headerMedia.mediaUrl && isOwnServerUrl(headerMedia.mediaUrl) ? headerMedia.mediaUrl : imagePlaceholder)) : '');
+    const finalPreviewVideoUrl = previewVideoUrl || (headerType === 'Media' && headerMedia?.mediaType === 'video' ? (headerMedia.file ? URL.createObjectURL(headerMedia.file) : (headerMedia.mediaUrl || '')) : '');
     const previewDocumentLabel = useMemo(() => {
         if (headerType !== 'Media' || headerMedia?.mediaType !== 'document') return '';
         if (headerMedia?.file?.name) return headerMedia.file.name;
@@ -75,7 +98,10 @@ const MessagePreview = ({
                                     {/* Top level body for carousel */}
                                     {previewBody.trim() && (
                                         <div className={styles.previewBubble}>
-                                            <Typography className={styles.previewBodyText}>{previewBody}</Typography>
+                                            <Typography 
+                                                className={styles.previewBodyText}
+                                                dangerouslySetInnerHTML={{ __html: previewBody }}
+                                            />
                                             <div className={styles.previewMeta}>
                                                 <Typography className={styles.previewTime}>{currentPreviewTime}</Typography>
                                                 <CheckCheck size={12} className={styles.previewTick} />
@@ -100,17 +126,19 @@ const MessagePreview = ({
                                                         {(card.header.file || card.header.mediaUrl || card.header.existingHandle) ? (
                                                             card.header.mediaType === 'image' ? (
                                                                 <img
-                                                                    src={card.header.file ? URL.createObjectURL(card.header.file) : (card.header.mediaUrl || card.header.existingHandle)}
+                                                                    src={card.header.file ? URL.createObjectURL(card.header.file) : ((card.header.mediaUrl && isOwnServerUrl(card.header.mediaUrl)) ? card.header.mediaUrl : imagePlaceholder)}
                                                                     alt="card"
                                                                     className={styles.previewCardMedia}
+                                                                    onError={handleImageFallback}
                                                                 />
                                                             ) : card.header.mediaType === 'video' ? (
                                                                 <video
-                                                                    src={card.header.file ? URL.createObjectURL(card.header.file) : (card.header.mediaUrl || card.header.existingHandle)}
+                                                                    src={card.header.file ? URL.createObjectURL(card.header.file) : (card.header.mediaUrl || '')}
                                                                     className={styles.previewCardMedia}
                                                                     controls
                                                                     playsInline
                                                                     preload="metadata"
+                                                                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                                                 />
                                                             ) : (
                                                                 <div className={styles.previewCardMedia} style={{ background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -168,16 +196,27 @@ const MessagePreview = ({
                                         </Typography>
                                     )}
                                     {finalPreviewImageUrl && (
-                                        <img src={finalPreviewImageUrl} alt="Header" className={styles.previewHeaderImage} />
+                                        <img
+                                            src={finalPreviewImageUrl}
+                                            alt="Header"
+                                            className={styles.previewHeaderImage}
+                                            onError={handleImageFallback}
+                                        />
                                     )}
-                                    {finalPreviewVideoUrl && (
+                                    {(finalPreviewVideoUrl && !videoError && !headerMedia?.isInvalid) ? (
                                         <video
                                             key={finalPreviewVideoUrl}
                                             src={finalPreviewVideoUrl}
                                             className={styles.previewHeaderVideo}
                                             controls playsInline preload="metadata"
+                                            onError={handleVideoError}
                                         />
-                                    )}
+                                    ) : (headerType === 'Media' && headerMedia?.mediaType === 'video' && (videoError || headerMedia?.isInvalid)) ? (
+                                        <div className={styles.previewVideoFallback}>
+                                            <Video size={32} color="#94a3b8" />
+                                            <span>Video unavailable</span>
+                                        </div>
+                                    ) : null}
                                     {previewDocumentLabel && (
                                         <div className={styles.previewHeaderDocument}>
                                             <div className={styles.previewDocIconWrap}>
@@ -190,18 +229,45 @@ const MessagePreview = ({
                                         </div>
                                     )}
                                     {previewBody.trim() && (
-                                        <Typography className={styles.previewBodyText}>{previewBody}</Typography>
+                                        <Typography 
+                                            className={styles.previewBodyText}
+                                            dangerouslySetInnerHTML={{ __html: previewBody }}
+                                        />
                                     )}
                                     {footer && (
                                         <Typography className={styles.previewFooterText}>{footer}</Typography>
                                     )}
                                     {buttons.length > 0 && (
                                         <div className={styles.previewButtons}>
-                                            {buttons.map((btn) => (
-                                                <button key={btn.id} type="button" className={styles.previewActionBtn}>
-                                                    {btn.text || btn.label || 'Button'}
-                                                </button>
-                                            ))}
+                                            {(() => {
+                                                const quickReplyButtons = buttons.filter(btn => btn.type === 'QUICK_REPLY');
+                                                const ctaButtons = buttons.filter(btn => btn.type !== 'QUICK_REPLY');
+                                                const visibleQuickReplies = quickReplyButtons.slice(0, 2);
+                                                const hiddenQuickReplyCount = quickReplyButtons.length - 2;
+
+                                                return (
+                                                    <>
+                                                        {ctaButtons.map((btn) => (
+                                                            <button key={btn.id} type="button" className={styles.previewActionBtn}>
+                                                                {btn.type === 'URL' && <ExternalLink size={13} className={styles.previewBtnIcon} />}
+                                                                {btn.type === 'PHONE_NUMBER' && <PhoneCall size={13} className={styles.previewBtnIcon} />}
+                                                                <span>{btn.text || btn.label || 'Button'}</span>
+                                                            </button>
+                                                        ))}
+                                                        {visibleQuickReplies.map((btn) => (
+                                                            <button key={btn.id} type="button" className={styles.previewActionBtn}>
+                                                                <Reply size={13} className={styles.previewBtnIcon} />
+                                                                <span>{btn.text || btn.label || 'Button'}</span>
+                                                            </button>
+                                                        ))}
+                                                        {hiddenQuickReplyCount > 0 && (
+                                                            <button type="button" className={styles.previewActionBtn}>
+                                                                <span>+{hiddenQuickReplyCount} more</span>
+                                                            </button>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
                                     )}
                                     <div className={styles.previewMeta}>

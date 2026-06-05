@@ -1,7 +1,10 @@
 import React from 'react';
 import { Paper, Typography, Button, TextField } from '@mui/material';
 import { Plus, Image, Video, Paperclip } from 'lucide-react';
+import { isOwnServerUrl } from '../../utils/mediaUtils';
+import imagePlaceholder from '../../assets/imagePlaceholder.png';
 import TemplateButtonSection from './TemplateButtonSection';
+import TemplateBodyInput from './TemplateBodyInput';
 
 const TemplateCarouselSection = ({
     styles,
@@ -10,6 +13,7 @@ const TemplateCarouselSection = ({
     activeCardIndex,
     saveError,
     isCardButtonMenuOpen,
+    cardEmojiPickerOpen,
     getButtonMenuOptions,
     onSetActiveCardIndex,
     onAddCarouselCard,
@@ -17,6 +21,8 @@ const TemplateCarouselSection = ({
     onCardHeaderTypeChange,
     onCardFileChange,
     onCardBodyChange,
+    onToggleCardEmoji,
+    onCardEmojiSelect,
     onToggleCardButtonMenu,
     onAddCardButton,
     onUpdateCardButton,
@@ -66,7 +72,7 @@ const TemplateCarouselSection = ({
                         </div>
 
                         <div className={styles.mediaPickerWrap}>
-                            <Typography className={styles.fieldLabel}>Card Header Media</Typography>
+                            <Typography className={styles.fieldLabel}>Card Header Media<span style={{ color: 'red' }}>*</span></Typography>
                             <div className={styles.mediaIconGrid}>
                                 {[
                                     { type: 'image', Icon: Image, label: 'Image' },
@@ -85,7 +91,7 @@ const TemplateCarouselSection = ({
                             </div>
 
                             <div className={styles.mediaSampleBox}>
-                                {!activeCard.header.file && activeCard.header.mediaUrl && (
+                                {!activeCard.header.file && activeCard.header.mediaUrl && isOwnServerUrl(activeCard.header.mediaUrl) && (
                                     <div className={styles.existingMediaRow}>
                                         {activeCard.header.mediaType === 'image' && (
                                             <img
@@ -114,7 +120,7 @@ const TemplateCarouselSection = ({
                                         className={styles.mediaUploadBtn}
                                         startIcon={<Paperclip size={14} />}
                                     >
-                                        {activeCard.header.mediaUrl && !activeCard.header.file ? 'Replace file' : `Choose ${activeCard.header.mediaType === 'image' ? 'JPG/PNG' : 'MP4'} file`}
+                                        {activeCard.header.mediaUrl && !activeCard.header.file ? 'Upload file' : `Choose ${activeCard.header.mediaType === 'image' ? 'JPG/PNG' : 'MP4'} file`}
                                         <input
                                             hidden
                                             type="file"
@@ -132,24 +138,30 @@ const TemplateCarouselSection = ({
                         <div className={styles.cardBodySection}>
                             <div className={styles.sectionHeaderRow}>
                                 <Typography className={styles.variableTitle}>Card Body</Typography>
-                                <Typography className={styles.charCounter}>{activeCard.body.length}/160</Typography>
                             </div>
-                            <TextField
-                                fullWidth
-                                multiline
-                                rows={2}
-                                size="small"
-                                placeholder="Enter card description..."
+                            <TemplateBodyInput
                                 value={activeCard.body}
-                                onChange={(e) => onCardBodyChange(activeCardIndex, e.target.value)}
+                                onChange={(value) => onCardBodyChange(activeCardIndex, value)}
+                                placeholder="Enter card description..."
+                                minRows={2}
+                                maxRows={4}
+                                maxLength={160}
                                 error={saveError === `Card ${activeCardIndex + 1} body is required.`}
                                 helperText={saveError === `Card ${activeCardIndex + 1} body is required.` ? 'This field is required' : ''}
+                                showCharCounter={true}
+                                showFormatting={true}
+                                showEmoji={true}
+                                showVariableButton={false}
+                                emojiPickerOpen={cardEmojiPickerOpen}
+                                onToggleEmoji={onToggleCardEmoji}
+                                onEmojiSelect={onCardEmojiSelect}
+                                styles={styles}
                             />
                         </div>
 
                         <div className={styles.cardButtonsSection}>
                             <div className={styles.sectionHeaderRow}>
-                                <Typography className={styles.variableTitle}>Card Buttons (Min 1, Max 2)</Typography>
+                                <Typography className={styles.variableTitle}>Card Buttons<span style={{ color: 'red' }}>*</span></Typography>
                             </div>
                             <Typography className={styles.sectionSubtitle} sx={{ mb: 1 }}>
                                 Button type/order is synced across all cards. You can edit button text, URL and phone number per card.
@@ -158,7 +170,8 @@ const TemplateCarouselSection = ({
                                 buttons={activeCard.buttons || []}
                                 styles={styles}
                                 isMenuOpen={isCardButtonMenuOpen}
-                                menuOptions={getButtonMenuOptions(activeCard.buttons, 2)}
+                                menuOptions={getButtonMenuOptions(activeCard.buttons, 2, { maxQuickReply: 1, maxPhone: 1, maxUrl: 1 })}
+                                buttonLimits={{ maxQuickReply: 1, maxPhone: 1, maxUrl: 1 }}
                                 addButtonDisabled={activeCard.buttons.length >= 2}
                                 addButtonFullWidth={true}
                                 isCarouselContext={true}

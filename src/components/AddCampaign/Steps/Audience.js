@@ -38,6 +38,7 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
 
     const searchTimeoutRef = useRef(null);
 
+
     // Fetch audience data for retarget flow
     useEffect(() => {
         const fetchRetargetAudience = async () => {
@@ -455,6 +456,9 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
         e.stopPropagation();
         setIsDragging(false);
     };
+
+
+    console.log("filteredDataFromDialog",filteredDataFromDialog)
 
     return (
         <div className={styles.formCard}>

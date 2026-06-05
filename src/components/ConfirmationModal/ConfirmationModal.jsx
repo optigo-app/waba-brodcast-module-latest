@@ -1,13 +1,15 @@
 import ReactDOM from 'react-dom';
-import { ExternalLink, X } from 'lucide-react';
+import { ExternalLink, X, Loader2 } from 'lucide-react';
 import './ConfimationModal.scss';
 
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, description, icon: Icon, isDanger, confirmLabel, cancelLabel }) => {
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, description, icon: Icon, isDanger, confirmLabel, cancelLabel, isLoading = false, hideCancel = false, maxWidth = null }) => {
     if (!isOpen) return null;
+
+    const contentStyle = maxWidth ? { maxWidth: maxWidth } : {};
 
     return ReactDOM.createPortal(
         <div className="confirmation-modal-overlay" onClick={onClose}>
-            <div className="confirmation-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="confirmation-modal-content" style={contentStyle} onClick={e => e.stopPropagation()}>
                 <div className={`modal-icon-wrapper ${isDanger ? 'danger' : ''}`}>
                     {Icon ? <Icon /> : <ExternalLink />}
                 </div>
@@ -16,11 +18,26 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, description, ico
                 <p>{description}</p>
 
                 <div className="modal-actions">
-                    <button className="btn-cancel" onClick={onClose}>
-                        {cancelLabel || 'Cancel'}
-                    </button>
-                    <button className={`btn-confirm ${isDanger ? 'btn-danger' : ''}`} onClick={onConfirm}>
-                        {confirmLabel || (isDanger ? 'Delete' : 'Continue')} {Icon ? <Icon size={16} /> : <ExternalLink size={16} />}
+                    {!hideCancel && (
+                        <button className="btn-cancel" onClick={onClose} disabled={isLoading}>
+                            {cancelLabel || 'Cancel'}
+                        </button>
+                    )}
+                    <button
+                        className={`btn-confirm ${isDanger ? 'btn-danger' : ''}`}
+                        onClick={onConfirm}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <>
+                                <Loader2 size={16} className="spinner" />
+                                {confirmLabel || (isDanger ? 'Deleting...' : 'Processing...')}
+                            </>
+                        ) : (
+                            <>
+                                {confirmLabel || (isDanger ? 'Delete' : 'Continue')} {Icon ? <Icon size={16} /> : <ExternalLink size={16} />}
+                            </>
+                        )}
                     </button>
                 </div>
             </div>

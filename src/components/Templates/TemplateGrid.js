@@ -15,6 +15,9 @@ const getStatusConfig = (status) =>
     STATUS_CONFIG[status?.toUpperCase()] || { label: status || 'Unknown', icon: Clock, color: '#6b7280', bg: '#f3f4f6' };
 
 const getHeaderType = (components = []) => {
+    const carousel = components.find((c) => c.type === 'CAROUSEL');
+    if (carousel) return 'carousel';
+
     const header = components.find((c) => c.type === 'HEADER');
     if (!header) return 'text';
     const fmt = header.format?.toLowerCase();
@@ -25,6 +28,7 @@ const getHeaderType = (components = []) => {
 };
 
 const HEADER_ICONS = {
+    carousel: { Icon: Image, label: 'Carousel', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.16)' },
     image: { Icon: Image, label: 'Image', color: 'var(--primary-main)', bg: 'rgba(115, 103, 240, 0.16)' },
     video: { Icon: Video, label: 'Video', color: 'var(--info-main)', bg: 'rgba(0, 207, 232, 0.16)' },
     document: { Icon: FileType, label: 'Document', color: 'var(--warning-main)', bg: 'rgba(245, 124, 0, 0.16)' },

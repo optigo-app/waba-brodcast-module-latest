@@ -12,6 +12,7 @@ import { createCampaign } from '../../API/AddCampaign/AddCampaign';
 import { useAuthToken } from '../../hooks/useAuthToken';
 import toast from 'react-hot-toast';
 import { normalizePhoneNumber } from '../../utils/globalFunc';
+import ProcessOverlay from '../Common/ProcessOverlay/ProcessOverlay';
 
 const STEPS = [
   { id: 'details', label: 'Campaign Details', icon: FileText, step: 1 },
@@ -60,6 +61,7 @@ const AddCampaign = () => {
   const [audienceError, setAudienceError] = useState(false);
   const [messageError, setMessageError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveProcess, setSaveProcess] = useState({ active: false, title: '', message: '', progress: null });
   const [templateData, setTemplateData] = useState(null);
   const [isRetargetFlow, setIsRetargetFlow] = useState(false);
   const [retargetSourceCampaignName, setRetargetSourceCampaignName] = useState('');
@@ -168,11 +170,39 @@ const AddCampaign = () => {
   const [recurrenceYearlyMonth, setRecurrenceYearlyMonth] = useState('May');
   const [recurrenceYearlyDay, setRecurrenceYearlyDay] = useState(14);
 
-  const handleNext = () => { if (currentStep < 4) setCurrentStep(currentStep + 1); };
+  const handleNext = () => {
+    if (currentStep < 4) {
+      // Validate before proceeding from Message step
+      if (currentStep === 3 && !messageConfigured) {
+        setShowError(true);
+        setMessageError(true);
+        return;
+      }
+      setCurrentStep(currentStep + 1);
+    }
+  };
   const handleBack = () => { if (currentStep > 1) setCurrentStep(currentStep - 1); };
+
+  const setProcessStep = (message, progress = null) => {
+    setSaveProcess({
+      active: true,
+      title: 'Creating Campaign',
+      message,
+      progress,
+    });
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
+    setProcessStep('Initializing campaign save...', 0);
     try {
+      // Check if template has media data issues
+      if (templateData?.mediaDataMissing) {
+        toast.error('Template has no valid image. Please update the template with a valid image before saving the campaign.');
+        setIsSaving(false);
+        return;
+      }
+
       const customerJson = audience.map(item => {
         const customerId = item.customerId ?? '';
         const countryCode = item.CountryCode || item.countryCode || '91';
@@ -188,6 +218,7 @@ const AddCampaign = () => {
 
       let templateJson = [];
       if (templateData) {
+        setProcessStep('Preparing template payload...', 30);
         const components = templateData.Components || [];
         let templateJsonComponents = [];
         try {
@@ -222,38 +253,66 @@ const AddCampaign = () => {
         const getMappedHeaderComponent = (headerComponent) => {
           const headerTypeRaw = headerComponent?.format || headerComponent?.parameters?.[0]?.type || '';
           const headerFormat = String(headerTypeRaw || '').toUpperCase();
-          if (!['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerFormat)) {
-            return headerComponent;
-          }
+          
+          const headerParams = [];
+          
+          if (headerFormat === 'IMAGE' || headerFormat === 'VIDEO' || headerFormat === 'DOCUMENT') {
+            const mediaUrl = mediaUrls[mediaIndex]
+              || headerComponent?.example?.header_handle?.[0]
+              || headerComponent?.parameters?.[0]?.[String(headerTypeRaw || '').toLowerCase()]?.link
+              || null;
 
-          const mediaUrl = mediaUrls[mediaIndex]
-            || headerComponent?.example?.header_handle?.[0]
-            || headerComponent?.parameters?.[0]?.[String(headerTypeRaw || '').toLowerCase()]?.link
-            || null;
+            if (mediaUrls[mediaIndex]) {
+              mediaIndex += 1;
+            }
 
-          if (mediaUrls[mediaIndex]) {
-            mediaIndex += 1;
-          }
-
-          if (!mediaUrl) {
-            return headerComponent;
-          }
-
-          const typeMap = {
-            IMAGE: 'image',
-            VIDEO: 'video',
-            DOCUMENT: 'document'
-          };
-
-          return {
-            type: 'header',
-            parameters: [
-              {
+            if (mediaUrl) {
+              const typeMap = {
+                IMAGE: 'image',
+                VIDEO: 'video',
+                DOCUMENT: 'document'
+              };
+              headerParams.push({
                 type: typeMap[headerFormat],
                 [typeMap[headerFormat]]: { link: mediaUrl }
+              });
+            }
+          } else if (headerFormat === 'PRODUCT') {
+            headerParams.push({
+              type: 'product',
+              product: {
+                catalog_id: variables['catalog_id'] || 'VARIABLE_CATALOG_ID',
+                product_retailer_id: variables['product_id'] || 'VARIABLE_PRODUCT_ID'
               }
-            ]
-          };
+            });
+          } else if (headerFormat === 'LOCATION') {
+            headerParams.push({
+              type: 'location',
+              location: {
+                latitude: variables['latitude'] || 'VARIABLE_LATITUDE',
+                longitude: variables['longitude'] || 'VARIABLE_LONGITUDE',
+                name: variables['location_name'] || 'VARIABLE_NAME',
+                address: variables['address'] || 'VARIABLE_ADDRESS'
+              }
+            });
+          } else if (headerComponent.text && /\{\{.+\}\}/.test(headerComponent.text)) {
+            const matches = headerComponent.text.match(/\{\{([^}]+)\}\}/g);
+            if (matches) {
+              matches.forEach((match) => {
+                const varNum = match.match(/\d+/)?.[0];
+                headerParams.push({ type: 'text', text: variables[varNum] || 'VARIABLE_TEXT' });
+              });
+            }
+          }
+
+          if (headerParams.length > 0) {
+            return {
+              type: 'header',
+              parameters: headerParams
+            };
+          }
+
+          return headerComponent;
         };
 
         // Check if any variable has a non-empty value
@@ -269,6 +328,7 @@ const AddCampaign = () => {
         const shouldProcessComponents = baseComponents.length > 0 && (hasFilledVariables || mediaUrls.length > 0 || hasMediaComponents || hasBodyParameterComponents);
 
         if (shouldProcessComponents) {
+          setProcessStep('Mapping template variables and media...', 55);
           // Replace VARIABLE_TEXT placeholders with actual variable values
           const processedComponents = baseComponents.map(component => {
             const componentType = String(component?.type || '').toUpperCase();
@@ -281,6 +341,27 @@ const AddCampaign = () => {
                 const cardHeader = card.components?.find((c) => String(c?.type || '').toUpperCase() === 'HEADER') || null;
                 const mappedCardHeader = cardHeader ? getMappedHeaderComponent(cardHeader) : null;
                 const mappedCardComponents = mappedCardHeader ? [mappedCardHeader] : [];
+
+                // Handle buttons in carousel cards
+                const cardButtons = card.components?.find((c) => String(c?.type || '').toUpperCase() === 'BUTTONS');
+                if (cardButtons && Array.isArray(cardButtons.buttons)) {
+                  cardButtons.buttons.forEach((btn, btnIndex) => {
+                    if (btn.type === 'URL' && btn.url && /\{\{.+\}\}/.test(btn.url)) {
+                      const matches = btn.url.match(/\{\{([^}]+)\}\}/g);
+                      if (matches) {
+                        matches.forEach((match) => {
+                          const varNum = match.match(/\d+/)?.[0];
+                          mappedCardComponents.push({
+                            type: 'button',
+                            sub_type: 'url',
+                            index: btnIndex.toString(),
+                            parameters: [{ type: 'text', text: variables[varNum] || 'VARIABLE_TEXT' }]
+                          });
+                        });
+                      }
+                    }
+                  });
+                }
 
                 return {
                   card_index: cardIndex,
@@ -335,7 +416,115 @@ const AddCampaign = () => {
                 parameters: mappedParameters
               };
             }
-            // For non-BODY components (HEADER, FOOTER, BUTTONS), include as-is
+
+            // Handle BUTTONS component
+            if (componentType === 'BUTTONS' && Array.isArray(component.buttons)) {
+              component.buttons.forEach((btn, index) => {
+                if (btn.type === 'URL' && btn.url && /\{\{.+\}\}/.test(btn.url)) {
+                  const matches = btn.url.match(/\{\{([^}]+)\}\}/g);
+                  if (matches) {
+                    matches.forEach((match) => {
+                      const varNum = match.match(/\d+/)?.[0];
+                      processedComponents.push({
+                        type: 'button',
+                        sub_type: 'url',
+                        index: index.toString(),
+                        parameters: [{ type: 'text', text: variables[varNum] || 'VARIABLE_TEXT' }]
+                      });
+                    });
+                  }
+                } else if (btn.type === 'OTP') {
+                  processedComponents.push({
+                    type: 'button',
+                    sub_type: 'url',
+                    index: index.toString(),
+                    parameters: [{ type: 'text', text: variables['otp'] || 'VARIABLE_CODE' }]
+                  });
+                } else if (btn.type === 'COPY_CODE') {
+                  processedComponents.push({
+                    type: 'button',
+                    sub_type: 'copy_code',
+                    index: index.toString(),
+                    parameters: [{ type: 'text', text: variables['copy_code'] || 'VARIABLE_CODE' }]
+                  });
+                } else if (btn.type === 'CATALOG') {
+                  processedComponents.push({
+                    type: 'button',
+                    sub_type: 'catalog',
+                    index: index.toString(),
+                    parameters: [{
+                      type: 'action',
+                      action: { thumbnail_product_retailer_id: variables['product_id'] || 'VARIABLE_PRODUCT_ID' }
+                    }]
+                  });
+                } else if (btn.type === 'MPM') {
+                  processedComponents.push({
+                    type: 'button',
+                    sub_type: 'mpm',
+                    index: index.toString(),
+                    parameters: [{
+                      type: 'action',
+                      action: {
+                        sections: [{
+                          title: variables['section_title'] || 'VARIABLE_SECTION_TITLE',
+                          product_items: [{ product_retailer_id: variables['product_id'] || 'VARIABLE_PRODUCT_ID' }]
+                        }]
+                      }
+                    }]
+                  });
+                } else if (btn.type === 'FLOW') {
+                  processedComponents.push({
+                    type: 'button',
+                    sub_type: 'flow',
+                    index: index.toString(),
+                    parameters: [{
+                      type: 'action',
+                      action: {
+                        flow_token: variables['flow_token'] || 'VARIABLE_FLOW_TOKEN',
+                        flow_action_data: { key: 'value' }
+                      }
+                    }]
+                  });
+                }
+              });
+              return null; // BUTTONS component itself is not included, only its button mappings
+            }
+
+            // Handle ORDER_DETAILS component
+            if (componentType === 'ORDER_DETAILS') {
+              processedComponents.push({
+                type: 'order_details',
+                parameters: [{
+                  type: 'order_details',
+                  order_details: {
+                    order_number: variables['order_number'] || 'VARIABLE_ORDER_NUMBER',
+                    order_status: variables['order_status'] || 'VARIABLE_ORDER_STATUS',
+                    order_date: variables['order_date'] || 'VARIABLE_ORDER_DATE',
+                    total_amount: {
+                      value: variables['amount'] || 100,
+                      currency: variables['currency'] || 'VARIABLE_CURRENCY'
+                    }
+                  }
+                }]
+              });
+              return null;
+            }
+
+            // Handle LIMITED_TIME_OFFER component
+            if (componentType === 'LIMITED_TIME_OFFER') {
+              processedComponents.push({
+                type: 'limited_time_offer',
+                parameters: [{
+                  type: 'limited_time_offer',
+                  limited_time_offer: {
+                    expiration_time_ms: Date.now() + 86400000
+                  }
+                }]
+              });
+              return null;
+            }
+
+            // For non-BODY components (HEADER, FOOTER), include as-is
             return component;
           });
           const resolvedTemplateId = templateData.TemplateId || templateData.Id || templateData.id || '';
@@ -364,6 +553,8 @@ const AddCampaign = () => {
         customerFilters: customerFilters,
         campaignId: campaignId
       };
+
+      setProcessStep('Saving campaign...', 85);
       const response = await createCampaign(campaignData);
       if (response.success) {
         if (response.data?.rd && response.data.rd.length > 0) {
@@ -374,6 +565,7 @@ const AddCampaign = () => {
             return;
           }
         }
+        setProcessStep('Campaign created successfully.', 100);
         navigate('/campaigns');
         sessionStorage.removeItem('audienceSelectionDraft');
         sessionStorage.removeItem('campaignStepperState');
@@ -386,6 +578,7 @@ const AddCampaign = () => {
       toast.error('An error occurred while creating the campaign. Please try again.');
     } finally {
       setIsSaving(false);
+      setSaveProcess({ active: false, title: '', message: '', progress: null });
     }
   };
 
@@ -567,10 +760,18 @@ const AddCampaign = () => {
               messageConfigured={messageConfigured}
               onNavigateToStep={handleStepClick}
               isSaving={isSaving}
+              templateData={templateData}
             />
           )}
         </div>
       </div>
+
+      <ProcessOverlay
+        open={saveProcess.active}
+        title={saveProcess.title}
+        message={saveProcess.message || 'Please wait...'}
+        progress={saveProcess.progress}
+      />
     </div >
   );
 };

@@ -19,7 +19,7 @@
         border-radius: 24px;
         padding: 32px;
         width: 90%;
-        max-width: 420px;
+        max-width: 550px;
         text-align: center;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
         position: relative;
@@ -98,21 +98,31 @@
                     color: white;
                     box-shadow: 0 4px 12px rgba($primary-main, 0.25);
 
-                    &:hover {
+                    &:hover:not(:disabled) {
                         background: darken($primary-main, 5%);
                         transform: translateY(-2px);
                         box-shadow: 0 6px 16px rgba($primary-main, 0.3);
                     }
 
-                    &:active {
+                    &:active:not(:disabled) {
                         transform: translateY(0);
+                    }
+
+                    &:disabled {
+                        opacity: 0.7;
+                        cursor: not-allowed;
+                        transform: none;
+                    }
+
+                    .spinner {
+                        animation: spin 1s linear infinite;
                     }
 
                     &.btn-danger {
                         background: #d32f2f;
                         box-shadow: 0 4px 12px rgba(211, 47, 47, 0.25);
 
-                        &:hover {
+                        &:hover:not(:disabled) {
                             background: darken(#d32f2f, 5%);
                             box-shadow: 0 6px 16px rgba(211, 47, 47, 0.3);
                         }
@@ -156,5 +166,15 @@
 
     100% {
         transform: scale(1);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
     }
 }

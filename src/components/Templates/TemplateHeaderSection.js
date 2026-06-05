@@ -1,6 +1,8 @@
 import React from 'react';
 import { Paper, Typography, TextField, Button, LinearProgress } from '@mui/material';
-import { Image, Video, FileText, MapPin, Paperclip } from 'lucide-react';
+import { Image, Video, FileText, MapPin, Paperclip, X } from 'lucide-react';
+import { isOwnServerUrl } from '../../utils/mediaUtils';
+import imagePlaceholder from '../../assets/imagePlaceholder.png';
 
 const TemplateHeaderSection = ({
     styles,
@@ -15,6 +17,7 @@ const TemplateHeaderSection = ({
     onHeaderTextExampleChange,
     onHeaderMediaTypeChange,
     onHeaderMediaFileChange,
+    onHeaderMediaRemove,
 }) => {
     return (
         <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid #e2e8f0', borderRadius: '12px' }}>
@@ -100,11 +103,11 @@ const TemplateHeaderSection = ({
                                 Do not include any customer information.
                             </Typography>
 
-                            {!headerMedia.file && headerMedia.existingHandle && (
+                            {!headerMedia.file && headerMedia.existingHandle && isOwnServerUrl(headerMedia.mediaUrl) && (
                                 <div className={styles.existingMediaRow}>
                                     {headerMedia.mediaType === 'image' && (
                                         <img
-                                            src={headerMedia.existingHandle}
+                                            src={headerMedia.mediaUrl}
                                             alt="Current header"
                                             className={styles.existingMediaThumb}
                                         />
@@ -133,7 +136,7 @@ const TemplateHeaderSection = ({
                                     className={styles.mediaUploadBtn}
                                     startIcon={<Paperclip size={14} />}
                                 >
-                                    {headerMedia.existingHandle && !headerMedia.file ? 'Replace file' : `Choose ${headerMedia.mediaType === 'image' ? 'JPG or PNG' : headerMedia.mediaType === 'video' ? 'MP4' : 'PDF'} file`}
+                                    {headerMedia.existingHandle && !headerMedia.file ? 'Upload file' : `Choose ${headerMedia.mediaType === 'image' ? 'JPG or PNG' : headerMedia.mediaType === 'video' ? 'MP4' : 'PDF'} file`}
                                     <input
                                         hidden
                                         type="file"
@@ -142,7 +145,16 @@ const TemplateHeaderSection = ({
                                     />
                                 </Button>
                                 {headerMedia.file && (
-                                    <Typography className={styles.mediaFileName}>{headerMedia.file.name}</Typography>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Typography className={styles.mediaFileName}>{headerMedia.file.name}</Typography>
+                                        <Button
+                                            size="small"
+                                            onClick={onHeaderMediaRemove}
+                                            sx={{ minWidth: 'auto', padding: '4px', color: 'var(--error-main)' }}
+                                        >
+                                            <X size={16} />
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
                             <div className={styles.mediaHint}>

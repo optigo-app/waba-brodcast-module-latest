@@ -15,6 +15,7 @@ import CreateTemplatePage from './components/Templates/CreateTemplatePage';
 import AddCampaign from './components/AddCampaign/AddCampaign';
 import CampaignReport from './components/CampaignReport/CampaignReport';
 import socket from './utils/socket';
+import { WalletProvider } from './contexts/WalletContext';
 
 function App() {
   const { userToken } = useAuthToken();
@@ -51,27 +52,29 @@ function App() {
   }
 
   return (
-    <div className="app-container">
-      <Header />
-      <div className="app-body">
-        <aside className="app-sidebar">
-          <Sidebar />
-        </aside>
-        <main className="main-content">
-          <Routes>
-            <Route path='/' element={<Home userToken={userToken} />} />
-            {/* <Route path='/inbound' element={<Inbound />} /> */}
-            {/* <Route path='/outbound' element={<Outbound />} /> */}
-            <Route path='/campaigns' element={<CampaignGrid />} />
-            <Route path='/campaigns/add' element={<AddCampaign />} />
-            <Route path='/filter' element={<FilterDrawer />} />
-            <Route path='/templates' element={<Templates />} />
-            <Route path='/templates/create' element={<CreateTemplatePage />} />
-            <Route path='/report/:id' element={<CampaignReport />} />
-          </Routes>
-        </main>
+    <WalletProvider>
+      <div className="app-container">
+        <Header />
+        <div className="app-body">
+          <aside className="app-sidebar">
+            <Sidebar />
+          </aside>
+          <main className="main-content">
+            <Routes>
+              <Route path='/' element={<Home userToken={userToken} />} />
+              {/* <Route path='/inbound' element={<Inbound />} /> */}
+              {/* <Route path='/outbound' element={<Outbound />} /> */}
+              <Route path='/campaigns' element={<CampaignGrid />} />
+              <Route path='/campaigns/add' element={<AddCampaign />} />
+              <Route path='/filter' element={<FilterDrawer />} />
+              <Route path='/templates' element={<Templates />} />
+              <Route path='/templates/create' element={<CreateTemplatePage />} />
+              <Route path='/report/:id' element={<CampaignReport />} />
+            </Routes>
+          </main>
+        </div>
       </div>
-    </div>
+    </WalletProvider>
   );
 }
 

@@ -28,6 +28,7 @@ import styles from './AudienceSection.module.scss';
 import SelectAutocomplete from './SelectAutocomplete';
 import { fetchGroupList } from '../../API/GroupLists/GroupLists';
 import { fetchBranchListsApi } from '../../API/GroupFIlterData/GetBranchListApi';
+import { formatMobileNumber } from '../../utils/globalFunc';
 import { fetchFilterMasterList } from '../../API/FilterMaster/FIlterMaster';
 import { useAuthToken } from '../../hooks/useAuthToken';
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal';
@@ -57,14 +58,12 @@ const FilterSelectionDialog = ({
 }) => {
   const { userToken: token } = useAuthToken();
   const [dialogFilters, setDialogFilters] = useState({
-    companyName: null,
     companyType: null,
     state: null,
     city: null,
     country: null,
   });
   const [appliedFilters, setAppliedFilters] = useState({
-    companyName: null,
     companyType: null,
     state: null,
     city: null,
@@ -87,7 +86,6 @@ const FilterSelectionDialog = ({
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [appliedGroup, setAppliedGroup] = useState(null);
   const [groupOptions, setGroupOptions] = useState([]);
-  const [companyNameOptions, setCompanyNameOptions] = useState([]);
   const [companyTypeOptions, setCompanyTypeOptions] = useState([]);
   const [stateOptions, setStateOptions] = useState([]);
   const [cityOptions, setCityOptions] = useState([]);
@@ -99,6 +97,7 @@ const FilterSelectionDialog = ({
   const [showSourceSwitchConfirmation, setShowSourceSwitchConfirmation] = useState(false);
   const [pendingSource, setPendingSource] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const filterOptionsInitializedRef = React.useRef(false);
 
   // Local source state for toggle
   const [localSource, setLocalSource] = useState(source);
@@ -112,6 +111,7 @@ const FilterSelectionDialog = ({
   useEffect(() => {
     if (open) {
       hasAppliedPreselectionRef.current = false;
+      filterOptionsInitializedRef.current = false;
       setLocalSource(source);
       
       // Initialize filters from parent if provided
@@ -290,10 +290,7 @@ const FilterSelectionDialog = ({
     || Boolean(appliedGroup)
   );
 
-  const effectiveAppliedFilters = React.useMemo(
-    () => (isLocalFilterMode ? EMPTY_LOCAL_FILTERS : appliedFilters),
-    [isLocalFilterMode, appliedFilters]
-  );
+  const effectiveAppliedFilters = appliedFilters;
   const effectiveSearchTerm = '';
 
   const getFieldValue = (row, keys = []) => {
@@ -344,10 +341,7 @@ const FilterSelectionDialog = ({
       rows = rows.filter((row) => matchedRowIds.has(row?.CustomerId ?? row?.id));
     }
 
-    if (!isLocalFilterMode) {
-      return rows;
-    }
-
+    // Apply additional filters regardless of filter mode
     if (appliedFilters.companyName) {
       const companyName = String(appliedFilters.companyName).toLowerCase();
       rows = rows.filter((row) =>
@@ -384,7 +378,7 @@ const FilterSelectionDialog = ({
     }
 
     return rows;
-  }, [gridData, isLocalFilterMode, searchText, appliedFilters, searchableRows]);
+  }, [gridData, searchText, appliedFilters, searchableRows]);
 
   const dedupeStats = React.useMemo(() => {
     if (!removeDuplicateMobiles) {
@@ -469,7 +463,6 @@ const FilterSelectionDialog = ({
     try {
       const result = await fetchFilterMasterList(token?.userId);
       if (result?.data) {
-        setCompanyNameOptions(getUniqueOptionValues(result?.data?.rd, 'companyname'));
         setCompanyTypeOptions(getUniqueOptionValues(result?.data?.rd1, 'businessclassname'));
         setStateOptions(getUniqueOptionValues(result?.data?.rd2, 'StateName'));
         setCountryOptions(getUniqueOptionValues(result?.data?.rd3, 'CountryName'));
@@ -477,7 +470,6 @@ const FilterSelectionDialog = ({
       }
     } catch (error) {
       console.error('Error fetching filter master data:', error);
-      setCompanyNameOptions([]);
       setCompanyTypeOptions([]);
       setStateOptions([]);
       setCountryOptions([]);
@@ -533,6 +525,16 @@ const FilterSelectionDialog = ({
         ? excelData
         : (excelData?.rows || excelData?.data || []);
       setGridData(Array.isArray(excelRows) ? excelRows : []);
+      
+      // Populate filter options from Excel data only once
+      if (Array.isArray(excelRows) && excelRows.length > 0 && !filterOptionsInitializedRef.current) {
+        setCompanyTypeOptions(getUniqueOptionValues(excelRows, 'CustomerType'));
+        setStateOptions(getUniqueOptionValues(excelRows, 'State'));
+        setCountryOptions(getUniqueOptionValues(excelRows, 'Country'));
+        setCityOptions(getUniqueOptionValues(excelRows, 'City'));
+        filterOptionsInitializedRef.current = true;
+      }
+      
       setLoading(false);
       return;
     }
@@ -669,6 +671,11 @@ const FilterSelectionDialog = ({
         headerName: 'Phone',
         width: 200,
         headerClassName: 'data-grid-header',
+        renderCell: (params) => (
+          <span>
+            {formatMobileNumber(params.value)}
+          </span>
+        )
       },
       {
         field: 'Country',
@@ -1243,15 +1250,6 @@ const FilterSelectionDialog = ({
             {/* Other Filters */}
             <Box sx={secondarySectionSx}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                <SelectAutocomplete
-                  value={dialogFilters.companyName}
-                  onChange={(event, newValue) => handleFilterChange('companyName', newValue)}
-                  options={companyNameOptions}
-                  label="Company Name"
-                  placeholder="Select Company"
-                  multiple={false}
-                />
-
                 <SelectAutocomplete
                   value={dialogFilters.companyType}
                   onChange={(event, newValue) => handleFilterChange('companyType', newValue)}

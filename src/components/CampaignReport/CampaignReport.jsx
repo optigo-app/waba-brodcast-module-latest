@@ -99,8 +99,190 @@ const CampaignReport = () => {
         if (filter === 'Delivered') return 2;
         if (filter === 'Read') return 3;
         if (filter === 'Failed') return 4;
-        if (filter === 'Replied') return 5;
-        return '';
+        if (filter === 'Replied') return 8;
+        return null;
+    };
+
+    const getTemplateMessageColumns = (filter) => {
+        const baseColumns = [
+            {
+                field: 'TemplateName',
+                headerName: 'TEMPLATE NAME',
+                flex: 1,
+                renderCell: (params) => (
+                    <Typography variant="body2">
+                        {params.value || '—'}
+                    </Typography>
+                )
+            },
+            {
+                field: 'CustomerName',
+                headerName: 'CUSTOMER NAME',
+                flex: 1,
+                renderCell: (params) => (
+                    <Typography variant="body2">
+                        {params.value || `${params.row.FirstName || ''} ${params.row.LastName || ''}`.trim() || '—'}
+                    </Typography>
+                )
+            },
+            {
+                field: 'PhoneNo',
+                headerName: 'PHONE NO',
+                flex: 1,
+                renderCell: (params) => (
+                    <Typography variant="body2" className={styles.userPhone}>
+                        {params.value || '—'}
+                    </Typography>
+                )
+            }
+        ];
+
+        const statusColumn = {
+            field: 'Status',
+            headerName: 'STATUS',
+            width: 120,
+            renderCell: (params) => {
+                const statusConfig = getMessageStatus(params.value);
+                return (
+                    <Chip
+                        label={statusConfig.label}
+                        size="small"
+                        sx={{
+                            backgroundColor: `${statusConfig.color}20`,
+                            color: statusConfig.color,
+                            fontSize: '0.72rem',
+                            height: '22px',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                        }}
+                    />
+                );
+            }
+        };
+
+        const sentAtColumn = {
+            field: 'SentAt',
+            headerName: 'Sent At',
+            width: 180,
+            renderCell: (params) => (
+                <Typography variant="body2">
+                    {formatDate(params.value) || '—'}
+                </Typography>
+            )
+        };
+
+        const deliveredAtColumn = {
+            field: 'DeliveredAt',
+            headerName: 'Delivered At',
+            width: 180,
+            renderCell: (params) => (
+                <Typography variant="body2">
+                    {formatDate(params.value) || '—'}
+                </Typography>
+            )
+        };
+
+        const readAtColumn = {
+            field: 'ReadAt',
+            headerName: 'Read At',
+            width: 180,
+            renderCell: (params) => (
+                <Typography variant="body2">
+                    {formatDate(params.value) || '—'}
+                </Typography>
+            )
+        };
+
+        const failedAtColumn = {
+            field: 'FailedAt',
+            headerName: 'Failed At',
+            width: 180,
+            renderCell: (params) => (
+                <Typography variant="body2">
+                    {formatDate(params.value) || '—'}
+                </Typography>
+            )
+        };
+
+        const errorColumn = {
+            field: 'FailedReson',
+            headerName: 'Error',
+            width: 400,
+            renderCell: (params) => {
+                const errorValue = params.value;
+                if (!errorValue) return <Typography variant="body2">—</Typography>;
+                
+                // Try to parse JSON error
+                let errorMessage = errorValue;
+                try {
+                    const parsed = JSON.parse(errorValue);
+                    if (parsed.message) {
+                        errorMessage = parsed.message;
+                    }
+                } catch (e) {
+                    // Not JSON, use as-is
+                }
+                
+                return (
+                    <Typography 
+                        variant="body2" 
+                        sx={{ 
+                            wordBreak: 'break-word',
+                            whiteSpace: 'pre-wrap',
+                            lineHeight: 1.4
+                        }}
+                    >
+                        {errorMessage}
+                    </Typography>
+                );
+            }
+        };
+
+        const repliedAtColumn = {
+            field: 'RepliedAt',
+            headerName: 'Replied At',
+            width: 180,
+            renderCell: (params) => (
+                <Typography variant="body2">
+                    {formatDate(params.value) || '—'}
+                </Typography>
+            )
+        };
+
+        const replyColumn = {
+            field: 'ReplyMessage',
+            headerName: 'Reply',
+            width: 300,
+            renderCell: (params) => (
+                <Typography 
+                    variant="body2" 
+                    sx={{ 
+                        wordBreak: 'break-word',
+                        whiteSpace: 'pre-wrap',
+                        lineHeight: 1.4
+                    }}
+                >
+                    {params.value || '—'}
+                </Typography>
+            )
+        };
+
+        switch (filter) {
+            case 'Overall':
+                return [...baseColumns, statusColumn];
+            case 'Sent':
+                return [...baseColumns, sentAtColumn];
+            case 'Delivered':
+                return [...baseColumns, sentAtColumn, deliveredAtColumn];
+            case 'Read':
+                return [...baseColumns, sentAtColumn, deliveredAtColumn, readAtColumn];
+            case 'Replied':
+                return [...baseColumns, sentAtColumn, deliveredAtColumn, readAtColumn, repliedAtColumn, replyColumn];
+            case 'Failed':
+                return [...baseColumns, failedAtColumn, errorColumn];
+            default:
+                return [...baseColumns, statusColumn];
+        }
     };
 
     const loadReport = async () => {
@@ -310,7 +492,7 @@ const CampaignReport = () => {
         { label: 'Sent', value: quickReportData?.SentPercentage ? `${quickReportData?.SentPercentage}%` : '0%', count: quickReportData?.SentCount || 0, icon: Send, color: '#00cfe8', bg: 'rgba(0, 207, 232, 0.12)' },
         { label: 'Delivered', value: quickReportData?.DeliveredPercentage ? `${quickReportData?.DeliveredPercentage}%` : '0%', count: quickReportData?.DeliveredCount || 0, icon: MessageSquare, color: '#28c76f', bg: 'rgba(40, 199, 111, 0.12)' },
         { label: 'Read', value: quickReportData?.ReadPercentage ? `${quickReportData?.ReadPercentage}%` : '0%', count: quickReportData?.ReadCount || 0, icon: Eye, color: '#1d9051', bg: 'rgba(29, 144, 81, 0.12)' },
-        { label: 'Replied', value: '0%', count: 0, icon: MessageCircle, color: '#ff9f43', bg: 'rgba(255, 159, 67, 0.12)' },
+        { label: 'Replied', value: quickReportData?.RepliedPercentage ? `${quickReportData?.RepliedPercentage}%` : '0%', count: quickReportData?.RepliedCount || 0, icon: MessageCircle, color: '#ff9f43', bg: 'rgba(255, 159, 67, 0.12)' },
         { label: 'Failed', value: quickReportData?.FailedPercentage ? `${quickReportData?.FailedPercentage}%` : '0%', count: quickReportData?.FailedCount || 0, icon: AlertCircle, color: '#ea5455', bg: 'rgba(234, 84, 85, 0.12)' },
     ];
 
@@ -466,7 +648,7 @@ const CampaignReport = () => {
                                         const delivered = templateStats?.Delivered || 0;
                                         const read = templateStats?.ReadCount || 0;
                                         const failed = templateStats?.Failed || 0;
-                                        const replied = 0; // Not in API response yet
+                                        const replied = templateStats?.Replied || 0; 
 
                                         const calculatePercentage = (value) => overall > 0 ? ((value / overall) * 100).toFixed(1) : '0';
 
@@ -486,7 +668,7 @@ const CampaignReport = () => {
                                         >
                                             <Typography className={styles.statValue}>
                                                 {stat.value} <span className={styles.statCount}>({stat.count})</span>
-                                            </Typography>
+                                            </Typography>   
                                             <Typography className={styles.statLabel}>{stat.label}</Typography>
                                         </Box>
                                     ))}
@@ -523,127 +705,65 @@ const CampaignReport = () => {
                                 </Box>
 
                                 <Paper className={styles.gridPaper} sx={{ borderRadius: '12px', boxShadow: 'none', border: '1px solid #e4e8ee', overflow: 'hidden', backgroundColor: '#fff' }}>
-                                        <DataGrid
-                                            rows={templateMessages}
-                                            columns={[
-                                                {
-                                                    field: 'TemplateName',
-                                                    headerName: 'TEMPLATE NAME',
-                                                    flex: 1,
-                                                    renderCell: (params) => (
-                                                        <Typography variant="body2">
-                                                            {params.value || '—'}
-                                                        </Typography>
-                                                    )
+                                    <DataGrid
+                                        rows={templateMessages}
+                                        columns={getTemplateMessageColumns(statFilter)}
+                                        getRowId={(row) => row.MessageId || row.PhoneNo}
+                                        checkboxSelection
+                                        disableRowSelectionOnClick
+                                        rowSelectionModel={selectedTemplateRowSelectionModel}
+                                        onRowSelectionModelChange={(newSelection) =>
+                                            setSelectedTemplateRowSelectionModel(normalizeSelectionModel(newSelection))
+                                        }
+                                        rowHeight={60}
+                                        initialState={{
+                                            pagination: {
+                                                paginationModel: { pageSize: 10, page: 0 },
+                                            },
+                                        }}
+                                        pageSizeOptions={[5, 10, 20, 50]}
+                                        loading={templateMessagesLoading}
+                                        sx={{
+                                            border: 'none',
+                                            height: 520,
+                                            '& .MuiDataGrid-virtualScroller': {
+                                                overflowX: 'auto',
+                                            },
+                                            '& .MuiDataGrid-columnHeaders': {
+                                                backgroundColor: '#f8fafc',
+                                                color: 'var(--secondary-color)',
+                                                fontWeight: 600,
+                                                fontSize: '0.8rem',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.5px',
+                                            },
+                                            '& .MuiDataGrid-columnHeaderTitle': {
+                                                fontWeight: 700,
+                                            },
+                                            '& .MuiDataGrid-row': {
+                                                '&:nth-of-type(odd)': {
+                                                    backgroundColor: '#ffffff',
                                                 },
-                                                {
-                                                    field: 'CustomerName',
-                                                    headerName: 'CUSTOMER NAME',
-                                                    flex: 1,
-                                                    renderCell: (params) => (
-                                                        <Typography variant="body2">
-                                                            {params.value || `${params.row.FirstName || ''} ${params.row.LastName || ''}`.trim() || '—'}
-                                                        </Typography>
-                                                    )
-                                                },
-                                                {
-                                                    field: 'PhoneNo',
-                                                    headerName: 'PHONE NO',
-                                                    flex: 1,
-                                                    renderCell: (params) => (
-                                                        <Typography variant="body2" className={styles.userPhone}>
-                                                            {params.value || '—'}
-                                                        </Typography>
-                                                    )
-                                                },
-                                                {
-                                                    field: 'DateTime',
-                                                    headerName: 'DATE TIME',
-                                                    width: 180,
-                                                    renderCell: (params) => (
-                                                        <Typography variant="body2">
-                                                            {formatDate(params.value) || '—'}
-                                                        </Typography>
-                                                    )
-                                                },
-                                                {
-                                                    field: 'MessageType',
-                                                    headerName: 'MESSAGE TYPE',
-                                                    width: 120,
-                                                    renderCell: (params) => (
-                                                        <Typography variant="body2">
-                                                            {params.value || '—'}
-                                                        </Typography>
-                                                    )
-                                                },
-                                                {
-                                                    field: 'Status',
-                                                    headerName: 'STATUS',
-                                                    width: 120,
-                                                    renderCell: (params) => {
-                                                        const statusConfig = getMessageStatus(params.value);
-                                                        return (
-                                                            <Chip
-                                                                label={statusConfig.label}
-                                                                size="small"
-                                                                sx={{
-                                                                    backgroundColor: `${statusConfig.color}20`,
-                                                                    color: statusConfig.color,
-                                                                    fontSize: '0.72rem',
-                                                                    height: '22px',
-                                                                    fontWeight: 600,
-                                                                    textTransform: 'uppercase',
-                                                                }}
-                                                            />
-                                                        );
-                                                    }
-                                                },
-                                            ]}
-                                            getRowId={(row) => row.MessageId || row.PhoneNo}
-                                            checkboxSelection
-                                            disableRowSelectionOnClick
-                                            rowSelectionModel={selectedTemplateRowSelectionModel}
-                                            onRowSelectionModelChange={(newSelection) =>
-                                                setSelectedTemplateRowSelectionModel(normalizeSelectionModel(newSelection))
-                                            }
-                                            rowHeight={60}
-                                            initialState={{
-                                                pagination: {
-                                                    paginationModel: { pageSize: 10, page: 0 },
-                                                },
-                                            }}
-                                            pageSizeOptions={[5, 10, 20, 50]}
-                                            loading={templateMessagesLoading}
-                                            sx={{
-                                                border: 'none',
-                                                minHeight: 520,
-                                                '& .MuiDataGrid-columnHeaders': {
+                                                '&:nth-of-type(even)': {
                                                     backgroundColor: '#f8fafc',
-                                                    color: 'var(--secondary-color)',
-                                                    fontWeight: 600,
-                                                    fontSize: '0.8rem',
-                                                    textTransform: 'uppercase',
-                                                    letterSpacing: '0.5px',
                                                 },
-                                                '& .MuiDataGrid-columnHeaderTitle': {
-                                                    fontWeight: 700,
-                                                },
-                                                '& .MuiDataGrid-cell': {
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    padding: '0 12px',
-                                                    whiteSpace: 'nowrap',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                },
-                                                '& .MuiDataGrid-footerContainer': {
-                                                    borderTop: '1px solid var(--sidebar-borderColor)',
-                                                },
-                                                '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': { outline: 'none' },
-                                                '& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within': { outline: 'none' },
-                                            }}
-                                        />
-                                    </Paper>
+                                            },
+                                            '& .MuiDataGrid-cell': {
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                padding: '0 12px',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                            },
+                                            '& .MuiDataGrid-footerContainer': {
+                                                borderTop: '1px solid var(--sidebar-borderColor)',
+                                            },
+                                            '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': { outline: 'none' },
+                                            '& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within': { outline: 'none' },
+                                        }}
+                                    />
+                                </Paper>
                             </Box>
                         )}
                     </Box>

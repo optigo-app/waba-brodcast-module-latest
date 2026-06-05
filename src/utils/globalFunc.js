@@ -129,3 +129,73 @@ export const MESSAGE_STATUS_MAPPING = {
 export const getMessageStatus = (status) => {
     return MESSAGE_STATUS_MAPPING[status] || { label: 'Unknown', color: '#6b7280' };
 };
+
+
+export const formatMobileNumber = (mobileNo = "") => {
+  const digits = mobileNo.toString().replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  return digits;
+};
+export const checkImageUrlValid = (url, timeoutMs = 7000) => {
+    return new Promise((resolve) => {
+        if (!url || typeof url !== 'string') {
+            resolve(false);
+            return;
+        }
+
+        const img = new Image();
+        let done = false;
+
+        const complete = (isValid) => {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            img.onload = null;
+            img.onerror = null;
+            resolve(isValid);
+        };
+
+        const timer = setTimeout(() => complete(false), timeoutMs);
+        img.onload = () => complete(true);
+        img.onerror = () => complete(false);
+        img.src = url;
+    });
+};
+
+export const checkVideoUrlValid = (url, timeoutMs = 7000) => {
+    return new Promise((resolve) => {
+        if (!url || typeof url !== 'string') {
+            resolve(false);
+            return;
+        }
+
+        let done = false;
+
+        const complete = (isValid) => {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            resolve(isValid);
+        };
+
+        const timer = setTimeout(() => complete(false), timeoutMs);
+
+        fetch(url, { method: 'HEAD', mode: 'no-cors' })
+            .then(() => complete(true))
+            .catch(() => complete(false));
+    });
+};
+
+export const getInvalidImageUrls = async (urls = [], timeoutMs = 7000) => {
+    const uniqueUrls = Array.from(new Set((urls || []).filter(Boolean)));
+    const results = await Promise.all(
+        uniqueUrls.map(async (u) => ({
+            url: u,
+            valid: await checkImageUrlValid(u, timeoutMs),
+        }))
+    );
+
+    return results.filter((item) => !item.valid).map((item) => item.url);
+};

@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '@mui/x-data-grid';
 import { Paper, Chip, Box, Typography, Button, ToggleButtonGroup, ToggleButton, Grid, Card, CardContent, Tooltip, CircularProgress } from '@mui/material';
-import { BarChart3, Copy, Rocket, Edit2, Plus, RefreshCw, Megaphone, LayoutGrid, List, Octagon } from 'lucide-react';
+import { BarChart3, Copy, Rocket, Edit2, Plus, RefreshCw, Megaphone, LayoutGrid, List, AlertTriangle } from 'lucide-react';
 import FilterBar from '../Common/FilterBar/FilterBar';
 import IconButton from '../Common/IconButton/IconButton';
+import CountdownButton from './CountdownButton';
 import { fetchCampaignLists } from '../../API/CampaignList/CampaignList';
 import { fetchCampaignDetails } from '../../API/CampaignList/FetchCampaignDetails';
 import { sendBulk } from '../../API/SendBullk/SendBulk';
@@ -35,8 +36,7 @@ const getTypeConfig = (type) => {
 };
 
 // ── Stable column definitions ─────────────────────────────────────────────────
-const buildColumns = (onAnalytics, onDuplicate, onDownload, onLaunch, onStop, onEdit, onCopyId, activeTimers, launchingCampaignIds) => {
-  const hasActiveTimer = Object.keys(activeTimers).length > 0;
+const buildColumns = (onAnalytics, onDuplicate, onDownload, onLaunch, onStop, onEdit, onCopyId, getActiveTimers, launchingCampaignIds) => {
   return [
     {
       field: 'actions', headerName: 'ACTION', minWidth: 220, sortable: false,
@@ -54,24 +54,31 @@ const buildColumns = (onAnalytics, onDuplicate, onDownload, onLaunch, onStop, on
           <IconButton icon={Copy} color="info" tooltip="Quick Clone" onClick={() => onDuplicate(params.row)} />
           {/* <IconButton icon={Download} color="success" tooltip="Download" onClick={() => onDownload(params.row)} /> */}
           {(Number(params.row.Type) === 1 && Number(params.row.Status) === 1) && (
-            activeTimers[String(params.row.Id)] ? (
-              <IconButton
-                icon={Octagon}
-                color="error"
-                className={styles.stopButtonPulse}
-                tooltip={`Stop (${Math.max(0, Math.ceil((activeTimers[String(params.row.Id)] - Date.now()) / 1000))}s)`}
-                onClick={() => onStop(params.row)}
-              />
-            ) : (
-              launchingCampaignIds.has(String(params.row.Id)) ? (
-                <IconButton
-                  icon={CircularProgress}
-                  color="primary"
-                  tooltip="Launching..."
-                  disabled
-                  className={styles.rocketHighlight}
-                />
-              ) : (
+            (() => {
+              const timers = getActiveTimers();
+              const hasActiveTimer = Object.keys(timers).length > 0;
+              const rowTimer = timers[String(params.row.Id)];
+              if (rowTimer) {
+                return (
+                  <CountdownButton
+                    expiry={rowTimer}
+                    onStop={onStop}
+                    row={params.row}
+                  />
+                );
+              }
+              if (launchingCampaignIds.has(String(params.row.Id))) {
+                return (
+                  <IconButton
+                    icon={CircularProgress}
+                    color="primary"
+                    tooltip="Launching..."
+                    disabled
+                    className={styles.rocketHighlight}
+                  />
+                );
+              }
+              return (
                 <IconButton
                   icon={Rocket}
                   color="primary"
@@ -80,8 +87,8 @@ const buildColumns = (onAnalytics, onDuplicate, onDownload, onLaunch, onStop, on
                   disabled={hasActiveTimer}
                   className={styles.rocketHighlight}
                 />
-              )
-            )
+              );
+            })()
           )}
           {Number(params.row.Status) === 1 && (
             <IconButton icon={Edit2} color="secondary" tooltip="Edit" onClick={() => onEdit(params.row)} />
@@ -186,6 +193,8 @@ const CampaignGrid = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [launchConfirmOpen, setLaunchConfirmOpen] = useState(false);
   const [campaignToLaunch, setCampaignToLaunch] = useState(null);
+  const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = useState(false);
+  const [insufficientCampaign, setInsufficientCampaign] = useState(null);
   const [launchingCampaignIds, setLaunchingCampaignIds] = useState(() => new Set());
   const sendingCampaignIdsRef = useRef(new Set());
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 100 });
@@ -195,7 +204,6 @@ const CampaignGrid = () => {
       if (saved) {
         const timers = JSON.parse(saved);
         const now = Date.now();
-        // Filter out expired ones immediately
         const validTimers = {};
         Object.entries(timers).forEach(([id, expiry]) => {
           if (expiry > now) validTimers[id] = expiry;
@@ -205,6 +213,8 @@ const CampaignGrid = () => {
     } catch (e) { console.error('Error loading timers:', e); }
     return {};
   });
+  const activeTimersRef = useRef(activeTimers);
+  useEffect(() => { activeTimersRef.current = activeTimers; }, [activeTimers]);
 
   const loadCampaigns = useCallback(async () => {
     if (!userToken?.username) return;
@@ -264,32 +274,31 @@ const CampaignGrid = () => {
     }
   }, [launchingCampaignIds, userToken?.id, userToken?.userid, userToken?.whatsappNumber, loadCampaigns]);
 
-  // Timer logic for stop button with persistence
+  // Timer logic - single interval, reads from ref, minimal state updates
   useEffect(() => {
     localStorage.setItem('campaignActiveTimers', JSON.stringify(activeTimers));
+  }, [activeTimers]);
 
-    if (Object.keys(activeTimers).length === 0) return;
-
+  useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
-      const expiredIds = Object.keys(activeTimers).filter(id => activeTimers[id] <= now);
+      const timers = activeTimersRef.current;
+      const expiredIds = Object.keys(timers).filter(id => timers[id] <= now);
 
-      setActiveTimers(prev => {
-        const next = { ...prev };
-        expiredIds.forEach((id) => {
-          delete next[id];
+      if (expiredIds.length > 0) {
+        setActiveTimers(prev => {
+          const next = { ...prev };
+          expiredIds.forEach((id) => delete next[id]);
+          return next;
         });
-        // Always return a new object if there are active timers to trigger re-render for tooltips
-        return Object.keys(next).length > 0 ? { ...next } : (Object.keys(prev).length > 0 ? {} : prev);
-      });
-
-      expiredIds.forEach((id) => {
-        triggerSendBulk(Number(id));
-      });
+        expiredIds.forEach((id) => {
+          triggerSendBulk(Number(id));
+        });
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [activeTimers, triggerSendBulk]);
+  }, [triggerSendBulk]);
 
   // Action handlers
   const handlers = useMemo(() => ({
@@ -320,8 +329,16 @@ const CampaignGrid = () => {
     },
     onDownload: (row) => console.log('download', row),
     onLaunch: (row) => {
-      if (Object.keys(activeTimers).length > 0) {
+      if (Object.keys(activeTimersRef.current).length > 0) {
         toast.error('Another campaign is currently being launched. Please wait or stop it first.');
+        return;
+      }
+      // Check if campaign has sufficient balance from its own data
+      const availableBalance = row.AvailableBalance ?? 0;
+      const campaignBalance = row.CampaignBalance ?? 0;
+      if (availableBalance < campaignBalance) {
+        setInsufficientCampaign(row);
+        setShowInsufficientBalanceModal(true);
         return;
       }
       setCampaignToLaunch(row);
@@ -391,10 +408,10 @@ const CampaignGrid = () => {
       handlers.onStop,
       handlers.onEdit,
       handlers.onCopyId,
-      activeTimers,
+      () => activeTimersRef.current,
       launchingCampaignIds
     ),
-    [handlers, activeTimers, launchingCampaignIds]
+    [handlers, launchingCampaignIds, activeTimers]
   );
 
   const statusCounts = useMemo(() =>
@@ -441,6 +458,16 @@ const CampaignGrid = () => {
 
     return rows;
   }, [campaigns, search, filterStatus, sortBy]);
+
+  const paginatedRows = useMemo(() =>
+    filteredData.slice(paginationModel.page * paginationModel.pageSize, (paginationModel.page + 1) * paginationModel.pageSize),
+    [filteredData, paginationModel.page, paginationModel.pageSize]
+  );
+
+  const getRowClassNameMemo = useCallback((params) =>
+    activeTimersRef.current[String(params.row.Id)] ? styles.stoppingRow : '',
+    []
+  );
 
   const filterChips = useMemo(() =>
     ['ALL', 'Completed', 'Pending', 'Active', 'Failed'].map((s) => ({
@@ -504,13 +531,13 @@ const CampaignGrid = () => {
         {viewMode === 'grid' ? (
           <Paper sx={{ borderRadius: '12px', boxShadow: 'none', border: '1px solid #e4e8ee', overflow: 'hidden', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <DataGrid
-              rows={filteredData.slice(paginationModel.page * paginationModel.pageSize, (paginationModel.page + 1) * paginationModel.pageSize)}
+              rows={paginatedRows}
               columns={columns}
               loading={loading}
               getRowId={(row) => row.Id}
               rowHeight={60}
               disableRowSelectionOnClick
-              getRowClassName={(params) => activeTimers[String(params.row.Id)] ? styles.stoppingRow : ''}
+              getRowClassName={getRowClassNameMemo}
               sx={{
                 border: 'none',
                 '& .MuiDataGrid-columnHeaders': {
@@ -536,7 +563,7 @@ const CampaignGrid = () => {
             {filteredData.map((campaign) => (
               <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={campaign.Id}>
                 <Card
-                  className={activeTimers[String(campaign.Id)] ? styles.stoppingCard : ''}
+                  className={activeTimersRef.current[String(campaign.Id)] ? styles.stoppingCard : ''}
                   sx={{
                     borderRadius: '12px',
                     boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
@@ -585,7 +612,9 @@ const CampaignGrid = () => {
 
                     <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
                       {(() => {
-                        const hasActiveTimer = Object.keys(activeTimers).length > 0;
+                        const timers = activeTimersRef.current;
+                        const hasActiveTimer = Object.keys(timers).length > 0;
+                        const rowTimer = timers[String(campaign.Id)];
                         return (
                           <>
                             <IconButton
@@ -598,13 +627,11 @@ const CampaignGrid = () => {
                             <IconButton icon={Copy} color="info" tooltip="Quick Clone" onClick={() => handlers.onDuplicate(campaign)} />
                             {/* <IconButton icon={Download} color="success" tooltip="Download" onClick={() => handlers.onDownload(campaign)} /> */}
                             {(Number(campaign.Type) === 1 && Number(campaign.Status) === 1) && (
-                              activeTimers[String(campaign.Id)] ? (
-                                <IconButton
-                                  icon={Octagon}
-                                  color="error"
-                                  className={styles.stopButtonPulse}
-                                  tooltip={`Stop (${Math.max(0, Math.ceil((activeTimers[String(campaign.Id)] - Date.now()) / 1000))}s)`}
-                                  onClick={() => handlers.onStop(campaign)}
+                              rowTimer ? (
+                                <CountdownButton
+                                  expiry={rowTimer}
+                                  onStop={handlers.onStop}
+                                  row={campaign}
                                 />
                               ) : (
                                 <IconButton
@@ -638,6 +665,20 @@ const CampaignGrid = () => {
         onConfirm={handleLaunchConfirm}
         title="Launch Campaign"
         description={`Are you sure you want to launch the campaign "${campaignToLaunch?.Name || 'this campaign'}"? Once launched, messages will start sending immediately to ${campaignToLaunch?.Receiver || 0} recipients.`}
+      />
+
+      {/* Insufficient Balance Modal */}
+      <ConfirmationModal
+        isOpen={showInsufficientBalanceModal}
+        onClose={() => setShowInsufficientBalanceModal(false)}
+        onConfirm={() => setShowInsufficientBalanceModal(false)}
+        title="Insufficient Balance"
+        description={`Your available balance is ₹${insufficientCampaign?.AvailableBalance?.toLocaleString('en-IN') || 0}. This campaign requires ₹${insufficientCampaign?.CampaignBalance?.toLocaleString('en-IN') || 0} to launch. Please recharge your wallet to continue.`}
+        icon={AlertTriangle}
+        isDanger={false}
+        confirmLabel="OK"
+        hideCancel={true}
+        maxWidth="400px"
       />
     </div>
   );

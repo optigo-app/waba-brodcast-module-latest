@@ -10,6 +10,7 @@ const TemplateDetailsStepSection = ({
     onTemplateLanguageChange,
     onTemplateCategoryChange,
     isCategoryLocked = false,
+    isEditMode = false,
     onClose,
     onNext,
 }) => {
@@ -24,6 +25,7 @@ const TemplateDetailsStepSection = ({
                     onChange={(e) => onTemplateNameChange(e.target.value)}
                     error={Boolean(templateNameError)}
                     helperText={templateNameError}
+                    disabled={isEditMode}
                 />
             </div>
 
@@ -35,6 +37,7 @@ const TemplateDetailsStepSection = ({
                     value={templateDetails.templateLanguage}
                     onChange={(e) => onTemplateLanguageChange(e.target.value)}
                     SelectProps={{ native: true }}
+                    disabled={isEditMode}
                 >
                     <option value="en">English</option>
                     <option value="en_US">English (US)</option>
