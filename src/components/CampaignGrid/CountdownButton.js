@@ -15,7 +15,10 @@ const CountdownButton = ({ expiry, onStop, row }) => {
     const tick = () => {
       const msLeft = expiry - Date.now();
       if (msLeft <= 0) {
-        onStop(row);
+        // Natural expiry: do NOT call onStop here.
+        // The global interval in CampaignGrid detects expiry and calls triggerSendBulk.
+        // Calling onStop would remove the timer from state before the global interval runs,
+        // preventing the API from ever firing.
         return false;
       }
       setRemaining(Math.ceil(msLeft / 1000));

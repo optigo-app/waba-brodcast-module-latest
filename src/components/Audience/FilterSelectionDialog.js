@@ -23,7 +23,8 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import { DataGrid } from '@mui/x-data-grid';
 import { LinearProgress } from '@mui/material';
 import { InputAdornment } from '@mui/material';
-import { Upload, FileText, X } from 'lucide-react';
+import { Upload, FileText, X, Download } from 'lucide-react';
+import sampleExcelFile from '../../assets/sampleAud.xlsx';
 import styles from './AudienceSection.module.scss';
 import SelectAutocomplete from './SelectAutocomplete';
 import { fetchGroupList } from '../../API/GroupLists/GroupLists';
@@ -1043,6 +1044,18 @@ const FilterSelectionDialog = ({
                 <Typography variant="caption" color="textSecondary">
                   Supported formats: .xlsx, .xls, .csv (Max 10MB)
                 </Typography>
+                <Button
+                  component="a"
+                  href={sampleExcelFile}
+                  download="sample_audience.xlsx"
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Download size={16}/>}
+                  sx={{ mt: 1 }}
+                  className='primaryBtnClassname'
+                >
+                  Download Sample
+                </Button>
               </Box>
             </Box>
           )}

@@ -3,6 +3,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import { TextField, InputAdornment, Box, IconButton, Tooltip } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import DeleteIcon from '@mui/icons-material/Delete';
 import {
   GridToolbarColumnsButton,
   GridToolbarFilterButton,
@@ -11,31 +12,33 @@ import {
 } from '@mui/x-data-grid';
 
 // ── Stable column definitions (never recreated) ───────────────────────────────
+const renderDashIfEmpty = (params) => params.value || '-';
+
 const CRM_COLUMNS = [
   { field: 'SrNo',          headerName: 'Sr #',             width: 60,  type: 'number', headerClassName: 'data-grid-header' },
-  { field: 'CustomerCode',  headerName: 'Customer Code', width: 160, headerClassName: 'data-grid-header' },
-  { field: 'CustomerName',  headerName: 'Name',          width: 200, headerClassName: 'data-grid-header' },
-  { field: 'CompanyType',   headerName: 'Company Type',  width: 150, headerClassName: 'data-grid-header' },
-  { field: 'CustomerEmail', headerName: 'Email',         width: 220, headerClassName: 'data-grid-header' },
-  { field: 'CustomerPhone', headerName: 'Phone',         width: 160, headerClassName: 'data-grid-header' },
-  { field: 'CountryCode',   headerName: 'Country Code',  width: 120, headerClassName: 'data-grid-header' },
-  { field: 'Country',       headerName: 'Country',       width: 120, headerClassName: 'data-grid-header' },
-  { field: 'State',         headerName: 'State',         width: 120, headerClassName: 'data-grid-header' },
-  { field: 'City',          headerName: 'City',          width: 120, headerClassName: 'data-grid-header' },
+  { field: 'CustomerCode',  headerName: 'Customer Code', width: 160, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'CustomerName',  headerName: 'Name',          width: 200, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'CompanyType',   headerName: 'Company Type',  width: 150, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'CustomerEmail', headerName: 'Email',         width: 220, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'CustomerPhone', headerName: 'Phone',         width: 160, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'CountryCode',   headerName: 'Country Code',  width: 120, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'Country',       headerName: 'Country',       width: 120, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'State',         headerName: 'State',         width: 120, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'City',          headerName: 'City',          width: 120, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
 ];
 
 const EXCEL_COLUMNS = [
   { field: 'SrNo',         headerName: '#',             width: 60,  type: 'number', headerClassName: 'data-grid-header' },
-  { field: 'CustomerName', headerName: 'Customer Name', width: 200, headerClassName: 'data-grid-header' },
-  { field: 'Email',        headerName: 'Email',         width: 220, headerClassName: 'data-grid-header' },
-  { field: 'PhoneNo',      headerName: 'Phone',         width: 160, headerClassName: 'data-grid-header' },
-  { field: 'Company',      headerName: 'Company',       width: 220, headerClassName: 'data-grid-header' },
-  { field: 'CustomerType', headerName: 'Type',          width: 140, headerClassName: 'data-grid-header' },
-  { field: 'Category',     headerName: 'Category',      width: 160, headerClassName: 'data-grid-header' },
-  { field: 'Source',       headerName: 'Source',        width: 160, headerClassName: 'data-grid-header' },
-  { field: 'PinCode',      headerName: 'Pin Code',      width: 120, headerClassName: 'data-grid-header' },
-  { field: 'City',         headerName: 'City',          width: 120, headerClassName: 'data-grid-header' },
-  { field: 'State',        headerName: 'State',         width: 120, headerClassName: 'data-grid-header' },
+  { field: 'CustomerName', headerName: 'Customer Name', width: 200, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'Email',        headerName: 'Email',         width: 220, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'PhoneNo',      headerName: 'Phone',         width: 160, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'Company',      headerName: 'Company',       width: 220, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'CustomerType', headerName: 'Type',          width: 140, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'Category',     headerName: 'Category',      width: 160, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'Source',       headerName: 'Source',        width: 160, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'PinCode',      headerName: 'Pin Code',      width: 120, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'City',         headerName: 'City',          width: 120, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
+  { field: 'State',        headerName: 'State',         width: 120, headerClassName: 'data-grid-header', renderCell: renderDashIfEmpty },
 ];
 
 // Unified columns for mixed Excel and CRM data
@@ -214,10 +217,6 @@ const CustomToolbar = React.memo(({ onFilterClick, onSearchChange, searchText, s
 // ── Stable slots object (defined once at module level) ────────────────────────
 const GRID_SLOTS = { toolbar: CustomToolbar };
 
-// ── Stable empty Set to avoid new reference on every render ──────────────────
-const EMPTY_SET = new Set();
-const EMPTY_SELECTION = { type: 'include', ids: EMPTY_SET };
-
 // ── AudienceGrid ──────────────────────────────────────────────────────────────
 const AudienceGrid = ({
   rows = [],
@@ -229,6 +228,7 @@ const AudienceGrid = ({
   pageSizeOptions = [20, 50, 100],
   searchText: externalSearchText,
   onSearchChange: externalOnSearchChange,
+  onDelete,
 }) => {
   console.log('AudienceGrid props:', { rows, onRowSelectionModelChange, rowSelectionModel, onFilterClick, source, loading, pageSizeOptions, searchText: externalSearchText, onSearchChange: externalOnSearchChange });
   const [internalSearch, setInternalSearch] = useState('');
@@ -241,11 +241,11 @@ const AudienceGrid = ({
   }, [externalOnSearchChange]);
 
   const safeSelection = useMemo(() => {
-    if (!rowSelectionModel) return EMPTY_SELECTION;
-    if (rowSelectionModel.ids instanceof Set) return rowSelectionModel;
+    if (!rowSelectionModel) return { type: 'include', ids: new Set() };
     if (Array.isArray(rowSelectionModel)) return { type: 'include', ids: new Set(rowSelectionModel) };
+    if (rowSelectionModel.ids instanceof Set) return rowSelectionModel;
     if (rowSelectionModel.ids) return { type: 'include', ids: new Set(rowSelectionModel.ids) };
-    return EMPTY_SELECTION;
+    return { type: 'include', ids: new Set() };
   }, [rowSelectionModel]);
 
   const selectedCount = safeSelection.ids.size;
@@ -273,7 +273,16 @@ const AudienceGrid = ({
   }, [processedRows, searchBlobs, searchText]);
 
   const handleSelectionChange = useCallback((model) => {
-    onRowSelectionModelChange?.(model);
+    // DataGrid may pass object { ids: Set } or array — normalize to array
+    let idsArray = [];
+    if (Array.isArray(model)) {
+      idsArray = model;
+    } else if (model?.ids instanceof Set) {
+      idsArray = Array.from(model.ids);
+    } else if (model?.ids) {
+      idsArray = Array.from(model.ids);
+    }
+    onRowSelectionModelChange?.(idsArray);
   }, [onRowSelectionModelChange]);
 
   const getRowId = useCallback((row) => row.CustomerId ?? row.id ?? row.PhoneNo ?? row.Email ?? row.SrNo?.toString(), []);
@@ -294,7 +303,30 @@ const AudienceGrid = ({
     return hasExcel && hasCRM;
   }, [processedRows]);
 
-  const columns = hasMixedData ? UNIFIED_COLUMNS : (source === 'crm' ? CRM_COLUMNS : EXCEL_COLUMNS);
+  const actionColumn = useMemo(() => ({
+    field: 'actions',
+    headerName: 'Action',
+    width: 80,
+    sortable: false,
+    filterable: false,
+    headerClassName: 'data-grid-header',
+    renderCell: (params) => (
+      <IconButton
+        size="small"
+        color="error"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete?.(params.row);
+        }}
+        sx={{ '&:hover': { backgroundColor: 'rgba(211, 47, 47, 0.1)' } }}
+      >
+        <DeleteIcon fontSize="small" />
+      </IconButton>
+    ),
+  }), [onDelete]);
+
+  const baseColumns = hasMixedData ? UNIFIED_COLUMNS : (source === 'crm' ? CRM_COLUMNS : EXCEL_COLUMNS);
+  const columns = useMemo(() => onDelete ? [...baseColumns, actionColumn] : baseColumns, [baseColumns, actionColumn, onDelete]);
 
   return (
     <Box sx={{ width: '100%', height: '98%', overflowX: 'auto' }}>

@@ -1,6 +1,6 @@
 import { CommonAPI } from "../InitialApi/CommonApi";
 
-export const fetchCampaignDetails = async (userId, campaignId, chatMsgStatus = null) => {
+export const fetchCampaignDetails = async (userId, campaignId, chatMsgStatus = null, templateId = null) => {
     try {
         const con = {
             id: "",
@@ -15,6 +15,11 @@ export const fetchCampaignDetails = async (userId, campaignId, chatMsgStatus = n
         // Add ChatMsgStatus to parameters if provided
         if (chatMsgStatus !== null && chatMsgStatus !== undefined && chatMsgStatus !== '') {
             p.ChatMsgStatus = chatMsgStatus;
+        }
+
+        // Add TemplateId to parameters if provided
+        if (templateId !== null && templateId !== undefined && templateId !== '') {
+            p.TemplateId = templateId;
         }
 
         const body = {

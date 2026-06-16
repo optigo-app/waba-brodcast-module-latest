@@ -2,11 +2,12 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '@mui/x-data-grid';
 import { Paper, Chip, Box, Typography, Button, ToggleButtonGroup, ToggleButton, Grid, Card, CardContent, Tooltip, CircularProgress } from '@mui/material';
-import { BarChart3, Copy, Rocket, Edit2, Plus, RefreshCw, Megaphone, LayoutGrid, List, AlertTriangle } from 'lucide-react';
+import { BarChart3, Copy, Rocket, Edit2, Plus, RefreshCw, Megaphone, LayoutGrid, List, AlertTriangle, Trash2 } from 'lucide-react';
 import FilterBar from '../Common/FilterBar/FilterBar';
 import IconButton from '../Common/IconButton/IconButton';
 import CountdownButton from './CountdownButton';
 import { fetchCampaignLists } from '../../API/CampaignList/CampaignList';
+import { deleteCampaign } from '../../API/CampaignList/DeleteCampaign';
 import { fetchCampaignDetails } from '../../API/CampaignList/FetchCampaignDetails';
 import { sendBulk } from '../../API/SendBullk/SendBulk';
 import { useAuthToken } from '../../hooks/useAuthToken';
@@ -36,7 +37,7 @@ const getTypeConfig = (type) => {
 };
 
 // ── Stable column definitions ─────────────────────────────────────────────────
-const buildColumns = (onAnalytics, onDuplicate, onDownload, onLaunch, onStop, onEdit, onCopyId, getActiveTimers, launchingCampaignIds) => {
+const buildColumns = (onAnalytics, onDuplicate, onDownload, onLaunch, onStop, onEdit, onCopyId, onDelete, getActiveTimers, launchingCampaignIds) => {
   return [
     {
       field: 'actions', headerName: 'ACTION', minWidth: 220, sortable: false,
@@ -91,7 +92,10 @@ const buildColumns = (onAnalytics, onDuplicate, onDownload, onLaunch, onStop, on
             })()
           )}
           {Number(params.row.Status) === 1 && (
-            <IconButton icon={Edit2} color="secondary" tooltip="Edit" onClick={() => onEdit(params.row)} />
+            <>
+              <IconButton icon={Edit2} color="secondary" tooltip="Edit" onClick={() => onEdit(params.row)} />
+              {/* <IconButton icon={Trash2} color="error" tooltip="Delete" onClick={() => onDelete(params.row)} /> */}
+            </>
           )}
         </Box>
       ),
@@ -195,9 +199,13 @@ const CampaignGrid = () => {
   const [campaignToLaunch, setCampaignToLaunch] = useState(null);
   const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = useState(false);
   const [insufficientCampaign, setInsufficientCampaign] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [campaignToDelete, setCampaignToDelete] = useState(null);
   const [launchingCampaignIds, setLaunchingCampaignIds] = useState(() => new Set());
+  const launchingCampaignIdsRef = useRef(new Set());
   const sendingCampaignIdsRef = useRef(new Set());
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 100 });
+
   const [activeTimers, setActiveTimers] = useState(() => {
     try {
       const saved = localStorage.getItem('campaignActiveTimers');
@@ -213,6 +221,7 @@ const CampaignGrid = () => {
     } catch (e) { console.error('Error loading timers:', e); }
     return {};
   });
+
   const activeTimersRef = useRef(activeTimers);
   useEffect(() => { activeTimersRef.current = activeTimers; }, [activeTimers]);
 
@@ -228,20 +237,18 @@ const CampaignGrid = () => {
 
   const triggerSendBulk = useCallback(async (campaignId) => {
     const campaignKey = String(campaignId);
-    if (!campaignId || launchingCampaignIds.has(campaignKey) || sendingCampaignIdsRef.current.has(campaignKey)) return;
+    if (!campaignId || launchingCampaignIdsRef.current.has(campaignKey) || sendingCampaignIdsRef.current.has(campaignKey)) return;
 
     sendingCampaignIdsRef.current.add(campaignKey);
+    launchingCampaignIdsRef.current.add(campaignKey);
 
-    setLaunchingCampaignIds(prev => {
-      const next = new Set(prev);
-      next.add(campaignKey);
-      return next;
-    });
+    // Force re-render for UI only (spinner icon)
+    setLaunchingCampaignIds(new Set(launchingCampaignIdsRef.current));
 
     try {
       const response = await sendBulk({
-        appuserid: userToken?.userid,
-        userId: userToken?.id,
+        appuserid: userToken?.userId || '',
+        userId: userToken?.id || '',
         campaignId,
         whatsappNumber: userToken?.whatsappNumber,
       });
@@ -265,14 +272,19 @@ const CampaignGrid = () => {
       console.error('Error triggering send bulk:', error);
       toast.error(`Error sending campaign ${campaignId}`);
     } finally {
-      setLaunchingCampaignIds(prev => {
-        const next = new Set(prev);
-        next.delete(campaignKey);
-        return next;
-      });
+      launchingCampaignIdsRef.current.delete(campaignKey);
       sendingCampaignIdsRef.current.delete(campaignKey);
+      
+      // Update UI state after
+      setLaunchingCampaignIds(new Set(launchingCampaignIdsRef.current));
     }
-  }, [launchingCampaignIds, userToken?.id, userToken?.userid, userToken?.whatsappNumber, loadCampaigns]);
+  }, [userToken?.userId, userToken?.id, userToken?.whatsappNumber, loadCampaigns]);
+
+  const triggerSendBulkRef = useRef(triggerSendBulk);
+
+  useEffect(() => {
+    triggerSendBulkRef.current = triggerSendBulk;
+  }, [triggerSendBulk]);
 
   // Timer logic - single interval, reads from ref, minimal state updates
   useEffect(() => {
@@ -292,13 +304,13 @@ const CampaignGrid = () => {
           return next;
         });
         expiredIds.forEach((id) => {
-          triggerSendBulk(Number(id));
+          triggerSendBulkRef.current(Number(id));
         });
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [triggerSendBulk]);
+  }, []);
 
   // Action handlers
   const handlers = useMemo(() => ({
@@ -327,7 +339,7 @@ const CampaignGrid = () => {
         console.error('Error:', error);
       }
     },
-    onDownload: (row) => console.log('download', row),
+    onDownload: (row) => {},
     onLaunch: (row) => {
       if (Object.keys(activeTimersRef.current).length > 0) {
         toast.error('Another campaign is currently being launched. Please wait or stop it first.');
@@ -372,6 +384,10 @@ const CampaignGrid = () => {
       navigator.clipboard.writeText(id);
       toast.success('Campaign ID copied to clipboard');
     },
+    onDelete: (row) => {
+      setCampaignToDelete(row);
+      setDeleteConfirmOpen(true);
+    },
     onStop: (row) => {
       setActiveTimers(prev => {
         const next = { ...prev };
@@ -399,6 +415,34 @@ const CampaignGrid = () => {
     setCampaignToLaunch(null);
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!campaignToDelete) return;
+    try {
+      toast.loading('Deleting campaign...', { id: 'delete-campaign' });
+      const result = await deleteCampaign(userToken?.username, campaignToDelete.Id);
+      toast.dismiss('delete-campaign');
+
+      if (result.success) {
+        setCampaigns(prev => prev.filter(c => Number(c.Id) !== Number(campaignToDelete.Id)));
+        toast.success(`Campaign "${campaignToDelete.Name}" deleted successfully`);
+      } else {
+        toast.error('Failed to delete campaign');
+      }
+    } catch (error) {
+      toast.dismiss('delete-campaign');
+      toast.error('Error deleting campaign');
+      console.error('Delete error:', error);
+    } finally {
+      setDeleteConfirmOpen(false);
+      setCampaignToDelete(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmOpen(false);
+    setCampaignToDelete(null);
+  };
+
   const columns = useMemo(() =>
     buildColumns(
       handlers.onAnalytics,
@@ -408,6 +452,7 @@ const CampaignGrid = () => {
       handlers.onStop,
       handlers.onEdit,
       handlers.onCopyId,
+      handlers.onDelete,
       () => activeTimersRef.current,
       launchingCampaignIds
     ),
@@ -563,7 +608,7 @@ const CampaignGrid = () => {
             {filteredData.map((campaign) => (
               <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={campaign.Id}>
                 <Card
-                  className={activeTimersRef.current[String(campaign.Id)] ? styles.stoppingCard : ''}
+                  className={activeTimers[String(campaign.Id)] ? styles.stoppingCard : ''}
                   sx={{
                     borderRadius: '12px',
                     boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
@@ -583,7 +628,10 @@ const CampaignGrid = () => {
                       </Typography>
                       <Box sx={{ display: 'flex', gap: 0.5 }}>
                         {Number(campaign.Status) === 1 && (
-                          <IconButton icon={Edit2} color="secondary" tooltip="Edit" onClick={() => handlers.onEdit(campaign)} />
+                          <>
+                            <IconButton icon={Edit2} color="secondary" tooltip="Edit" onClick={() => handlers.onEdit(campaign)} />
+                            {/* <IconButton icon={Trash2} color="error" tooltip="Delete" onClick={() => handlers.onDelete(campaign)} /> */}
+                          </>
                         )}
                       </Box>
                     </Box>
@@ -612,7 +660,7 @@ const CampaignGrid = () => {
 
                     <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
                       {(() => {
-                        const timers = activeTimersRef.current;
+                        const timers = activeTimers;
                         const hasActiveTimer = Object.keys(timers).length > 0;
                         const rowTimer = timers[String(campaign.Id)];
                         return (
@@ -679,6 +727,19 @@ const CampaignGrid = () => {
         confirmLabel="OK"
         hideCancel={true}
         maxWidth="400px"
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteConfirmOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Campaign"
+        description={`Are you sure you want to delete the campaign "${campaignToDelete?.Name || 'this campaign'}"? This action cannot be undone.`}
+        icon={Trash2}
+        isDanger={true}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
       />
     </div>
   );

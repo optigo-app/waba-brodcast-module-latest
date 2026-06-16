@@ -68,6 +68,7 @@ const AddCampaign = () => {
   const [retargetStatus, setRetargetStatus] = useState('Overall');
   const [retargetSourceCampaignId, setRetargetSourceCampaignId] = useState(null);
   const [retargetChatMsgStatusId, setRetargetChatMsgStatusId] = useState(null);
+  const [retemplateData, setReTemplateData] = useState({});
 
   const buildRetargetName = (sourceCampaignName, statusLabel) => `retarget-${sourceCampaignName || 'Campaign'}-${statusLabel || 'Overall'}`;
 
@@ -83,8 +84,9 @@ const AddCampaign = () => {
         setRetargetSourceCampaignName(sourceCampaignName);
         setRetargetStatus(statusLabel);
         setRetargetSourceCampaignId(campaign.RetargetSourceCampaignId || null);
-        setRetargetChatMsgStatusId(campaign.Status || null);
+        setRetargetChatMsgStatusId(campaign.RetargetChatMsgStatus || null);
         setCampaignName(buildRetargetName(sourceCampaignName, statusLabel));
+        setReTemplateData(campaign?.templateData);
       }
 
       // Pre-fill campaign details
@@ -741,6 +743,7 @@ const AddCampaign = () => {
               onRetargetStatusChange={handleRetargetStatusChange}
               retargetSourceCampaignId={retargetSourceCampaignId}
               retargetChatMsgStatus={retargetChatMsgStatusId}
+              retemplateData={retemplateData}
             />
           )}
           {currentStep === 3 && (

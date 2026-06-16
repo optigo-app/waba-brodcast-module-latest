@@ -315,7 +315,7 @@ const PreviewSave = ({ onBack, onSave, campaignName, campaignType, scheduledFor,
           Back
         </Button>
         <Button variant="contained" className='buttonClassname' onClick={handleSaveClick} disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Save & Launch'}
+          {isSaving ? 'Saving...' : 'Save'}
         </Button>
       </div>
 
@@ -324,8 +324,8 @@ const PreviewSave = ({ onBack, onSave, campaignName, campaignType, scheduledFor,
         isOpen={showConfirmModal}
         onClose={handleCancelSave}
         onConfirm={handleConfirmSave}
-        title="Save & Launch Campaign"
-        description="Are you sure you want to save and launch this campaign? Once launched, messages will start sending immediately."
+        title="Save Campaign"
+        description="Are you sure you want to save this campaign?"
         icon={Send}
       />
     </div>

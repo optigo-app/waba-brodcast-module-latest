@@ -317,7 +317,7 @@ const CampaignReport = () => {
             const statusLabel = statFilter || 'Overall';
             const sourceCampaignName = quickReportData?.CampaignName || detailsResult.data.rd[0]?.CampaignName || detailsResult.data.rd[0]?.Name || `Campaign ${id}`;
             const chatMsgStatus = getChatMsgStatusFromFilter(statFilter);
-
+            
             const campaignData = {
                 ...detailsResult.data.rd[0],
                 Name: `retarget-${sourceCampaignName}-${statusLabel}`,
@@ -331,6 +331,7 @@ const CampaignReport = () => {
                 RetargetSourceCampaignId: id, // Pass original campaign ID for API call
                 RetargetChatMsgStatus: chatMsgStatus, // Pass status for API filtering
             };
+            console.log("campaignData",campaignData)
 
             navigate('/campaigns/add', { state: { campaign: campaignData } });
             toast.success('Retarget campaign flow started');
@@ -454,9 +455,21 @@ const CampaignReport = () => {
                                 <Grid container spacing={2}>
                                     {Array.from({ length: 7 }).map((_, i) => (
                                         <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
-                                            <Box className={styles.detailCard}>
-                                                <Skeleton variant="text" width={100} height={16} sx={{ mb: 1, bgcolor: 'rgba(0, 0, 0, 0.03)' }} />
-                                                <Skeleton variant="text" width={120} height={20} sx={{ bgcolor: 'rgba(0, 0, 0, 0.03)' }} />
+                                            <Box sx={{
+                                                padding: '1.25rem 1.5rem',
+                                                borderRadius: '16px',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                border: '1px solid #e4e8ee',
+                                                backgroundColor: '#fff',
+                                                position: 'relative',
+                                                overflow: 'hidden'
+                                            }}>
+                                                <Box>
+                                                    <Skeleton variant="text" width={100} height={16} sx={{ mb: 1, bgcolor: 'rgba(0, 0, 0, 0.03)' }} />
+                                                    <Skeleton variant="text" width={120} height={20} sx={{ bgcolor: 'rgba(0, 0, 0, 0.03)' }} />
+                                                </Box>
                                                 <Skeleton variant="circular" width={36} height={36} sx={{ position: 'absolute', right: 12, top: 12, bgcolor: 'rgba(0, 0, 0, 0.03)' }} />
                                             </Box>
                                         </Grid>

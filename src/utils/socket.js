@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const isLocal = ['5dmjw0dg-2000.inc1.devtunnels.ms'].includes(window.location.hostname);
+const isLocal = ['localhost', '5dmjw0dg-2000.inc1.devtunnels.ms'].includes(window.location.hostname);
 const isNxt = ['nxtwababroadcast.optigoapps.com'].includes(window.location.hostname);
 const isLocalWeb = ['wabachat.web'].includes(window.location.hostname);
 

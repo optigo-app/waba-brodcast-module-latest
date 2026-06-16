@@ -1,7 +1,7 @@
 
 const MEDIA_BASE_URL = process.env.REACT_APP_MEDIA_BASE_URL;
 
-const isLocal = ['5dmjw0dg-2000.inc1.devtunnels.ms'].includes(window.location.hostname);
+const isLocal = ["localhost", '5dmjw0dg-2000.inc1.devtunnels.ms'].includes(window.location.hostname);
 const isNxt = ['nxtwababroadcast.optigoapps.com'].includes(window.location.hostname);
 const isLocalWeb = ["wababroadcast.web"].includes(window.location.hostname);
 
@@ -11,7 +11,7 @@ const API_BASE_URL = isLocal ?
         isNxt ? process.env.REACT_APP_API_NXT_URL :
             process.env.REACT_APP_API_PRODUCTION_URL;
 
-const Image_upload_url  = process.env.REACT_APP_IMAGE_UPLOAD;
+const Image_upload_url = process.env.REACT_APP_IMAGE_UPLOAD;
 
 export const APIURL = `${API_BASE_URL}/report`;
 export const MEDIAAPIURL = MEDIA_BASE_URL;
@@ -55,9 +55,11 @@ export const getHeaders = (whatsappNumber) => {
 
 export const getHeaders1 = () => {
     const userToken = JSON.parse(sessionStorage.getItem("userToken"));
+    const version = "v2";
     return {
         Yearcode: userToken?.yc || userToken?.yearcode,
         sv: userToken?.svid || userToken?.sv,
+        Version: version,
     };
 };
 

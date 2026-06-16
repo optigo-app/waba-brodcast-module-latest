@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Typography, Paper, Button, Chip, FormControl, InputLabel, Select, MenuItem, Dialog, IconButton } from '@mui/material';
-import { Plus, Database, FileSpreadsheet, X } from 'lucide-react';
+import { Box, Typography, Paper, Button, Chip, FormControl, InputLabel, Select, MenuItem, Dialog, IconButton, CircularProgress } from '@mui/material';
+import { Plus, Database, FileSpreadsheet, X, Trash2, Download } from 'lucide-react';
 import AudienceGrid from '../../Audience/AudienceGrid';
 import FilterSelectionDialog from '../../Audience/FilterSelectionDialog';
 import styles from '../AddCampaign.module.scss';
@@ -9,11 +9,13 @@ import toast from 'react-hot-toast';
 import { fetchExcelList } from '../../../API/ExcelLists/ExcelLists';
 import { fetchCampaignDetails } from '../../../API/CampaignList/FetchCampaignDetails';
 import { useAuthToken } from '../../../hooks/useAuthToken';
+import ConfirmationModal from '../../ConfirmationModal/ConfirmationModal';
+import sampleExcelFile from '../../../assets/sampleAud.xlsx';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
 const AUDIENCE_SELECTION_DRAFT_KEY = 'audienceSelectionDraft';
 
-const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilterChange, showError, audienceError, customerFilters, audienceData, audienceGridData, isEditClone, campaignId, isRetargetFlow = false, retargetSourceCampaignName = '', retargetStatus = 'Overall', retargetStatusOptions = [], onRetargetStatusChange, retargetSourceCampaignId = null, retargetChatMsgStatus = null }) => {
+const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilterChange, showError, audienceError, customerFilters, audienceData, audienceGridData, isEditClone, campaignId, isRetargetFlow = false, retargetSourceCampaignName = '', retargetStatus = 'Overall', retargetStatusOptions = [], onRetargetStatusChange, retargetSourceCampaignId = null, retargetChatMsgStatus = null, retemplateData = {} }) => {
     const [source, setSource] = useState('crm');
     const [file, setFile] = useState(null);
     const [filterDialogOpen, setFilterDialogOpen] = useState(false);
@@ -29,11 +31,13 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
     });
     const [searchTerm, setSearchTerm] = useState('');
     const [searchInput, setSearchInput] = useState('');
-    const [rowSelectionModel, setRowSelectionModel] = useState({ type: 'include', ids: new Set() });
+    const [rowSelectionModel, setRowSelectionModel] = useState([]);
     const [selectedRowMap, setSelectedRowMap] = useState({});
     const [selectedBranches, setSelectedBranches] = useState([]);
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+    const [retargetLoading, setRetargetLoading] = useState(false);
     const hasLoadedCustomersRef = useRef(false);
 
     const searchTimeoutRef = useRef(null);
@@ -43,12 +47,14 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
     useEffect(() => {
         const fetchRetargetAudience = async () => {
             if (isRetargetFlow && retargetSourceCampaignId && !hasLoadedCustomersRef.current) {
+                setRetargetLoading(true);
                 try {
                     toast.loading('Loading audience data...', { id: 'retarget-audience' });
-                    const detailsResult = await fetchCampaignDetails(userToken?.userId, retargetSourceCampaignId, retargetChatMsgStatus);
+                    console.log("retargetChatMsgStatus", retargetChatMsgStatus)
+                    const detailsResult = await fetchCampaignDetails(userToken?.userId, retargetSourceCampaignId, retargetChatMsgStatus, retemplateData?.TemplateId);
 
-                    if (detailsResult.success && detailsResult.data?.rd2) {
-                        const apiAudience = detailsResult.data.rd2;
+                    if (detailsResult.success && detailsResult.data?.rd3) {
+                        const apiAudience = detailsResult.data.rd3;
 
                         if (apiAudience.length > 0) {
                             const mappedAudience = apiAudience.map((item) => ({
@@ -77,7 +83,7 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
 
                             setFilteredDataFromDialog(mappedAudience);
                             const selectedIds = mappedAudience.map(row => row.CustomerId || row.MessageId || row.id);
-                            setRowSelectionModel({ type: 'include', ids: new Set(selectedIds) });
+                            setRowSelectionModel(selectedIds);
 
                             const rowMap = {};
                             mappedAudience.forEach(row => {
@@ -101,6 +107,7 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
                 } finally {
                     toast.dismiss('retarget-audience');
                     hasLoadedCustomersRef.current = true;
+                    setRetargetLoading(false);
                 }
             }
         };
@@ -118,7 +125,7 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
 
                 setFilteredDataFromDialog(audienceGridData);
                 const selectedIds = audienceGridData.map(row => row.CustomerId || row.id);
-                setRowSelectionModel({ type: 'include', ids: new Set(selectedIds) });
+                setRowSelectionModel(selectedIds);
 
                 const rowMap = {};
                 audienceGridData.forEach(row => {
@@ -193,7 +200,7 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
 
             if (draftRows.length > 0) {
                 setFilteredDataFromDialog(draftRows);
-                setRowSelectionModel({ type: 'include', ids: new Set(draftSelectedIds) });
+                setRowSelectionModel(draftSelectedIds);
 
                 const draftRowMap = {};
                 draftRows.forEach((row) => {
@@ -214,10 +221,7 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
     }, []);
 
     const selectedIds = useMemo(() => {
-        if (rowSelectionModel?.ids instanceof Set) {
-            return Array.from(rowSelectionModel.ids);
-        }
-        return [];
+        return Array.isArray(rowSelectionModel) ? rowSelectionModel : [];
     }, [rowSelectionModel]);
 
     const rowSelectionData = useMemo(() => {
@@ -353,7 +357,7 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
 
         if (data.mode === 'replace') {
             setFilteredDataFromDialog(selectedRows);
-            setRowSelectionModel({ type: 'include', ids: new Set(selectedIds) });
+            setRowSelectionModel(selectedIds);
 
             const newSelectedRowMap = {};
             selectedRows.forEach(row => {
@@ -375,7 +379,7 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
             setFilteredDataFromDialog(combinedData);
 
             const allIds = combinedData.map(row => row.CustomerId || row.id);
-            setRowSelectionModel({ type: 'include', ids: new Set(allIds) });
+            setRowSelectionModel(allIds);
 
             const newSelectedRowMap = { ...selectedRowMap };
             selectedRows.forEach(row => {
@@ -392,10 +396,6 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
     const handleRowSelectionModelChange = useCallback((model) => {
         setRowSelectionModel(model);
         onAudienceChange(model);
-        // Clear error when audience is selected
-        if (model.length > 0) {
-            // The parent component should handle clearing the error
-        }
     }, [onAudienceChange]);
 
     const processDroppedExcelFile = async (excelFile) => {
@@ -457,8 +457,65 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
         setIsDragging(false);
     };
 
+    const handleClearAudience = () => {
+        setClearConfirmOpen(true);
+    };
 
-    console.log("filteredDataFromDialog",filteredDataFromDialog)
+    const handleClearConfirm = () => {
+        const idsToRemove = new Set(Array.isArray(rowSelectionModel) ? rowSelectionModel : []);
+
+        const remainingRows = (filteredDataFromDialog || []).filter((row) => {
+            const rowId = row?.CustomerId || row?.id;
+            return !idsToRemove.has(rowId);
+        });
+
+        setFilteredDataFromDialog(remainingRows.length > 0 ? remainingRows : null);
+
+        setSelectedRowMap((prev) => {
+            if (!prev) return prev;
+            const updated = { ...prev };
+            idsToRemove.forEach((id) => delete updated[id]);
+            return updated;
+        });
+
+        setRowSelectionModel([]);
+        setSelectedBranches([]);
+        setSelectedGroup(null);
+        setClearConfirmOpen(false);
+        onAudienceChange(remainingRows);
+        toast.success('Selected audience cleared');
+    };
+
+    const handleDeleteRow = useCallback((row) => {
+        const rowId = row?.CustomerId || row?.id;
+        if (!rowId) return;
+
+        setFilteredDataFromDialog((prev) => {
+            if (!prev) return prev;
+            const updated = prev.filter((r) => (r?.CustomerId || r?.id) !== rowId);
+            return updated.length > 0 ? updated : null;
+        });
+
+        setRowSelectionModel((prev) => {
+            if (!Array.isArray(prev)) return prev;
+            return prev.filter((id) => id !== rowId);
+        });
+
+        setSelectedRowMap((prev) => {
+            if (!prev) return prev;
+            const updated = { ...prev };
+            delete updated[rowId];
+            return updated;
+        });
+
+        onAudienceChange((prev) => {
+            if (!Array.isArray(prev)) return prev;
+            return prev.filter((r) => (r?.CustomerId || r?.id) !== rowId);
+        });
+
+        toast.success('Contact removed');
+    }, [onAudienceChange]);
+
 
     return (
         <div className={styles.formCard}>
@@ -586,6 +643,19 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
                                     </Select>
                                 </FormControl>
                             )} */}
+                            {filteredDataFromDialog && filteredDataFromDialog.length > 0 && (
+                                <Button
+                                    variant='contained'
+                                    color='error'
+                                    size="small"
+                                    startIcon={<Trash2 size={16} />}
+                                    onClick={handleClearAudience}
+                                    sx={{ mr: 1 }}
+                                    className='dangerbtnClassName'
+                                >
+                                    Clear Audience
+                                </Button>
+                            )}
                             <Button
                                 variant='contained'
                                 className='buttonClassname'
@@ -606,9 +676,10 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
                                 rowSelectionModel={rowSelectionModel}
                                 onFilterClick={toggleFilterDialog}
                                 source={source}
-                                loading={false}
+                                loading={retargetLoading}
                                 searchText={searchInput}
                                 onSearchChange={handleGridSearchChange}
+                                onDelete={handleDeleteRow}
                             />
                         ) : (
                             <Box
@@ -624,16 +695,27 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
                                     backgroundColor: '#fcfcfd'
                                 }}
                             >
-                                <Typography variant="h6" sx={{ color: 'var(--secondary-color)', mb: 2 }}>
-                                    {source === 'excel' && file ? 'Excel uploaded successfully' : 'No contacts selected'}
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: 'var(--secondary-color)', mb: 3 }}>
-                                    {source === 'crm'
-                                        ? 'Click Add to filter and select contacts from CRM'
-                                        : file
-                                            ? `Excel has ${excelData?.rows?.length || 0} contacts. Click Filter Audience to select contacts.`
-                                            : 'Upload Excel file to filter contacts'}
-                                </Typography>
+                                {retargetLoading ? (
+                                    <>
+                                        <CircularProgress size={32} sx={{ mb: 2, color: 'var(--primary-color)' }} />
+                                        <Typography variant="h6" sx={{ color: 'var(--secondary-color)', mb: 1 }}>
+                                            Loading contacts...
+                                        </Typography>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Typography variant="h6" sx={{ color: 'var(--secondary-color)', mb: 2 }}>
+                                            {source === 'excel' && file ? 'Excel uploaded successfully' : 'No contacts selected'}
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ color: 'var(--secondary-color)', mb: 3 }}>
+                                            {source === 'crm'
+                                                ? 'Click Add to filter and select contacts from CRM'
+                                                : file
+                                                    ? `Excel has ${excelData?.rows?.length || 0} contacts. Click Filter Audience to select contacts.`
+                                                    : 'Upload Excel file to filter contacts'}
+                                        </Typography>
+                                    </>
+                                )}
                                 <Button
                                     variant='contained'
                                     className='buttonClassname'
@@ -669,6 +751,18 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
                     preSelectedData={filteredDataFromDialog}
                     preSelectedBranches={selectedBranches}
                     preSelectedGroup={selectedGroup}
+                />
+
+                <ConfirmationModal
+                    isOpen={clearConfirmOpen}
+                    onClose={() => setClearConfirmOpen(false)}
+                    onConfirm={handleClearConfirm}
+                    title="Clear Audience"
+                    description="Are you sure you want to remove the selected contacts from the audience? This action cannot be undone."
+                    icon={Trash2}
+                    isDanger={true}
+                    confirmLabel="Clear"
+                    cancelLabel="Cancel"
                 />
 
                 <Dialog
@@ -734,6 +828,19 @@ const Audience = ({ onNext, onBack, onAudienceChange, onDataSourceChange, onFilt
                                 <Typography className={styles.sourceCardDesc}>
                                     Upload and use audience contacts from your spreadsheet file.
                                 </Typography>
+                                <Button
+                                    component="a"
+                                    href={sampleExcelFile}
+                                    download="sample_audience.xlsx"
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<Download size={16} />}
+                                    sx={{ mt: 1 }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className='primaryBtnClassname'
+                                >
+                                    Download Sample
+                                </Button>
                             </Box>
                         </Box>
                     </Box>
